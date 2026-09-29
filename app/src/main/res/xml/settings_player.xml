@@ -64,26 +64,26 @@
             android:title="Hide the previous episode button"
             app:defaultValue="false"
     />
-    <!--<SwitchPreference
+    <SwitchPreference
             android:icon="@drawable/ic_baseline_fast_forward_24"
             app:key="skip_op_enabled"
             android:title="Skip OP button"
-            app:defaultValue="false"
+            app:defaultValue="true"
     />
     <SwitchPreference
             android:icon="@drawable/ic_baseline_speed_24"
             app:key="playback_speed_enabled"
             android:title="Playback speed button"
             android:summary="Your preferred playback speed will still be used with this disabled"
-            app:defaultValue="false"
+            app:defaultValue="true"
     />
     <SwitchPreference
             android:icon="@drawable/ic_baseline_aspect_ratio_24"
             app:key="player_resize_enabled"
             android:title="Player resize button"
             android:summary="Cursed"
-            app:defaultValue="false"
-    />-->
+            app:defaultValue="true"
+    />
     <MultiSelectListPreference
             app:key="selected_providers"
             android:title="Link loading sources"

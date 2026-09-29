@@ -1,10 +1,13 @@
 package khttp
 
-import java.io.ByteArrayOutputStream
-import java.io.OutputStream
+import com.lagradost.shiro.utils.DohProvider
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
+import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 
 /*
@@ -12,6 +15,9 @@ import java.util.zip.GZIPInputStream
  * Implements the small API surface this app uses: get/post/put/delete/head/patch
  * with headers/data/json/params/timeout/cookies/stream/allowRedirects,
  * and a Response exposing text/content/url/statusCode/headers/cookies.
+ *
+ * Backed by OkHttp internally (instead of raw HttpURLConnection) so the "DNS over HTTPS"
+ * setting (see utils/DohProvider.kt) transparently applies to every API call in the app.
  */
 
 object structures {
@@ -47,6 +53,30 @@ private fun buildQuery(params: Map<String, String>?): String {
     }
 }
 
+// The base client is cached and only rebuilt when the DNS-over-HTTPS setting actually
+// changes, so switching it in Settings applies immediately without an app restart, while
+// normal requests still benefit from OkHttp's connection pooling.
+@Volatile
+private var cachedClient: OkHttpClient? = null
+
+@Volatile
+private var cachedDnsKey: String? = null
+private val clientLock = Any()
+
+private fun baseClient(): OkHttpClient {
+    val key = DohProvider.currentKey()
+    cachedClient?.let { if (cachedDnsKey == key) return it }
+    synchronized(clientLock) {
+        cachedClient?.let { if (cachedDnsKey == key) return it }
+        val built = OkHttpClient.Builder()
+            .dns(DohProvider.buildDns())
+            .build()
+        cachedClient = built
+        cachedDnsKey = key
+        return built
+    }
+}
+
 private fun request(
     method: String,
     url: String,
@@ -61,117 +91,94 @@ private fun request(
 ): Response {
     val fullUrl = if (url.contains("?") || params == null) url else url + buildQuery(params)
 
-    var conn = URL(fullUrl).openConnection() as HttpURLConnection
-    var currentUrl = fullUrl
-    var redirectsLeft = 8
+    val requestBuilder = Request.Builder().url(fullUrl)
+    requestBuilder.header("Accept-Encoding", "gzip")
+    requestBuilder.header("User-Agent", "khttp/1.0.0")
+    requestBuilder.header("Accept", "*/*")
+    headers?.forEach { (k, v) -> requestBuilder.header(k, v) }
+    if (!cookies.isNullOrEmpty()) {
+        requestBuilder.header(
+            "Cookie",
+            cookies.entries.joinToString("; ") { "${it.key}=${it.value}" })
+    }
 
-    while (true) {
-        if (method == "PATCH") {
-            // HttpURLConnection doesn't support PATCH
-            conn.requestMethod = "POST"
-            conn.setRequestProperty("X-HTTP-Method-Override", "PATCH")
-        } else {
-            conn.requestMethod = method
+    val body = when {
+        json != null -> {
+            requestBuilder.header("Content-Type", "application/json")
+            (if (json is String) json else mapper.writeValueAsString(json))
+                .toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
         }
-        conn.connectTimeout = (timeout * 1000).toInt()
-        conn.readTimeout = (timeout * 1000).toInt()
-        conn.instanceFollowRedirects = false
-        conn.setRequestProperty("Accept-Encoding", "gzip")
-        conn.setRequestProperty("User-Agent", "khttp/1.0.0")
-        conn.setRequestProperty("Accept", "*/*")
-
-        headers?.forEach { (k, v) -> conn.setRequestProperty(k, v) }
-        if (!cookies.isNullOrEmpty()) {
-            conn.setRequestProperty(
-                "Cookie",
-                cookies.entries.joinToString("; ") { "${it.key}=${it.value}" })
+        data is Map<*, *> -> {
+            data.entries.joinToString("&") {
+                "${URLEncoder.encode(it.key.toString(), "UTF-8")}=${
+                    URLEncoder.encode(it.value.toString(), "UTF-8")
+                }"
+            }.toRequestBody("application/x-www-form-urlencoded".toMediaTypeOrNull())
         }
+        data is ByteArray -> data.toRequestBody(null)
+        data != null -> data.toString().toRequestBody(null)
+        else -> null
+    }
 
-        val bodyBytes: ByteArray? = when {
-            json != null -> {
-                conn.setRequestProperty("Content-Type", "application/json")
-                (if (json is String) json else mapper.writeValueAsString(json))
-                    .toByteArray(Charsets.UTF_8)
-            }
-            data is Map<*, *> -> {
-                conn.setRequestProperty(
-                    "Content-Type",
-                    "application/x-www-form-urlencoded"
-                )
-                data.entries.joinToString("&") {
-                    "${URLEncoder.encode(it.key.toString(), "UTF-8")}=${
-                        URLEncoder.encode(it.value.toString(), "UTF-8")
-                    }"
-                }.toByteArray(Charsets.UTF_8)
-            }
-            data is ByteArray -> data
-            data != null -> data.toString().toByteArray(Charsets.UTF_8)
-            else -> null
-        }
+    when (method) {
+        "GET" -> requestBuilder.get()
+        "HEAD" -> requestBuilder.head()
+        // POST/PUT/PATCH require a non-null body in OkHttp even when the caller passed no
+        // data/json (matches the old HttpURLConnection impl, which just sent no body at all).
+        else -> requestBuilder.method(method, body ?: ByteArray(0).toRequestBody(null))
+    }
 
-        if (bodyBytes != null && method != "GET" && method != "HEAD") {
-            conn.doOutput = true
-            conn.setFixedLengthStreamingMode(bodyBytes.size)
-            conn.outputStream.use { os: OutputStream -> os.write(bodyBytes) }
-        }
+    val timeoutMs = (timeout * 1000).toLong().coerceAtLeast(1000L)
+    var client = baseClient().newBuilder()
+        .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+        .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+        .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+        .build()
+    if (!allowRedirects) {
+        client = client.newBuilder().followRedirects(false).followSslRedirects(false).build()
+    }
 
-        val code = conn.responseCode
-
-        if (allowRedirects && code in intArrayOf(
-                HttpURLConnection.HTTP_MOVED_PERM,
-                HttpURLConnection.HTTP_MOVED_TEMP,
-                HttpURLConnection.HTTP_SEE_OTHER,
-                307, 308
-            ) && redirectsLeft-- > 0
-        ) {
-            val location = conn.getHeaderField("Location")
-            if (location != null) {
-                currentUrl = URL(URL(currentUrl), location).toString()
-                conn.disconnect()
-                conn = URL(currentUrl).openConnection() as HttpURLConnection
-                continue
-            }
-        }
-
+    client.newCall(requestBuilder.build()).execute().use { response ->
         val responseCookies = CookieJar()
-        conn.headerFields["Set-Cookie"]?.forEach { raw ->
+        response.headers.values("Set-Cookie").forEach { raw ->
             val first = raw.split(";")[0]
             val idx = first.indexOf('=')
             if (idx > 0) responseCookies[first.substring(0, idx)] = first.substring(idx + 1)
         }
 
-        val content = if (stream || method == "HEAD") {
+        val rawContent = if (stream || method == "HEAD") {
             ByteArray(0)
         } else {
             try {
-                val input = if (code >= 400) conn.errorStream else conn.inputStream
-                val bytes = input?.let { inp ->
-                    val buf = ByteArrayOutputStream()
-                    inp.copyTo(buf)
-                    inp.close()
-                    buf.toByteArray()
-                } ?: ByteArray(0)
-                if ("gzip".equals(conn.contentEncoding, true)) {
-                    try {
-                        GZIPInputStream(bytes.inputStream()).readBytes()
-                    } catch (e: Exception) {
-                        bytes
-                    }
-                } else bytes
+                response.body?.bytes() ?: ByteArray(0)
             } catch (e: Exception) {
                 ByteArray(0)
             }
         }
 
+        // We set Accept-Encoding manually above, which stops OkHttp from auto-decompressing,
+        // so decode it ourselves - matches what the previous HttpURLConnection impl did.
+        val content = if ("gzip".equals(response.header("Content-Encoding"), true)) {
+            try {
+                GZIPInputStream(rawContent.inputStream()).readBytes()
+            } catch (e: Exception) {
+                rawContent
+            }
+        } else rawContent
+
         val headerMap = mutableMapOf<String, String>()
-        conn.headerFields?.forEach { (k, v) ->
-            if (k != null && v != null) headerMap[k] = v.joinToString(", ")
+        for (name in response.headers.names()) {
+            headerMap[name] = response.headers.values(name).joinToString(", ")
         }
 
-        val finalUrl = conn.url?.toString() ?: currentUrl
-        val resp = Response(code, finalUrl, headerMap, responseCookies, content, conn)
-        if (!stream) conn.disconnect()
-        return resp
+        return Response(
+            response.code,
+            response.request.url.toString(),
+            headerMap,
+            responseCookies,
+            content,
+            null,
+        )
     }
 }
 

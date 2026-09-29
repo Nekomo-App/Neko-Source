@@ -91,7 +91,12 @@ val blacklistedTvKeys = listOf(
     "hide_open_website",
     "expanded_span_count",
     "new_results_page",
-    "disable_player_shadow"
+    "disable_player_shadow",
+    // These gate on-screen touch buttons in PlayerFragment; PlayerFragmentTv uses its own
+    // always-available D-pad actions for skip/resize/speed instead, so the toggles are no-ops on TV.
+    "skip_op_enabled",
+    "playback_speed_enabled",
+    "player_resize_enabled"
 )
 
 class SubSettingsFragment : PreferenceFragmentCompat() {
@@ -384,6 +389,11 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                     context?.removeKey(ANILIST_CACHED_LIST)
                     context?.setKey(ANILIST_SHOULD_UPDATE_LIST, true)
                     Toast.makeText(context, "Cleared network cache", Toast.LENGTH_LONG).show()
+                    return@setOnPreferenceClickListener true
+                }
+
+                findPreference<Preference?>("error_log_btt")?.setOnPreferenceClickListener {
+                    startActivity(Intent(activity, ErrorLogActivity::class.java))
                     return@setOnPreferenceClickListener true
                 }
 

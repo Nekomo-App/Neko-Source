@@ -502,7 +502,7 @@ class ShiroApi {
         fun getFirstSearchResultSlug(title: String?): String? {
             // Fallback on search
             val searchResults = title?.let { searchNew(it) }
-            val first = searchResults?.get(0)?.slug
+            val first = searchResults?.getOrNull(0)?.slug
             // Prioritizes sub if sub isn't hidden
             return if (settingsManager!!.getString("hide_behavior", "None") != "Hide subbed") {
                 searchResults?.find { it.slug == first?.removeSuffix("-dub") }?.slug ?: first
@@ -620,10 +620,16 @@ class ShiroApi {
         // OTHERWISE CRASH AT BOOT FROM HAVING OLD FAVORITES SYSTEM
         private fun Context.convertOldRecents() {
             isConvertingRecents = true
-            try {
-                var converted = 0
-                val keys = getKeys(VIEW_LST_KEY)
-                thread {
+            val keys = try {
+                getKeys(VIEW_LST_KEY)
+            } catch (e: Exception) {
+                logError(e)
+                isConvertingRecents = false
+                return
+            }
+            thread {
+                try {
+                    var converted = 0
                     keys.pmap {
                         getKey<LastEpisodeInfoLegacy>(it)
                     }
@@ -641,7 +647,11 @@ class ShiroApi {
                         if (data != null && data.seenAt + 60L * 60L * 24L * 30L * 1000L > System.currentTimeMillis() && converted < 25) { // last 30 days
                             // NEEDS REMOVAL TO PREVENT DUPLICATES
                             removeKey(it)
-                            val newData = getAnimePageNew(data.id.slug.replace("-dubbed", "-dub"))!!.data
+                            val newData = getAnimePageNew(data.id.slug.replace("-dubbed", "-dub"))?.data
+                            if (newData == null) {
+                                converted++
+                                return@forEach
+                            }
                             setKey(
                                 it, LastEpisodeInfo(
                                     data.pos,
@@ -676,24 +686,31 @@ class ShiroApi {
                         )
                             .show()
                     }
-                }
-            } catch (e: Exception) {
-                main {
-                    Toast.makeText(
-                        this,
-                        "Error converting latest watched",
-                        Toast.LENGTH_LONG
-                    )
-                        .show()
+                } catch (e: Exception) {
+                    logError(e)
+                    main {
+                        Toast.makeText(
+                            this,
+                            "Error converting latest watched",
+                            Toast.LENGTH_LONG
+                        )
+                            .show()
+                    }
+                } finally {
+                    isConvertingRecents = false
                 }
             }
-            isConvertingRecents = false
         }
 
         private fun Context.convertOldFavorites() {
-            try {
-                val keys = getKeys(BOOKMARK_KEY)
-                thread {
+            val keys = try {
+                getKeys(BOOKMARK_KEY)
+            } catch (e: Exception) {
+                logError(e)
+                return
+            }
+            thread {
+                try {
                     keys.pmap {
                         getKey<BookmarkedTitle>(it)
                     }
@@ -714,16 +731,21 @@ class ShiroApi {
                         }
                     }
                     setKey(LEGACY_BOOKMARKS, false)
+                } catch (e: Exception) {
+                    logError(e)
                 }
-            } catch (e: Exception) {
-                return
             }
         }
 
         private fun Context.convertOldSubbed() {
-            try {
-                val keys = getKeys(SUBSCRIPTIONS_BOOKMARK_KEY)
-                thread {
+            val keys = try {
+                getKeys(SUBSCRIPTIONS_BOOKMARK_KEY)
+            } catch (e: Exception) {
+                logError(e)
+                return
+            }
+            thread {
+                try {
                     keys.pmap {
                         getKey<BookmarkedTitle>(it)
                     }
@@ -747,9 +769,9 @@ class ShiroApi {
                         }
                     }
                     setKey(LEGACY_SUBS, false)
+                } catch (e: Exception) {
+                    logError(e)
                 }
-            } catch (e: Exception) {
-                return
             }
         }
 

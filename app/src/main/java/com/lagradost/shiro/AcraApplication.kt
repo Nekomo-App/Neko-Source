@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import com.google.auto.service.AutoService
 import com.jaredrummler.cyanea.Cyanea
+import com.lagradost.shiro.utils.ErrorLogger
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import org.acra.ReportField
@@ -58,6 +59,10 @@ class AcraApplication : Application() {
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
         context = base
+
+        // Persist crashes/errors to app storage so they're visible from Settings even on a
+        // release build with no debugger attached (see utils/ErrorLogger.kt).
+        base?.let { ErrorLogger.init(it) }
 
         normalSafeApiCall {
             base?.setKey(MAL_SHOULD_UPDATE_LIST, true)

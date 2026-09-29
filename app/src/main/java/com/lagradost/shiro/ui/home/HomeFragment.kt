@@ -44,6 +44,7 @@ import com.lagradost.shiro.utils.ShiroApi.Companion.getRandom
 import com.lagradost.shiro.utils.ShiroApi.Companion.hasThrownError
 import com.lagradost.shiro.utils.ShiroApi.Companion.initShiroApi
 import com.lagradost.shiro.utils.ShiroApi.Companion.requestHome
+import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import kotlin.concurrent.thread
 
@@ -212,14 +213,21 @@ class HomeFragment : Fragment() {
                         fv<com.google.android.material.button.MaterialButton>(R.id.main_watch_button).setOnClickListener {
                             Toast.makeText(activity, "Loading link", Toast.LENGTH_SHORT).show()
                             thread {
-                                // LETTING USER PRESS STUFF WHEN THIS LOADS CAN CAUSE BUGS
-                                val page = getAnimePageNew(randomData.slug)
-                                if (page != null) {
-                                    val nextEpisode = context?.getNextEpisode(page.data)
-                                    nextEpisode?.let {
-                                        activity?.loadPlayer(nextEpisode.episodeIndex, 0L, page.data)
+                                try {
+                                    // LETTING USER PRESS STUFF WHEN THIS LOADS CAN CAUSE BUGS
+                                    val page = getAnimePageNew(randomData.slug)
+                                    if (page != null) {
+                                        val nextEpisode = context?.getNextEpisode(page.data)
+                                        nextEpisode?.let {
+                                            activity?.loadPlayer(nextEpisode.episodeIndex, 0L, page.data)
+                                        }
+                                    } else {
+                                        activity?.runOnUiThread {
+                                            Toast.makeText(activity, "Loading link failed", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
-                                } else {
+                                } catch (e: Exception) {
+                                    logError(e)
                                     activity?.runOnUiThread {
                                         Toast.makeText(activity, "Loading link failed", Toast.LENGTH_SHORT).show()
                                     }
@@ -253,8 +261,10 @@ class HomeFragment : Fragment() {
                         marginParams.setMargins(0)
                         fv<android.widget.LinearLayout>(R.id.main_layout).layoutParams = marginParams
                     }
-                } catch (e: java.lang.NullPointerException) {
-                    println("NPE in generateRandom!")
+                } catch (e: Exception) {
+                    // e.g. IllegalStateException from fv() when the fragment's view is already
+                    // gone (user navigated away while this callback was in flight)
+                    logError(e)
                 }
 
 

@@ -51,6 +51,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.gms.cast.framework.CastButtonFactory
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastState
+import com.google.android.gms.cast.framework.CastStateListener
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
@@ -805,16 +806,29 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
 
     private fun onDownloadStarted(id: String) {
         activity?.runOnUiThread {
-            // Cast failure when going out of the page, making it catch to fully stop any of those crashes
+            // Cast/view-lookup failures when the fragment's view is already gone (e.g. user
+            // navigated away while a download event fires) shouldn't crash the app.
             try {
-                (fv<androidx.recyclerview.widget.RecyclerView>(R.id.episodes_res_view).adapter as MasterEpisodeAdapter).notifyDataSetChanged()
-            } catch (e: java.lang.NullPointerException) {
+                (fv<androidx.recyclerview.widget.RecyclerView>(R.id.episodes_res_view)?.adapter as? MasterEpisodeAdapter)?.notifyDataSetChanged()
+            } catch (e: Exception) {
             }
         }
     }
 
     private var currentLoadingCount = 0 // THIS IS USED TO PREVENT LATE EVENTS, AFTER DISMISS WAS CLICKED
     private var allEpisodes: HashMap<Int, ArrayList<ExtractorLink>> = HashMap()
+
+    // CastContext is a process-wide singleton; keep a reference to the listener we register on
+    // it so it can be unregistered when the fragment's view is destroyed instead of leaking.
+    private var castContext: CastContext? = null
+    private var castStateListener: CastStateListener? = null
+
+    override fun onDestroyView() {
+        castStateListener?.let { listener -> castContext?.removeCastStateListener(listener) }
+        castStateListener = null
+        castContext = null
+        super.onDestroyView()
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -857,13 +871,18 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             val castContext = CastContext.getSharedInstance(requireActivity().applicationContext)
 
             if (castContext.castState != CastState.NO_DEVICES_AVAILABLE) fv<androidx.mediarouter.app.MediaRouteButton>(R.id.media_route_button)?.visibility = VISIBLE
-            castContext.addCastStateListener { state ->
-                if (fv<androidx.mediarouter.app.MediaRouteButton>(R.id.media_route_button) != null) {
-                    if (state == CastState.NO_DEVICES_AVAILABLE) fv<androidx.mediarouter.app.MediaRouteButton>(R.id.media_route_button).visibility = GONE else {
-                        if (fv<androidx.mediarouter.app.MediaRouteButton>(R.id.media_route_button).visibility == GONE) fv<androidx.mediarouter.app.MediaRouteButton>(R.id.media_route_button).visibility = VISIBLE
-                    }
+
+            this.castContext = castContext
+            castStateListener = CastStateListener { state ->
+                // CastContext is a process-wide singleton, so this listener can still fire
+                // after this fragment's view has been destroyed - guard against that instead
+                // of crashing the whole app.
+                try {
+                    val button = fv<androidx.mediarouter.app.MediaRouteButton>(R.id.media_route_button) ?: return@CastStateListener
+                    button.visibility = if (state == CastState.NO_DEVICES_AVAILABLE) GONE else VISIBLE
+                } catch (e: Exception) {
                 }
-            }
+            }.also { castContext.addCastStateListener(it) }
         }
 
 

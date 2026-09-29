@@ -103,6 +103,7 @@ import com.lagradost.shiro.utils.MALApi.Companion.setScoreRequest
 import com.lagradost.shiro.utils.ShiroApi.Companion.USER_AGENT
 import com.lagradost.shiro.utils.ShiroApi.Companion.fmod
 import com.lagradost.shiro.utils.ShiroApi.Companion.loadLinks
+import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import java.io.File
 import java.security.SecureRandom
@@ -143,10 +144,10 @@ class PlayerFragmentTv : VideoSupportFragment() {
     private val settingsManager = AppUtils.settingsManager ?: (getCurrentContext() ?: context)?.let {
         PreferenceManager.getDefaultSharedPreferences(it)
     }
-    private val fastForwardTime = settingsManager!!.getInt("fast_forward_button_time", 10)
+    private val fastForwardTime = settingsManager?.getInt("fast_forward_button_time", 10) ?: 10
     private val fastForwardTimeMillis: Long = TimeUnit.SECONDS.toMillis(fastForwardTime.toLong())
-    private val autoPlayEnabled = settingsManager!!.getBoolean("autoplay_enabled", true)
-    private val skipFillers = settingsManager!!.getBoolean("skip_fillers", false)
+    private val autoPlayEnabled = settingsManager?.getBoolean("autoplay_enabled", true) ?: true
+    private val skipFillers = settingsManager?.getBoolean("skip_fillers", false) ?: false
 
     private val resizeModes = listOf(
         AppUtils.AspectRatioTV.RESIZE_MODE_FIT,
@@ -154,7 +155,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
         AppUtils.AspectRatioTV.RESIZE_MODE_ZOOM,
         AppUtils.AspectRatioTV.RESIZE_MODE_4_3,
     )
-    private var resizeMode = (getCurrentContext() ?: context)?.getKey(RESIZE_MODE_KEY, 0) ?: 0
+    private var resizeMode = (((getCurrentContext() ?: context)?.getKey(RESIZE_MODE_KEY, 0) ?: 0)).coerceIn(resizeModes.indices)
 
     /*
     private val resizeModes = listOf(
@@ -249,7 +250,9 @@ class PlayerFragmentTv : VideoSupportFragment() {
             }
             adapter.add(actionResize)
 
-            if (data?.episodeIndex!! + 1 < data?.card?.episodes?.size!!) {
+            val currentEpisodeIndex = data?.episodeIndex
+            val totalEpisodes = data?.card?.episodes?.size
+            if (currentEpisodeIndex != null && totalEpisodes != null && currentEpisodeIndex + 1 < totalEpisodes) {
                 adapter.add(actionNextEpisode)
             }
             //adapter.add(actionClosedCaptions)
@@ -405,12 +408,17 @@ class PlayerFragmentTv : VideoSupportFragment() {
         val setPercentage: Float = (settingsManager?.getInt("completed_percentage", 80)?.toFloat() ?: 80F) / 100
         val saveHistory: Boolean = settingsManager?.getBoolean("save_history", true) ?: true
 
-        if (this::exoPlayer.isInitialized && setPercentage != 0.0f && saveHistory) {
+        val episodeIndex = data?.episodeIndex
+        if (this::exoPlayer.isInitialized && setPercentage != 0.0f && saveHistory && episodeIndex != null) {
             val currentPercentage = exoPlayer.currentPosition.toFloat() / exoPlayer.duration.toFloat()
-            if (currentPercentage > setPercentage && lastSyncedEpisode < data?.episodeIndex!!) {
-                lastSyncedEpisode = data?.episodeIndex!!
+            if (currentPercentage > setPercentage && lastSyncedEpisode < episodeIndex) {
+                lastSyncedEpisode = episodeIndex
                 thread {
-                    context?.updateProgress()
+                    try {
+                        context?.updateProgress()
+                    } catch (e: Exception) {
+                        logError(e)
+                    }
                 }
             } else {
                 if (data?.anilistID != null || data?.malID != null) handler.postDelayed(
@@ -427,6 +435,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
     }
 
     private fun Context.updateProgress() {
+        val episodeIndex = data?.episodeIndex ?: return
         val hasAniList = getKey<String>(
             ANILIST_TOKEN_KEY,
             ANILIST_ACCOUNT_ID,
@@ -460,7 +469,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
             type
         }
 
-        val currentEpisodeProgress = data?.episodeIndex!! + 1 + episodeOffset
+        val currentEpisodeProgress = episodeIndex + 1 + episodeOffset
 
         if (currentEpisodeProgress == holder?.episodes ?: data?.card?.episodes?.size?.plus(episodeOffset)
             && type.value != AniListApi.Companion.AniListStatusType.Completed.value
@@ -816,7 +825,8 @@ class PlayerFragmentTv : VideoSupportFragment() {
     }
 
     private fun getCurrentEpisode(): ShiroApi.Companion.AnimePageNewEpisodes? {
-        return data?.card?.episodes?.getOrNull(data?.episodeIndex!!)//data?.card!!.cdnData.seasons.getOrNull(data?.seasonIndex!!)?.episodes?.get(data?.episodeIndex!!)
+        val episodeIndex = data?.episodeIndex ?: return null
+        return data?.card?.episodes?.getOrNull(episodeIndex)//data?.card!!.cdnData.seasons.getOrNull(data?.seasonIndex!!)?.episodes?.get(data?.episodeIndex!!)
     }
 
     private fun loadAndPlay() {

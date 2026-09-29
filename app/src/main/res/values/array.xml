@@ -59,4 +59,13 @@
         <item>Toggle Subscribe</item>
         <item>Toggle Favorite and Subscribe</item>
     </string-array>
+
+    <string-array name="DnsProviders">
+        <item>@string/dns_provider_disabled</item>
+        <item>Cloudflare</item>
+        <item>Google</item>
+        <item>AdGuard</item>
+        <item>AdGuard Family</item>
+        <item>Quad9</item>
+    </string-array>
 </resources>

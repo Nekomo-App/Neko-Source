@@ -997,6 +997,7 @@ object AppUtils {
         }
 
         if (data.card == null) return
+        if (data.episodeIndex == null || data.seasonIndex == null) return
 
         // HANDLES THE LOGIC FOR NEXT EPISODE
         var episodeIndex = data.episodeIndex!!

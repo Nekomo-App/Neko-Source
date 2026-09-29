@@ -123,4 +123,14 @@
                       android:summaryOn="Sends no data"
                       android:defaultValue="false"/>
 
+    <ListPreference
+            android:title="DNS over HTTPS"
+            app:key="dns_provider"
+            android:icon="@drawable/ic_baseline_language_24"
+            app:useSimpleSummaryProvider="true"
+            android:entries="@array/DnsProviders"
+            android:entryValues="@array/DnsProviders"
+            android:defaultValue="@string/dns_provider_disabled"
+    />
+
 </PreferenceScreen>

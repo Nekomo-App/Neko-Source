@@ -83,6 +83,13 @@
         >
 
         </activity>
+        <activity android:name=".ui.settings.ErrorLogActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:fitsSystemWindows="true"
+                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+        >
+
+        </activity>
         <meta-data
                 android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
                 android:value="com.lagradost.shiro.utils.CastOptionsProvider"/>

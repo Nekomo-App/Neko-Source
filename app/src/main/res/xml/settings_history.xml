@@ -28,6 +28,13 @@
     />
 
     <Preference
+            android:icon="@drawable/ic_baseline_bug_report_24"
+            app:key="error_log_btt"
+            android:title="Error log"
+            android:summary="View, save or share crashes and errors that happened in the app"
+    />
+
+    <Preference
             android:title="Back up all data"
             app:key="backup_btt"
             android:icon="@drawable/ic_baseline_settings_backup_restore_24"

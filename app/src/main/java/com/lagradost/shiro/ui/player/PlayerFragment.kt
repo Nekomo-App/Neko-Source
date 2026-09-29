@@ -244,10 +244,10 @@ class PlayerFragment : Fragment() {
     private val settingsManager = PreferenceManager.getDefaultSharedPreferences(getCurrentContext()!!)!!
     private val swipeEnabled = settingsManager.getBoolean("swipe_enabled", true)
     private val swipeVerticalEnabled = settingsManager.getBoolean("swipe_vertical_enabled", true)
-    private val skipOpEnabled = true//settingsManager!!.getBoolean("skip_op_enabled", false)
+    private val skipOpEnabled = settingsManager.getBoolean("skip_op_enabled", true)
     val doubleTapEnabled = settingsManager.getBoolean("double_tap_enabled", false)
-    private val playBackSpeedEnabled = true//settingsManager!!.getBoolean("playback_speed_enabled", false)
-    private val playerResizeEnabled = true//settingsManager!!.getBoolean("player_resize_enabled", false)
+    private val playBackSpeedEnabled = settingsManager.getBoolean("playback_speed_enabled", true)
+    private val playerResizeEnabled = settingsManager.getBoolean("player_resize_enabled", true)
     private val doubleTapTime = settingsManager.getInt("dobule_tap_time", 10)
     private val fastForwardTime = settingsManager.getInt("fast_forward_button_time", 10)
     private val autoPlayEnabled = settingsManager.getBoolean("autoplay_enabled", true)
@@ -293,7 +293,7 @@ class PlayerFragment : Fragment() {
         AspectRatioFrameLayout.RESIZE_MODE_FILL,
         AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
     )
-    private var resizeMode = getCurrentContext()!!.getKey(RESIZE_MODE_KEY, 0) ?: 0
+    private var resizeMode = ((getCurrentContext()?.getKey(RESIZE_MODE_KEY, 0) ?: 0)).coerceIn(resizeModes.indices)
 
     // Made getters because this can change if user is in a split view for example
     val width: Int
@@ -327,7 +327,8 @@ class PlayerFragment : Fragment() {
     }
 
     private fun getCurrentEpisode(): ShiroApi.Companion.AnimePageNewEpisodes? {
-        return data?.card?.episodes?.getOrNull(data?.episodeIndex!!)//data?.card!!.cdnData.seasons.getOrNull(data?.seasonIndex!!)?.episodes?.get(data?.episodeIndex!!)
+        val episodeIndex = data?.episodeIndex ?: return null
+        return data?.card?.episodes?.getOrNull(episodeIndex)//data?.card!!.cdnData.seasons.getOrNull(data?.seasonIndex!!)?.episodes?.get(data?.episodeIndex!!)
     }
 
     private fun loadAndPlay() {
@@ -692,6 +693,7 @@ class PlayerFragment : Fragment() {
     private fun handleMotionEvent(motionEvent: MotionEvent) {
         // No swiping on unloaded
         // https://exoplayer.dev/doc/reference/constant-values.html
+        if (!this::exoPlayer.isInitialized) return
         if (isLocked || exoPlayer.duration == TIME_UNSET || (!swipeEnabled && !swipeVerticalEnabled)) return
         val audioManager = activity?.getSystemService(AUDIO_SERVICE) as? AudioManager
 
@@ -1149,12 +1151,12 @@ class PlayerFragment : Fragment() {
 
         }
         fv<android.widget.ImageButton>(R.id.exo_play).setOnClickListener {
-            exoPlayer.play()
+            if (this::exoPlayer.isInitialized) exoPlayer.play()
             updateHideTime()
             cancelNextEpisode()
         }
         fv<android.widget.ImageButton>(R.id.exo_pause).setOnClickListener {
-            exoPlayer.pause()
+            if (this::exoPlayer.isInitialized) exoPlayer.pause()
             updateHideTime()
             cancelNextEpisode()
         }
@@ -1206,8 +1208,8 @@ class PlayerFragment : Fragment() {
                 playbackSpeed = speedsNumbers[which]
                 context?.setKey(PLAYBACK_SPEED_KEY, playbackSpeed)
                 val param = PlaybackParameters(playbackSpeed!!)
-                exoPlayer.playbackParameters = param
-                fv<android.widget.TextView>(R.id.player_speed_text).text = "Speed (${playbackSpeed}x)".replace(".0x", "x")
+                if (this@PlayerFragment::exoPlayer.isInitialized) exoPlayer.playbackParameters = param
+                fv<android.widget.TextView>(R.id.player_speed_text)?.text = "Speed (${playbackSpeed}x)".replace(".0x", "x")
                 dialog.dismiss()
             }
             dialog.window?.setSoftInputMode(SOFT_INPUT_STATE_HIDDEN)
@@ -1358,31 +1360,46 @@ class PlayerFragment : Fragment() {
 
 
     private fun seekTime(time: Long) {
+        if (!this::exoPlayer.isInitialized) return
         exoPlayer.seekTo(maxOf(minOf(exoPlayer.currentPosition + time, exoPlayer.duration), 0))
     }
 
     private fun releasePlayer() {
-        thread {
-            simpleCache?.release()
-        }
         main {
-            if (this::exoPlayer.isInitialized) {
-                isPlayerPlaying = exoPlayer.playWhenReady
-                playbackPosition = exoPlayer.currentPosition
-                currentWindow = exoPlayer.currentWindowIndex
-                exoPlayer.release()
-                println("RELEASED PLAYER")
+            try {
+                if (this@PlayerFragment::exoPlayer.isInitialized) {
+                    isPlayerPlaying = exoPlayer.playWhenReady
+                    playbackPosition = exoPlayer.currentPosition
+                    currentWindow = exoPlayer.currentWindowIndex
+                    exoPlayer.release()
+                    println("RELEASED PLAYER")
+                }
+                // Because otherwise the height and width are fucked (especially from PiP), I don't know why
+                // Placing these in some places just fixes it
+                if (view != null) {
+                    unFuckLayout()
+                    val alphaAnimation = AlphaAnimation(0f, 1f)
+                    alphaAnimation.duration = 100
+                    alphaAnimation.fillAfter = true
+                    fv<android.widget.FrameLayout>(R.id.loading_overlay)?.startAnimation(alphaAnimation)
+                    fv<android.widget.ImageView>(R.id.video_go_back_holder)?.visibility = VISIBLE
+                }
+                playerViewModel?.videoSize?.postValue(null)
+                isCurrentlyPlaying = false
+            } catch (e: Exception) {
+                // Fragment view may already be torn down (navigation/back press/PIP close race)
+                logError(e)
+            } finally {
+                // Release the cache after the player itself has been released to avoid the
+                // player still reading from a cache that's concurrently being closed.
+                thread {
+                    try {
+                        simpleCache?.release()
+                    } catch (e: Exception) {
+                        logError(e)
+                    }
+                }
             }
-            // Because otherwise the height and width are fucked (especially from PiP), I don't know why
-            // Placing these in some places just fixes it
-            unFuckLayout()
-            val alphaAnimation = AlphaAnimation(0f, 1f)
-            alphaAnimation.duration = 100
-            alphaAnimation.fillAfter = true
-            fv<android.widget.FrameLayout>(R.id.loading_overlay)?.startAnimation(alphaAnimation)
-            fv<android.widget.ImageView>(R.id.video_go_back_holder)?.visibility = VISIBLE
-            playerViewModel?.videoSize?.postValue(null)
-            isCurrentlyPlaying = false
         }
     }
 
@@ -1412,17 +1429,22 @@ class PlayerFragment : Fragment() {
         val setPercentage: Float = settingsManager.getInt("completed_percentage", 80).toFloat() / 100
         val saveHistory: Boolean = settingsManager.getBoolean("save_history", true)
 
-        if (this::exoPlayer.isInitialized && setPercentage != 0.0f && saveHistory) {
+        val episodeIndex = data?.episodeIndex
+        if (this::exoPlayer.isInitialized && setPercentage != 0.0f && saveHistory && episodeIndex != null) {
             val currentPos = exoPlayer.currentPosition
             val currentDur = exoPlayer.duration
             val currentPercentage = currentPos.toFloat() / currentDur.toFloat()
-            if (currentPercentage > setPercentage && lastSyncedEpisode < data?.episodeIndex!!
+            if (currentPercentage > setPercentage && lastSyncedEpisode < episodeIndex
                 && currentDur != TIME_UNSET
                 && !isLoadingNextEpisode
             ) {
-                lastSyncedEpisode = data?.episodeIndex!!
+                lastSyncedEpisode = episodeIndex
                 thread {
-                    context?.updateProgress()
+                    try {
+                        context?.updateProgress()
+                    } catch (e: Exception) {
+                        logError(e)
+                    }
                 }
             } else {
                 if (data?.anilistID != null || data?.malID != null) handler.postDelayed(
@@ -1440,7 +1462,8 @@ class PlayerFragment : Fragment() {
 
 
     private fun Context.updateProgress() {
-        val currentEpisodeProgress = data?.episodeIndex!! + 1 + episodeOffset
+        val episodeIndex = data?.episodeIndex ?: return
+        val currentEpisodeProgress = episodeIndex + 1 + episodeOffset
 
         val hasAniList = getKey<String>(
             ANILIST_TOKEN_KEY,

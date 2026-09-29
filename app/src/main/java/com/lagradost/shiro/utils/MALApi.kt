@@ -288,28 +288,30 @@ class MALApi {
         }
 
         fun Context.setAllMalData() {
-            val user: String = "@me"
-            var isDone = false
-            var index = 0
-            allTitles.clear()
-            checkMalToken()
-            while (!isDone) {
-                val res = khttp.get(
-                    "https://api.myanimelist.net/v2/users/$user/animelist?fields=list_status&limit=1000&offset=${index * 1000}",
-                    headers = mapOf(
-                        "Authorization" to "Bearer " + getKey<String>(
-                            MAL_TOKEN_KEY,
-                            MAL_ACCOUNT_ID
-                        )!!
-                    )
-                ).text
-                val values = mapper.readValue<MalRoot>(res)
-                val titles = values.data.map { MalTitleHolder(it.list_status, it.node.id, it.node.title) }
-                for (t in titles) {
-                    allTitles[t.id] = t
+            try {
+                val user: String = "@me"
+                var isDone = false
+                var index = 0
+                allTitles.clear()
+                checkMalToken()
+                val token = getKey<String>(MAL_TOKEN_KEY, MAL_ACCOUNT_ID) ?: return
+                while (!isDone) {
+                    val res = khttp.get(
+                        "https://api.myanimelist.net/v2/users/$user/animelist?fields=list_status&limit=1000&offset=${index * 1000}",
+                        headers = mapOf(
+                            "Authorization" to "Bearer $token"
+                        )
+                    ).text
+                    val values = mapper.readValue<MalRoot>(res)
+                    val titles = values.data.map { MalTitleHolder(it.list_status, it.node.id, it.node.title) }
+                    for (t in titles) {
+                        allTitles[t.id] = t
+                    }
+                    isDone = titles.size < 1000
+                    index++
                 }
-                isDone = titles.size < 1000
-                index++
+            } catch (e: Exception) {
+                logError(e)
             }
         }
 
