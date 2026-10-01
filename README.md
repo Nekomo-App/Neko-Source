@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🐱 Nekomo Source Code
+<img src="app/src/main/res/drawable/nekomo_logo.png" alt="Nekomo logo" width="160" height="160" />
+
+# Nekomo Source Code
 
 ### The open-source codebase for the Nekomo application
 
