@@ -13,6 +13,10 @@ compiled or run — review diffs carefully and build locally before releasing:
 
 Requires a JDK (17 recommended) and the Android SDK (compileSdk/targetSdk per `app/build.gradle`).
 
+Windows/OneDrive note: the repo lives in OneDrive and a first build of a new variant can fail with
+`AAPT: failed writing to ... R.txt: The data is invalid (13)`. It is transient (OneDrive touching
+`app/build`); just re-run the same Gradle command, ideally one variant at a time.
+
 ## Error logging
 
 `com.lagradost.shiro.utils.ErrorLogger` persists a rolling crash/error log to app-private
@@ -72,11 +76,38 @@ this toggle would just add a switch that does nothing.
   of `fv(id)?.foo()`) — this could not be done blind without a compiler in this environment,
   so it was intentionally left out of this pass. Do this with a working Gradle build so
   compile errors surface immediately.
-- **Extension/source compatibility (Aniyomi/Mihon/CloudStream)**: this app currently has no
-  dynamic extension system — `ShiroApi`/`LiveApi`/`Mkissa` are hardcoded API clients baked
-  into the app. Real compatibility with CloudStream's `.cs3` plugin ecosystem requires a new
-  subsystem: a repository index format, a downloader, a `DexClassLoader`-based plugin loader
-  (compiled against the actual `cloudstream3` API artifact so `Plugin`/`MainAPI` are binary
-  compatible), a Settings UI to manage repos/extensions, and wiring loaded `MainAPI`
-  providers into search/browse/playback alongside (or instead of) the existing hardcoded
-  APIs. This is a substantial, multi-session project and has not been started yet.
+- **Aniyomi/Mihon extension compatibility**: not implemented (CloudStream is, see below).
+
+## CloudStream extensions (.cs3)
+
+- `app/libs/cs3api.jar` is a trimmed `com/lagradost/**` copy of CloudStream's `pre-release`
+  `classes.jar` (what real plugins compile against). It needs Kotlin >= 2.4 (root `build.gradle`)
+  and the runtime deps listed under "CloudStream extension" in `app/build.gradle`.
+  It is GPL-derived; review licensing before redistributing.
+- `utils/cs3/CsPluginManager.kt`: repos, install (sha256 verify, atomic replace), `PathClassLoader`
+  loading from `filesDir/Extensions`, enable/disable, update. Initialised in `AcraApplication`.
+- `utils/cs3/CsBridge.kt`: maps providers into app models. Slugs/tokens are `cs3|<api>|<hex url>`;
+  hooks are in `ShiroApi.searchNew`, `LiveApi.getAnimePage` and `LiveApi.resolveStreams`.
+- `ExtractorLink` gained `isDash` and `headers`; `PlayerFragment` applies them.
+- UI: Settings -> Extensions (`ui/settings/ExtensionsActivity`).
+- Slugs/tokens are now `cs3-<hex api>-<hex url>` (hex + `-` only: safe in file names, prefs keys and
+  `|`-split tokens). Search/load/loadLinks calls have timeouts in `CsBridge`.
+- Extensions screen shows a one-time "only install extensions you trust" warning.
+
+## Sign-in gate / welcome screen
+
+- `ui/welcome/WelcomeGate` is a full-screen non-cancelable Dialog shown over `MainActivity` and
+  `TvActivity` (called right after `setContentView`) until `AuthManager.isSignedIn` (token AND fetched
+  profile for AniList, MAL or Kitsu) and the community rules have been accepted.
+  OAuth redirects still return through `handleIntent`; the gate polls and advances by itself.
+  On TV the in-app WebView sits under the dialog window, so the dialog hides while it is open.
+- Kitsu (`utils/auth/KitsuApi`): OAuth password grant with Kitsu's public client credentials.
+- Placeholder URLs (Discord, Telegram, website, support, ToS, Privacy) live in `res/values/links.xml`
+  and MUST be replaced before release.
+- Settings -> Community Rules (`CommunityRulesActivity`) reuses the rules text and `SocialLinks`.
+- Known gap: `PlayerActivity` is exported for `content://` video intents and is not gated.
+
+- Verified: phone + TV debug builds and phone release (R8) compile; `lintPhoneDebug` has 28 errors, none
+  in the new code (rest pre-existing: NewApi, Range, receiver flags).
+- Earlier note: phone + TV debug builds compile. NOT verified: on-device plugin loading, playback,
+  and the release (R8) build - no emulator/device was available.

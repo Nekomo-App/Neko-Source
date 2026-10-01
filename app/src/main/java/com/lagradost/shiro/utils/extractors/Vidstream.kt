@@ -26,7 +26,7 @@ class Vidstream(var providersActive: HashSet<String> = HashSet()) {
     //   https://streamani.net/streaming.php?id=MTE3NDg5
     fun getUrl(id: String, isCasting: Boolean = false, callback: (ExtractorLink) -> Unit): Boolean {
         // New backend: episode sources are "<showRef>|<episode>|<sub|dub>" tokens
-        if (id.contains("|")) {
+        if (id.contains("|") || com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(id)) {
             return try {
                 com.lagradost.shiro.utils.LiveApi.resolveStreams(id, isCasting, callback)
             } catch (e: Exception) {

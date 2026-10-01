@@ -86,6 +86,25 @@
 -keep class androidx.mediarouter.app.MediaRouteActionProvider { *; }
 
 
+# CloudStream extension API — .cs3 plugins reference these classes dynamically via
+# PathClassLoader, so nothing inside may be renamed or stripped in release builds.
+-keep class com.lagradost.cloudstream3.** { *; }
+-keep class com.lagradost.cloudstream4.** { *; }
+-keep class com.lagradost.api.** { *; }
+-keep class com.lagradost.safefile.** { *; }
+-keep class com.lagradost.nicehttp.** { *; }
+-dontwarn com.lagradost.**
+-dontwarn org.mozilla.javascript.**
+-dontwarn org.mozilla.**
+-dontwarn com.github.teamnewpipe.**
+-dontwarn org.schabi.**
+-dontwarn com.fleeksoft.**
+-dontwarn dev.whyoleg.**
+-dontwarn io.ktor.**
+-dontwarn coil3.**
+-dontwarn androidx.media3.**
+-dontwarn app.cash.**
+
 # keep this class so that logging will show 'ACRA' and not a obfuscated name like 'a'.
 # Note: if you are removing log messages elsewhere in this file then this isn't necessary
 -keep class org.acra.ACRA {

@@ -127,6 +127,27 @@
                     >
                     </TextView>
                     <View style="@style/Divider"/>
+                    <TextView
+                            android:id="@+id/settings_integrations"
+                            android:text="Integrations"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
+                    <TextView
+                            android:id="@+id/settings_extensions"
+                            android:text="Extensions"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
+                    <TextView
+                            android:id="@+id/settings_community_rules"
+                            android:text="Community Rules"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
 
                     <TextView
                             android:id="@+id/settings_about"

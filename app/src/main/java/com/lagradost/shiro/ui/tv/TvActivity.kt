@@ -116,6 +116,7 @@ class TvActivity : CyaneaAppCompatActivity() {
         }
 
         setContentView(R.layout.activity_tv)
+        com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this)
         navController = fv<androidx.fragment.app.FragmentContainerView>(R.id.home_root_tv).findNavController()
         handleIntent(intent)
     }

@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.google.auto.service.AutoService
 import com.jaredrummler.cyanea.Cyanea
 import com.lagradost.shiro.utils.ErrorLogger
+import com.lagradost.shiro.utils.cs3.CsPluginManager
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import org.acra.ReportField
@@ -63,6 +64,10 @@ class AcraApplication : Application() {
         // Persist crashes/errors to app storage so they're visible from Settings even on a
         // release build with no debugger attached (see utils/ErrorLogger.kt).
         base?.let { ErrorLogger.init(it) }
+
+        // CloudStream extension subsystem: injects our Context into the vendored
+        // cloudstream3 classes and loads installed .cs3 plugins on a bg thread
+        base?.let { CsPluginManager.init(it) }
 
         normalSafeApiCall {
             base?.setKey(MAL_SHOULD_UPDATE_LIST, true)

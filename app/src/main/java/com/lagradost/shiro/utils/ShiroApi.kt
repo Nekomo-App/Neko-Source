@@ -32,6 +32,7 @@ import com.lagradost.shiro.utils.AppUtils.allApi
 import com.lagradost.shiro.utils.AppUtils.md5
 import com.lagradost.shiro.utils.AppUtils.settingsManager
 import com.lagradost.shiro.utils.Coroutines.main
+import com.lagradost.shiro.utils.cs3.CsBridge
 import com.lagradost.shiro.utils.mvvm.logError
 import khttp.structures.cookie.CookieJar
 import java.net.URLEncoder
@@ -586,12 +587,21 @@ class ShiroApi {
 
 
         fun searchNew(query: String, genres: List<String>? = null, hideChinese: Boolean = false): List<Data>? {
-            return try {
+            val base = try {
                 LiveApi.search(query, genres)
             } catch (e: Exception) {
                 logError(e)
                 null
             }
+            // Loaded CloudStream extension providers also answer search
+            val extensionResults = try {
+                CsBridge.search(query)
+            } catch (e: Exception) {
+                logError(e)
+                emptyList()
+            }
+            return if (base == null && extensionResults.isEmpty()) null
+            else base.orEmpty() + extensionResults
         }
 
         fun getFullUrlCdn(url: String): String {

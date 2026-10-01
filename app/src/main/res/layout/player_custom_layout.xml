@@ -633,6 +633,46 @@
                     card_view:cardCornerRadius="@dimen/card_corner_radius"
                     card_view:cardBackgroundColor="@color/transparent"
                     android:foreground="@drawable/ripple_always_white"
+                    android:id="@+id/subtitles_btt"
+                    card_view:cardElevation="0dp"
+            >
+                <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                >
+                    <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_baseline_subtitles_24"
+                            app:tint="@color/white"
+                            android:layout_gravity="center"/>
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="match_parent"
+                            android:text="Subtitles"
+                            android:id="@+id/subtitles_text"
+                            android:gravity="center"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:layout_gravity="center"
+                            android:textColor="@color/white"
+                            android:singleLine="true"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView
+                    xmlns:card_view="http://schemas.android.com/apk/res-auto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginBottom="5dp"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginEnd="20dp"
+                    card_view:cardCornerRadius="@dimen/card_corner_radius"
+                    card_view:cardBackgroundColor="@color/transparent"
+                    android:foreground="@drawable/ripple_always_white"
                     android:id="@+id/skip_op"
                     card_view:cardElevation="0dp"
 

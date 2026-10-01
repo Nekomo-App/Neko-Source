@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Official community/legal links. REPLACE the placeholder URLs below before release. -->
+<resources>
+    <string name="link_discord" translatable="false">https://discord.gg/REPLACE_ME</string>
+    <string name="link_telegram" translatable="false">https://t.me/REPLACE_ME</string>
+    <string name="link_website" translatable="false">https://example.com/REPLACE_ME</string>
+    <string name="link_support" translatable="false">mailto:support@example.com</string>
+    <string name="link_terms" translatable="false">https://example.com/REPLACE_ME/terms</string>
+    <string name="link_privacy" translatable="false">https://example.com/REPLACE_ME/privacy</string>
+    <string name="link_signup_anilist" translatable="false">https://anilist.co/signup</string>
+    <string name="link_signup_mal" translatable="false">https://myanimelist.net/register.php</string>
+    <string name="link_signup_kitsu" translatable="false">https://kitsu.app/</string>
+</resources>

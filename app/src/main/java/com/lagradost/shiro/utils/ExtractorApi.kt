@@ -8,6 +8,8 @@ data class ExtractorLink(
     val referer: String,
     val quality: Int,
     val isM3u8: Boolean = false,
+    val isDash: Boolean = false,
+    val headers: Map<String, String>? = null,
 )
 
 enum class Qualities(var value: Int) {

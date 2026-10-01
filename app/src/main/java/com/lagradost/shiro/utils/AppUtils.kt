@@ -170,6 +170,11 @@ object AppUtils {
                     } else if (dataString.contains("/mallogin")) {
                         authenticateMalLogin(dataString)
                     }
+                    // Internal: open a title by MAL id (used by the Kitsu/SIMKL library screens)
+                    else if (dataString.contains("/openmal/")) {
+                        dataString.substringAfter("/openmal/").trim('/').takeIf { it.isNotEmpty() }
+                            ?.let { loadPage(it, it, true) }
+                    }
                 }
             }
 
@@ -709,8 +714,9 @@ object AppUtils {
         return when (settingsManager!!.getString("hide_behavior", "None")) {
             "Hide dubbed" ->
                 cards?.filter { it.slug.endsWith("-dub").not() }
+            // Extension results have no sub/dub split, so never hide them
             "Hide subbed" ->
-                cards?.filter { it.slug.endsWith("-dub") }
+                cards?.filter { it.slug.endsWith("-dub") || com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(it.slug) }
             else ->
                 cards
         }

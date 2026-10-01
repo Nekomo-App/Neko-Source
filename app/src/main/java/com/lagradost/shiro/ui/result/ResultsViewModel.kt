@@ -21,6 +21,7 @@ import com.lagradost.shiro.utils.AniListApi.Companion.fromIntToAnimeStatus
 import com.lagradost.shiro.utils.AniListApi.Companion.getDataAboutId
 import com.lagradost.shiro.utils.AniListApi.Companion.getShowId
 import com.lagradost.shiro.utils.AniListApi.Companion.postDataAboutId
+import com.lagradost.shiro.utils.integrations.TrackerSync
 import com.lagradost.shiro.utils.AppUtils.guaranteedContext
 import com.lagradost.shiro.utils.MALApi.Companion.getDataAboutMalId
 import com.lagradost.shiro.utils.MALApi.Companion.malStatusAsString
@@ -184,6 +185,13 @@ class ResultsViewModel : ViewModel() {
                         data.progress
                     )
                 } else true
+
+            // Kitsu / SIMKL mirror of the edit (explicit edits may lower progress, so not monotonic)
+            if (TrackerSync.anyConnected(context)) {
+                TrackerSync.pushAndNotify(
+                    context, getMalId(), getAnilistId(), data.status, data.score, data.progress
+                )
+            }
 
             // TODO ERROR HANDLING
 

@@ -311,6 +311,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         // -----------------
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this)
 
         /*window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,

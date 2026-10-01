@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.lagradost.shiro.utils.cs3.CsBridge
 import com.lagradost.shiro.utils.mvvm.logError
 import java.net.URI
 import kotlin.random.Random as KotlinRandom
@@ -412,6 +413,9 @@ object LiveApi {
         val bare = slug.removeSuffix("-dub")
         val tt = if (dubbed) "dub" else "sub"
 
+        // CloudStream extension slugs are self-contained "cs3-hexApi-hexUrl" tokens
+        if (CsBridge.isCs3Slug(bare)) return CsBridge.getAnimePage(bare)
+
         try {
             when {
                 bare.startsWith("al") -> {
@@ -548,6 +552,8 @@ object LiveApi {
      * Resolves the AllAnime episode source list and emits ExtractorLinks.
      */
     fun resolveStreams(token: String, isCasting: Boolean, callback: (ExtractorLink) -> Unit): Boolean {
+        // CloudStream extension tokens route to the provider's loadLinks
+        if (CsBridge.isCs3Slug(token)) return CsBridge.resolveStreams(token, isCasting, callback)
         try {
             val parts = token.split("|")
             if (parts.size != 3) return false

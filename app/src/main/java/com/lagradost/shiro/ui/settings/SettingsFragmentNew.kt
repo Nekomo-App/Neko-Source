@@ -84,6 +84,29 @@ class SettingsFragmentNew : Fragment() {
             }
         }
 
+        fv<android.widget.TextView>(R.id.settings_integrations)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                startActivity(Intent(getCurrentActivity(), IntegrationsActivity::class.java))
+            }
+        }
+
+        // Extensions opens its own activity (repo + plugin management),
+        // not a preference-xml submenu
+        fv<android.widget.TextView>(R.id.settings_extensions)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                startActivity(Intent(getCurrentActivity(), ExtensionsActivity::class.java))
+            }
+        }
+
+        fv<android.widget.TextView>(R.id.settings_community_rules)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                startActivity(Intent(getCurrentActivity(), CommunityRulesActivity::class.java))
+            }
+        }
+
         settingsViewModel =
             settingsViewModel ?: activity?.let {
                 ViewModelProvider(it).get(

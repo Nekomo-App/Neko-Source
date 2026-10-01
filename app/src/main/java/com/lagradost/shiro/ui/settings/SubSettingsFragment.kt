@@ -266,6 +266,25 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                     return@setOnPreferenceClickListener true
                 }
 
+                val kitsuButton = findPreference("kitsu_setting_btt") as Preference?
+                kitsuButton?.summary =
+                    if (context?.let { com.lagradost.shiro.utils.auth.AuthManager.isLoggedIntoKitsu(it) } == true)
+                        "Logged in" else "Not logged in (sign in from the welcome screen)"
+                kitsuButton?.setOnPreferenceClickListener {
+                    val ctx = context ?: return@setOnPreferenceClickListener true
+                    if (com.lagradost.shiro.utils.auth.AuthManager.isLoggedIntoKitsu(ctx)) {
+                        AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                            .setTitle("Logout from Kitsu")
+                            .setPositiveButton("Logout") { _, _ ->
+                                com.lagradost.shiro.utils.auth.AuthManager.logoutKitsu(ctx)
+                                kitsuButton.summary = "Not logged in"
+                            }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                    }
+                    true
+                }
+
                 val isLoggedInMAL = isLoggedIntoMal()
                 malButton?.summary = if (isLoggedInMAL) "Logged in" else "Not logged in"
                 malButton?.setOnPreferenceClickListener {

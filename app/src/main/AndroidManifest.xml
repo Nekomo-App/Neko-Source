@@ -90,6 +90,29 @@
         >
 
         </activity>
+        <activity android:name=".ui.settings.CommunityRulesActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:fitsSystemWindows="true"
+                  android:label="Community Rules"
+        />
+        <activity android:name=".ui.settings.IntegrationsActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:fitsSystemWindows="true"
+                  android:windowSoftInputMode="adjustResize"
+                  android:label="Integrations"
+        />
+        <activity android:name=".ui.settings.TrackerLibraryActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:fitsSystemWindows="true"
+        />
+        <activity android:name=".ui.settings.ExtensionsActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:fitsSystemWindows="true"
+                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+                  android:label="Extensions"
+        >
+
+        </activity>
         <meta-data
                 android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
                 android:value="com.lagradost.shiro.utils.CastOptionsProvider"/>

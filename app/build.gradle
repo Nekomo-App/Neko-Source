@@ -107,11 +107,11 @@ android {
 
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.2.2'
-    implementation "org.jetbrains.kotlin:kotlin-reflect:1.9.24"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:2.4.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0"
 
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.4.0"
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
@@ -152,6 +152,22 @@ dependencies {
     // Networking (backs khttp/KHttp.kt) + DNS over HTTPS support for the "DNS over HTTPS" setting
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.squareup.okhttp3:okhttp-dnsoverhttps:4.12.0'
+
+    // CloudStream extension (.cs3) support. libs/cs3api.jar holds the cloudstream3 API
+    // classes plugins are compiled against; the deps below are the runtime libraries
+    // those classes (and the plugins themselves) reference. Versions mirror upstream
+    // cloudstream's gradle/libs.versions.toml.
+    implementation 'com.github.Blatzar:NiceHttp:0.4.18'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-datetime:0.8.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-io-core:0.9.1'
+    implementation 'org.jetbrains.kotlinx:atomicfu:0.33.0'
+    implementation 'com.fleeksoft.ksoup:ksoup:0.2.6'
+    implementation 'io.ktor:ktor-http:3.5.0'
+    implementation 'org.mozilla:rhino:1.8.1'
+    implementation 'com.github.teamnewpipe:NewPipeExtractor:v0.26.3'
+    implementation 'dev.whyoleg.cryptography:cryptography-core:0.6.0'
+    implementation 'dev.whyoleg.cryptography:cryptography-provider-optimal:0.6.0'
 
     // TV
     implementation "androidx.leanback:leanback:1.0.0"

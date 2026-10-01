@@ -88,6 +88,7 @@ import com.lagradost.shiro.ui.tv.MainFragment.Companion.hasBeenInPlayer
 import com.lagradost.shiro.utils.*
 import com.lagradost.shiro.utils.AniListApi.Companion.getDataAboutId
 import com.lagradost.shiro.utils.AniListApi.Companion.postDataAboutId
+import com.lagradost.shiro.utils.integrations.TrackerSync
 import com.lagradost.shiro.utils.AppUtils.getCurrentActivity
 import com.lagradost.shiro.utils.AppUtils.getCurrentContext
 import com.lagradost.shiro.utils.AppUtils.getTextColor
@@ -478,6 +479,12 @@ class PlayerFragmentTv : VideoSupportFragment() {
             type = AniListApi.Companion.AniListStatusType.Completed
         }
 
+
+        if (TrackerSync.anyConnected(this)) {
+            TrackerSync.pushAndNotify(
+                this, data?.malID, data?.anilistID, type.value, score, currentEpisodeProgress, monotonic = true
+            )
+        }
 
         if (progress < currentEpisodeProgress && holder ?: malHolder != null) {
             val anilistPost =

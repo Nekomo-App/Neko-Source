@@ -61,10 +61,18 @@ import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.C.TIME_UNSET
 import com.google.android.exoplayer2.database.ExoDatabaseProvider
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
+import com.google.android.exoplayer2.source.MediaSource
+import com.lagradost.shiro.utils.integrations.IntegrationPrefs
+import com.lagradost.shiro.utils.skip.SkipSegment
+import com.lagradost.shiro.utils.skip.SkipTimes
+import com.lagradost.shiro.utils.subs.SubtitleProviders
+import com.lagradost.shiro.utils.subs.SubtitleResult
+import com.lagradost.shiro.utils.cs3.CsBridge
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.TimeBar
 import com.google.android.exoplayer2.upstream.DataSource
+import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.upstream.cache.CacheDataSource
@@ -88,6 +96,7 @@ import com.lagradost.shiro.utils.*
 import com.lagradost.shiro.utils.AniListApi.Companion.fromIntToAnimeStatus
 import com.lagradost.shiro.utils.AniListApi.Companion.getDataAboutId
 import com.lagradost.shiro.utils.AniListApi.Companion.postDataAboutId
+import com.lagradost.shiro.utils.integrations.TrackerSync
 import com.lagradost.shiro.utils.AppUtils.getCurrentActivity
 import com.lagradost.shiro.utils.AppUtils.getCurrentContext
 import com.lagradost.shiro.utils.AppUtils.getNavigationBarHeight
@@ -488,6 +497,7 @@ class PlayerFragment : Fragment() {
             fv<androidx.cardview.widget.CardView>(R.id.skip_op)?.isClickable = isClickable
             fv<androidx.cardview.widget.CardView>(R.id.resize_player)?.isClickable = isClickable
             fv<androidx.cardview.widget.CardView>(R.id.sources_btt)?.isClickable = isClickable
+            fv<androidx.cardview.widget.CardView>(R.id.subtitles_btt)?.isClickable = isClickable
 
             // Clickable doesn't seem to work on com.google.android.exoplayer2.ui.DefaultTimeBar
             //fv<com.google.android.exoplayer2.ui.DefaultTimeBar>(R.id.exo_progress).isClickable = isClick
@@ -501,6 +511,7 @@ class PlayerFragment : Fragment() {
         fv<android.widget.TextView>(R.id.sources_text)?.isVisible = visible
         fv<android.widget.TextView>(R.id.resize_text)?.isVisible = visible
         fv<android.widget.TextView>(R.id.skip_op_text)?.isVisible = visible
+        fv<android.widget.TextView>(R.id.subtitles_text)?.isVisible = visible
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -1217,6 +1228,16 @@ class PlayerFragment : Fragment() {
 
         }
 
+        fv<androidx.cardview.widget.CardView>(R.id.subtitles_btt)?.setOnClickListener {
+            updateHideTime()
+            showSubtitleDialog()
+        }
+        fv<android.widget.TextView>(R.id.skip_segment_btt)?.setOnClickListener {
+            currentSkipSegment?.let { seg ->
+                if (this::exoPlayer.isInitialized) exoPlayer.seekTo(seg.endMs)
+            }
+        }
+
         fv<androidx.cardview.widget.CardView>(R.id.sources_btt).setOnClickListener {
             updateHideTime()
             sources.second?.let {
@@ -1364,7 +1385,229 @@ class PlayerFragment : Fragment() {
         exoPlayer.seekTo(maxOf(minOf(exoPlayer.currentPosition + time, exoPlayer.duration), 0))
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Subtitles (OpenSubtitles / SubDL / extension) and skip times (Anime Skip / AniSkip)
+    // ---------------------------------------------------------------------------------------
+
+    private var subtitleResults: List<SubtitleResult> = emptyList()
+    private var subtitleSearchedFor: Int? = null
+    private var activeSubtitle: SubtitleResult? = null
+    private var activeSubtitleFile: File? = null
+    private var subtitlesDisabled = false
+    private var lastBaseMediaItem: MediaItem? = null
+    private var lastMediaSourceFactory: MediaSource.Factory? = null
+
+    private var skipSegments: List<SkipSegment> = emptyList()
+    private var skipFetchedFor: Int? = null
+    private var currentSkipSegment: SkipSegment? = null
+    private val autoSkipped = HashSet<SkipSegment>()
+    private val skipTicker: Runnable = object : Runnable {
+        override fun run() {
+            tickSkip()
+            handler.postDelayed(this, 500)
+        }
+    }
+
+    private fun subtitleConfig(file: File): MediaItem.SubtitleConfiguration {
+        val mime = when (file.extension.lowercase()) {
+            "vtt" -> MimeTypes.TEXT_VTT
+            "ass", "ssa" -> MimeTypes.TEXT_SSA
+            else -> MimeTypes.APPLICATION_SUBRIP
+        }
+        return MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file))
+            .setMimeType(mime)
+            .setLanguage(activeSubtitle?.language?.takeIf { it.isNotEmpty() })
+            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+            .build()
+    }
+
+    /** Title/episode used to search subtitle providers. */
+    private fun subtitleQuery(): Pair<String, Int?>? {
+        val anime = data?.card?.anime
+        val isExtension = CsBridge.isCs3Slug(data?.slug ?: "")
+        val rawTitle = (if (isExtension) anime?.title else anime?.title_english?.takeIf { it.isNotBlank() } ?: anime?.title)
+            ?: data?.title ?: return null
+        val title = rawTitle.replace(Regex("\\s*\\((Dub|Sub)\\)\\s*$", RegexOption.IGNORE_CASE), "")
+        val isMovie = data?.card?.episodes?.size == 1 && anime?.status?.lowercase() == "finished airing"
+        val episode = data?.episodeIndex?.let { it + 1 + episodeOffset }
+        return title to (if (isMovie) null else episode)
+    }
+
+    /** Runs once per episode when playback becomes ready: fetches skip times and subtitles. */
+    private fun onPlayerReadyExtras() {
+        val ctx = context ?: return
+        val episodeIndex = data?.episodeIndex ?: return
+        if (!this::exoPlayer.isInitialized) return
+
+        if (skipFetchedFor != episodeIndex) {
+            skipFetchedFor = episodeIndex
+            skipSegments = emptyList()
+            currentSkipSegment = null
+            autoSkipped.clear()
+            val duration = exoPlayer.duration.takeIf { it != TIME_UNSET } ?: 0L
+            val epNumber = episodeIndex + 1 + episodeOffset
+            val anilist = data?.anilistID
+            val mal = data?.malID
+            if ((anilist != null || mal != null) && data?.url == null) {
+                thread {
+                    val segments = try {
+                        SkipTimes.fetch(ctx.applicationContext, anilist, mal, epNumber, duration)
+                    } catch (e: Exception) {
+                        logError(e); emptyList()
+                    }
+                    main {
+                        if (skipFetchedFor == episodeIndex) {
+                            skipSegments = segments
+                            // Real timestamps replace the fixed "skip 85 seconds" button
+                            if (segments.isNotEmpty()) fv<androidx.cardview.widget.CardView>(R.id.skip_op)?.visibility = GONE
+                        }
+                    }
+                }
+            }
+        }
+
+        if (subtitleSearchedFor != episodeIndex) {
+            subtitleSearchedFor = episodeIndex
+            subtitleResults = emptyList()
+            activeSubtitle = null
+            activeSubtitleFile = null
+            val prefs = IntegrationPrefs(ctx)
+            val query = subtitleQuery()
+            if (query != null && data?.url == null && !subtitlesDisabled && prefs.autoFetchSubtitles &&
+                (prefs.hasSubtitleProvider || SubtitleProviders.extensionSubtitles.isNotEmpty())
+            ) {
+                thread { searchSubtitles(ctx.applicationContext, query, episodeIndex, autoApply = true) }
+            }
+        }
+    }
+
+    private fun searchSubtitles(ctx: Context, query: Pair<String, Int?>, episodeIndex: Int, autoApply: Boolean) {
+        val lang = IntegrationPrefs(ctx).subtitleLanguage
+        val results = try {
+            SubtitleProviders.search(ctx, query.first, query.second, lang)
+        } catch (e: Exception) {
+            logError(e); emptyList()
+        }
+        main { if (subtitleSearchedFor == episodeIndex) subtitleResults = results }
+        if (!autoApply) return
+        // Prefer results in the wanted language, then whatever the providers ranked first
+        val ordered = results.sortedByDescending { it.language.lowercase().startsWith(lang) }
+        for (r in ordered.take(3)) {
+            val file = SubtitleProviders.download(ctx, r) ?: continue
+            main { if (subtitleSearchedFor == episodeIndex && !subtitlesDisabled) applySubtitle(file, r) }
+            return
+        }
+    }
+
+    /** Rebuilds the media source with [file] (or none) at the current position. */
+    private fun applySubtitle(file: File?, result: SubtitleResult?) {
+        if (!this::exoPlayer.isInitialized) return
+        val base = lastBaseMediaItem ?: return
+        val factory = lastMediaSourceFactory ?: return
+        subtitlesDisabled = file == null
+        activeSubtitle = result
+        activeSubtitleFile = file
+        val item = if (file != null) base.buildUpon().setSubtitleConfigurations(listOf(subtitleConfig(file))).build()
+        else base
+        val position = exoPlayer.currentPosition
+        val play = exoPlayer.playWhenReady
+        exoPlayer.setMediaSource(factory.createMediaSource(item), position)
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = play
+        fv<android.widget.TextView>(R.id.subtitles_text)?.text =
+            if (result != null) "Subtitles (${result.language.ifEmpty { "on" }})" else "Subtitles"
+    }
+
+    private fun showSubtitleDialog() {
+        val ctx = context ?: return
+        val episodeIndex = data?.episodeIndex ?: return
+        val prefs = IntegrationPrefs(ctx)
+        if (!prefs.hasSubtitleProvider && SubtitleProviders.extensionSubtitles.isEmpty() && subtitleResults.isEmpty()) {
+            Toast.makeText(ctx, "Add an OpenSubtitles or SubDL key under Settings > Integrations", LENGTH_LONG).show()
+            return
+        }
+
+        fun present() {
+            val entries = listOf<SubtitleResult?>(null) + subtitleResults
+            val labels = entries.map { it?.label ?: "Off" }
+            val dialog = Dialog(guaranteedContext(context), R.style.AlertDialogCustom)
+            dialog.setContentView(R.layout.bottom_sheet)
+            dialog.fv<androidx.cardview.widget.CardView>(R.id.bottom_sheet_top_bar)?.visibility = GONE
+            val res = dialog.fv<android.widget.ListView>(R.id.sort_click)
+            res.choiceMode = CHOICE_MODE_SINGLE
+            val adapter = ArrayAdapter<String>(guaranteedContext(context), R.layout.bottom_single_choice)
+            adapter.addAll(labels)
+            res.adapter = adapter
+            res.setItemChecked(
+                if (subtitlesDisabled || activeSubtitle == null) 0 else entries.indexOf(activeSubtitle).coerceAtLeast(0),
+                true
+            )
+            res.setOnItemClickListener { _, _, which, _ ->
+                dialog.dismiss()
+                val chosen = entries[which]
+                if (chosen == null) {
+                    applySubtitle(null, null)
+                } else {
+                    Toast.makeText(ctx, "Downloading subtitle...", Toast.LENGTH_SHORT).show()
+                    thread {
+                        val file = SubtitleProviders.download(ctx.applicationContext, chosen)
+                        main {
+                            if (file != null) applySubtitle(file, chosen)
+                            else Toast.makeText(ctx, "Could not download that subtitle", LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+            dialog.window?.setSoftInputMode(SOFT_INPUT_STATE_HIDDEN)
+            dialog.show()
+        }
+
+        if (subtitleResults.isNotEmpty() || subtitleSearchedFor != episodeIndex) {
+            present()
+        } else {
+            val query = subtitleQuery() ?: return
+            Toast.makeText(ctx, "Searching subtitles...", Toast.LENGTH_SHORT).show()
+            thread {
+                searchSubtitles(ctx.applicationContext, query, episodeIndex, autoApply = false)
+                main {
+                    if (subtitleResults.isEmpty()) Toast.makeText(ctx, "No subtitles found", LENGTH_LONG).show()
+                    else present()
+                }
+            }
+        }
+    }
+
+    /** Shows the skip button inside intro/outro/recap segments, auto-skips if enabled. */
+    private fun tickSkip() {
+        if (!this::exoPlayer.isInitialized || view == null) return
+        val button = fv<android.widget.TextView>(R.id.skip_segment_btt) ?: return
+        val segments = skipSegments
+        if (segments.isEmpty()) {
+            if (button.visibility != GONE) button.visibility = GONE
+            currentSkipSegment = null
+            return
+        }
+        val prefs = IntegrationPrefs(button.context)
+        val position = exoPlayer.currentPosition
+        val segment = segments.firstOrNull {
+            position >= it.startMs && position < it.endMs - 1000 && SkipTimes.enabled(prefs, it.type)
+        }
+        currentSkipSegment = segment
+        if (segment == null) {
+            if (button.visibility != GONE) button.visibility = GONE
+            return
+        }
+        if (prefs.autoSkip && autoSkipped.add(segment)) {
+            exoPlayer.seekTo(segment.endMs)
+            button.visibility = GONE
+            return
+        }
+        if (button.visibility != VISIBLE) button.visibility = VISIBLE
+        if (button.text != segment.type.label) button.text = segment.type.label
+    }
+
     private fun releasePlayer() {
+        handler.removeCallbacks(skipTicker)
         main {
             try {
                 if (this@PlayerFragment::exoPlayer.isInitialized) {
@@ -1510,6 +1753,12 @@ class PlayerFragment : Fragment() {
             type = AniListApi.Companion.AniListStatusType.Completed
         }
 
+        if (TrackerSync.anyConnected(this)) {
+            TrackerSync.pushAndNotify(
+                this, data?.malID, data?.anilistID, type.value, score, currentEpisodeProgress, monotonic = true
+            )
+        }
+
         if (progress < currentEpisodeProgress && (holder ?: malHolder) != null) {
             val anilistPost =
                 if (hasAniList) data?.anilistID?.let {
@@ -1620,7 +1869,10 @@ class PlayerFragment : Fragment() {
                         fun newDataSourceFactory(): DataSource.Factory {
                             return if (isOnline) {
                                 DefaultHttpDataSource.Factory().apply {
-                                    val headers = mapOf("Referer" to currentUrl.referer)
+                                    // Extractor-provided headers (extensions) take precedence
+                                    val headers = HashMap<String, String>()
+                                    headers["Referer"] = currentUrl.referer
+                                    currentUrl.headers?.let { headers.putAll(it) }
                                     setDefaultRequestProperties(headers)
                                     setUserAgent(USER_AGENT)
                                 }
@@ -1818,8 +2070,11 @@ class PlayerFragment : Fragment() {
                             }
                         }
 
-                        val mimeType =
-                            if (currentUrl.isM3u8) MimeTypes.APPLICATION_M3U8 else MimeTypes.APPLICATION_MP4
+                        val mimeType = when {
+                            currentUrl.isM3u8 -> MimeTypes.APPLICATION_M3U8
+                            currentUrl.isDash -> MimeTypes.APPLICATION_MPD
+                            else -> MimeTypes.APPLICATION_MP4
+                        }
 
                         val mediaItemBuilder = MediaItem.Builder()
                             //Replace needed for android 6.0.0  https://github.com/google/ExoPlayer/issues/5983
@@ -1846,13 +2101,17 @@ class PlayerFragment : Fragment() {
                             }
                         }
 
-                        val mediaItem = mediaItemBuilder.build()
+                        val baseMediaItem = mediaItemBuilder.build()
+                        lastBaseMediaItem = baseMediaItem
+                        val mediaItem = activeSubtitleFile?.takeIf { !subtitlesDisabled }?.let {
+                            baseMediaItem.buildUpon().setSubtitleConfigurations(listOf(subtitleConfig(it))).build()
+                        } ?: baseMediaItem
                         val trackSelector = DefaultTrackSelector(getCurrentActivity()!!)
-                        // Disable subtitles
+                        // Text tracks are enabled so external (OpenSubtitles/SubDL/extension) and embedded
+                        // subtitles render; a chosen external subtitle is flagged DEFAULT so it auto-selects.
                         trackSelector.parameters = DefaultTrackSelector.ParametersBuilder(getCurrentActivity()!!)
-                            .setRendererDisabled(C.TRACK_TYPE_VIDEO, true)
-                            .setRendererDisabled(C.TRACK_TYPE_TEXT, true)
-                            .setDisabledTextTrackSelectionFlags(C.TRACK_TYPE_TEXT)
+                            .setPreferredTextLanguage(IntegrationPrefs(guaranteedContext(context)).subtitleLanguage)
+                            .setSelectUndeterminedTextLanguage(true)
                             .clearSelectionOverrides()
                             .build()
 
@@ -1876,11 +2135,17 @@ class PlayerFragment : Fragment() {
                             setUpstreamDataSourceFactory(factory)
                         }
 
+                        // DefaultDataSource routes http(s) through the cache and file:/content: (local
+                        // subtitle files, downloads) to the right source.
+                        val mediaSourceFactory = DefaultMediaSourceFactory(
+                            DefaultDataSource.Factory(getCurrentActivity()!!, cacheFactory)
+                        )
+                        lastMediaSourceFactory = mediaSourceFactory
                         exoPlayer = exoPlayerBuilder.build().apply {
                             playWhenReady = isPlayerPlaying
                             seekTo(currentWindow, playbackPosition)
                             setMediaSource(
-                                DefaultMediaSourceFactory(cacheFactory).createMediaSource(mediaItem),
+                                mediaSourceFactory.createMediaSource(mediaItem),
                                 playbackPosition
                             )
 //                            setMediaItem(mediaItem, false)
@@ -1909,6 +2174,7 @@ class PlayerFragment : Fragment() {
                                 if (playWhenReady && playbackState == Player.STATE_READY) {
                                     focusRequest?.let { activity?.requestAudioFocus(it) }
                                 }
+                                if (playbackState == Player.STATE_READY) onPlayerReadyExtras()
                                 if (playbackState == Player.STATE_ENDED && fv<androidx.cardview.widget.CardView>(R.id.next_episode_btt)?.visibility == VISIBLE) {
                                     if (autoPlayEnabled) queueNextEpisode()
                                 } else {
@@ -1930,6 +2196,8 @@ class PlayerFragment : Fragment() {
                                 ).show()
                             }
                         })
+                        handler.removeCallbacks(skipTicker)
+                        handler.post(skipTicker)
                     }
                 } catch (e: java.lang.IllegalStateException) {
                     println("Warning: Illegal state exception in PlayerFragment")
