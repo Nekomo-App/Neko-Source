@@ -68,7 +68,10 @@ this toggle would just add a switch that does nothing.
 
 ## Known follow-up work
 
-- **`Fragment.fv()` (`utils/Synthetics.kt`)** throws `IllegalStateException` via
+- **`Fragment.fv()` (`utils/Synthetics.kt`) — mitigated:** it is now `inline reified` and returns a
+  detached throwaway view of the requested type when the fragment view is destroyed, instead of
+  throwing. Call sites are unchanged. Remaining risk: code that casts `layoutParams` or reads
+  state from that dummy view can still fail. Original note: it throws `IllegalStateException` via
   `requireView()` whenever a fragment's view is already destroyed (e.g. callbacks firing
   after back-navigation). This is the single biggest source of crashes in the app. Fixing
   it properly means changing `fv()` to return `T?` (`view?.findViewById(id) as? T`) and

@@ -113,6 +113,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
             }
             row.addView(rowText(repo.name ?: repo.url, weight = 1f))
             row.addView(rowButton("Browse") { browseRepo(repo.url) })
+            row.addView(rowButton("Install all") { confirmRisk { installAll(repo.url) } })
             row.addView(rowButton("Remove") {
                 CsPluginManager.removeRepo(this, repo.url)
                 refreshRepos()
@@ -147,6 +148,40 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                         confirmRisk { installPlugin(url, plugins[which]) }
                     }
                     .show()
+            }
+        }
+    }
+
+    private fun installAll(repoUrl: String) {
+        setStatus("Fetching plugins…")
+        thread {
+            val plugins = CsPluginManager.fetchRepoPlugins(repoUrl)
+            if (plugins.isEmpty()) {
+                setStatus("")
+                toast("No plugins found (or repository is offline)")
+                return@thread
+            }
+            var ok = 0
+            plugins.forEachIndexed { i, p ->
+                setStatus("Installing ${p.displayName} (${i + 1}/${plugins.size})…")
+                if (CsPluginManager.installPlugin(this, repoUrl, p).success) ok++
+            }
+            runOnUiThread {
+                setStatus("Installed $ok of ${plugins.size} extensions")
+                refreshPlugins()
+            }
+        }
+    }
+
+    private fun updateAll() {
+        val installed = CsPluginManager.getInstalled(this)
+        setStatus("Updating ${installed.size} extension(s)…")
+        thread {
+            var ok = 0
+            installed.forEach { if (CsPluginManager.updatePlugin(this, it.internalName).success) ok++ }
+            runOnUiThread {
+                setStatus("Updated $ok of ${installed.size} extensions")
+                refreshPlugins()
             }
         }
     }
@@ -195,6 +230,8 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         val installed = CsPluginManager.getInstalled(this)
         if (installed.isEmpty()) {
             pluginList.addView(rowText("No extensions installed"))
+        } else {
+            pluginList.addView(rowButton("Update all") { updateAll() })
         }
         for (plugin in installed) {
             val providers = CsPluginManager.loaded()
@@ -234,6 +271,17 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 refreshPlugins()
             })
             row.addView(buttons)
+            CsPluginManager.loaded()
+                .firstOrNull { it.installed.internalName == plugin.internalName }
+                ?.apis?.forEach { api ->
+                    row.addView(Switch(this).apply {
+                        text = "  ${api.name}"
+                        isChecked = CsPluginManager.isProviderEnabled(this@ExtensionsActivity, api.name)
+                        setOnCheckedChangeListener { _, checked ->
+                            CsPluginManager.setProviderEnabled(this@ExtensionsActivity, api.name, checked)
+                        }
+                    })
+                }
             pluginList.addView(row)
         }
     }

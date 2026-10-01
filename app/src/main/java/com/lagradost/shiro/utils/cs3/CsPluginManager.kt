@@ -138,6 +138,7 @@ object CsPluginManager {
 
     fun init(context: Context) {
         injectAppContext(context)
+        disabledProviders(context)
         val latch = CountDownLatch(1)
         loadLatch = latch
         thread(name = "CsPluginLoad") {
@@ -185,7 +186,9 @@ object CsPluginManager {
             .map { it.installed.filePath }
             .toSet()
         return try {
-            APIHolder.allProviders.filter { it.sourcePlugin in enabledFiles }
+            APIHolder.allProviders.filter {
+                it.sourcePlugin in enabledFiles && it.name !in disabledProviderNames
+            }
         } catch (t: Throwable) {
             logError(t)
             emptyList()
@@ -577,20 +580,40 @@ object CsPluginManager {
     fun updatePlugin(context: Context, internalName: String): InstallResult {
         val installed = getInstalled(context).firstOrNull { it.internalName == internalName }
             ?: return InstallResult(false, "Not installed")
-        val url = installed.sourceUrl ?: return InstallResult(false, "No source url")
-        return installPlugin(
-            context,
-            installed.repoUrl,
-            CsSitePlugin(
-                url = url,
-                version = Int.MAX_VALUE, // force update
-                name = installed.name,
-                internalName = installed.internalName,
-                authors = null, description = null, repositoryUrl = installed.repoUrl,
-                tvTypes = null, language = null, iconUrl = null,
-                fileSize = null, fileHash = installed.fileHash,
+        val repoUrl = installed.repoUrl ?: return InstallResult(false, "No repository recorded")
+        val latest = fetchRepoPlugins(repoUrl).firstOrNull { it.internalName == internalName }
+            ?: return InstallResult(false, "Not found in repository (offline or removed)")
+        if (latest.version <= installed.version && latest.fileHash == installed.fileHash) {
+            return InstallResult(true, "${installed.name} is up to date")
+        }
+        val wasEnabled = isPluginEnabled(context, internalName)
+        val result = installPlugin(context, repoUrl, latest)
+        if (result.success && !wasEnabled) setPluginEnabled(context, internalName, false)
+        return result
+    }
+
+    // ---------- per-provider enable / disable ----------
+
+    private const val DISABLED_PROVIDERS_KEY = "cs3_disabled_providers"
+    private val disabledProviderNames = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+    private var disabledProvidersLoaded = false
+
+    private fun disabledProviders(context: Context): Set<String> {
+        if (!disabledProvidersLoaded) {
+            disabledProviderNames.addAll(
+                context.getKey<List<String>>(DISABLED_PROVIDERS_KEY) ?: emptyList()
             )
-        )
+            disabledProvidersLoaded = true
+        }
+        return disabledProviderNames
+    }
+
+    fun isProviderEnabled(context: Context, apiName: String) = apiName !in disabledProviders(context)
+
+    fun setProviderEnabled(context: Context, apiName: String, enabled: Boolean) {
+        disabledProviders(context)
+        if (enabled) disabledProviderNames.remove(apiName) else disabledProviderNames.add(apiName)
+        context.setKey(DISABLED_PROVIDERS_KEY, disabledProviderNames.toList())
     }
 
     // ---------- manifest ----------
