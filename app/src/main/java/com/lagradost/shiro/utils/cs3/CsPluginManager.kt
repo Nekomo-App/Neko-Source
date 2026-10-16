@@ -312,7 +312,7 @@ object CsPluginManager {
     // ---------- repositories ----------
 
     fun getRepos(context: Context): List<CsRepo> =
-        context.getKey<List<CsRepo>>(REPOS_KEY) ?: emptyList()
+        context.getKey<Array<CsRepo>>(REPOS_KEY)?.toList() ?: emptyList()
 
     fun addRepo(context: Context, repo: CsRepo) {
         val current = getRepos(context)
@@ -535,7 +535,7 @@ object CsPluginManager {
     }
 
     fun getInstalled(context: Context): List<CsInstalledPlugin> =
-        context.getKey<List<CsInstalledPlugin>>(INSTALLED_KEY) ?: emptyList()
+        context.getKey<Array<CsInstalledPlugin>>(INSTALLED_KEY)?.toList() ?: emptyList()
 
     private fun saveInstalled(context: Context, list: List<CsInstalledPlugin>) {
         context.setKey(INSTALLED_KEY, list)
