@@ -16,6 +16,7 @@ import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.jaredrummler.cyanea.prefs.CyaneaTheme
 import com.lagradost.shiro.R
+import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import com.lagradost.shiro.ui.MainActivity.Companion.masterViewModel
 import com.lagradost.shiro.ui.MainActivity.Companion.navController
 import com.lagradost.shiro.ui.MasterViewModel
@@ -89,7 +90,7 @@ class TvActivity : CyaneaAppCompatActivity() {
         settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
         init()
         thread {
-            initShiroApi()
+            normalSafeApiCall { initShiroApi() }
         }
         supportActionBar?.hide()
         if (cyanea.isDark) {
@@ -98,8 +99,10 @@ class TvActivity : CyaneaAppCompatActivity() {
             theme.applyStyle(R.style.darkText, true)
         }
         if (!Cyanea.instance.isThemeModified) {
-            val list: List<CyaneaTheme> = CyaneaTheme.Companion.from(assets, "themes/cyanea_themes.json")
-            list[0].apply(Cyanea.instance).recreate(this)
+            normalSafeApiCall {
+                val list: List<CyaneaTheme> = CyaneaTheme.Companion.from(assets, "themes/cyanea_themes.json")
+                list[0].apply(Cyanea.instance).recreate(this)
+            }
         }
         applyThemes()
         super.onCreate(savedInstanceState)
@@ -112,11 +115,11 @@ class TvActivity : CyaneaAppCompatActivity() {
         // ------ Init -----
         tvActivity = this
         thread {
-            runAutoUpdate()
+            normalSafeApiCall { runAutoUpdate() }
         }
 
         setContentView(R.layout.activity_tv)
-        com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this)
+        normalSafeApiCall { com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this) }
         navController = fv<androidx.fragment.app.FragmentContainerView>(R.id.home_root_tv).findNavController()
         handleIntent(intent)
     }

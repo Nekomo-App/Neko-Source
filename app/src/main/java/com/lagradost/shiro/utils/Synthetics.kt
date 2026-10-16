@@ -14,6 +14,18 @@ import androidx.recyclerview.widget.RecyclerView
  * Drop-in replacement for kotlinx.android.synthetic view lookups.
  * Resolves a view by id on the receiver, throwing on missing views like synthetics did.
  */
+/** NavController.navigate that survives double-taps / stale destinations instead of crashing. */
+fun androidx.navigation.NavController.safeNavigate(
+    @IdRes id: Int,
+    args: android.os.Bundle? = null
+) {
+    try {
+        navigate(id, args)
+    } catch (e: Exception) {
+        com.lagradost.shiro.utils.mvvm.logError(e)
+    }
+}
+
 @Suppress("UNCHECKED_CAST")
 fun <T : View> View.fv(@IdRes id: Int): T = findViewById(id) as T
 

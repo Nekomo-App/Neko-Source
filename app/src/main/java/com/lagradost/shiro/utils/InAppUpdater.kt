@@ -142,7 +142,8 @@ object InAppUpdater {
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
 
         val id = downloadManager.enqueue(request)
-        registerReceiver(
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
             object : BroadcastReceiver() {
                 override fun onReceive(context: Context?, intent: Intent?) {
                     val downloadId = intent?.getLongExtra(
@@ -161,7 +162,7 @@ object InAppUpdater {
                         ) {
                             c.getColumnIndex(DownloadManager.COLUMN_MEDIAPROVIDER_URI)
                             val uri = Uri.parse(
-                                c.getString(c.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
+                                c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
                             )
 //                            val uri = downloadManager.getUriForDownloadedFile(downloadId)
                             openApk(context ?: this@downloadUpdate, uri)
@@ -169,7 +170,8 @@ object InAppUpdater {
                         }
                     }
                 }
-            }, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+            }, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
         )
         return true
     }

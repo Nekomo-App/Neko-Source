@@ -17,6 +17,18 @@ Windows/OneDrive note: the repo lives in OneDrive and a first build of a new var
 `AAPT: failed writing to ... R.txt: The data is invalid (13)`. It is transient (OneDrive touching
 `app/build`); just re-run the same Gradle command, ideally one variant at a time.
 
+## Variants / release builds
+
+- Build types: `debug` (`.debug`), `beta` (`.beta`, minified, signed with the release key), `release` (stable).
+  Flavors: `phone`, `tv`. `./gradlew assemble<Flavor><Type>`; copy outputs to `apks/Nekomo-<flavor>-<type>.apk`.
+- `coreLibraryDesugaringEnabled true` is required for API 21-23 (`Iterable.forEach` etc.).
+- Release/beta builds OOM'd in lint-vital with a 2 GB heap; heap is now 4 GB. If it recurs, add
+  `-x lintVitalAnalyze<Variant> -x lintVitalReport<Variant> -x lintVital<Variant>`.
+- TV manifest declares leanback `required=false` so the TV APK can be installed on phones for testing
+  (`TvActivity` has both LAUNCHER and LEANBACK_LAUNCHER categories).
+- Use `NavController.safeNavigate` (`utils/Synthetics.kt`) instead of `navigate` to avoid double-tap crashes;
+  use `ContextCompat.registerReceiver` with an explicit export flag (Android 14 target).
+
 ## Error logging
 
 `com.lagradost.shiro.utils.ErrorLogger` persists a rolling crash/error log to app-private
@@ -108,7 +120,8 @@ this toggle would just add a switch that does nothing.
 - Placeholder URLs (Discord, Telegram, website, support, ToS, Privacy) live in `res/values/links.xml`
   and MUST be replaced before release.
 - Settings -> Community Rules (`CommunityRulesActivity`) reuses the rules text and `SocialLinks`.
-- Known gap: `PlayerActivity` is exported for `content://` video intents and is not gated.
+- `PlayerActivity` (exported for `content://` video intents) is gated: it bounces to the launcher unless signed in
+  and rules accepted.
 
 - Verified: phone + TV debug builds and phone release (R8) compile; `lintPhoneDebug` has 28 errors, none
   in the new code (rest pre-existing: NewApi, Range, receiver flags).

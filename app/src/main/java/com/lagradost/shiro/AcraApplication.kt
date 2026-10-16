@@ -63,11 +63,11 @@ class AcraApplication : Application() {
 
         // Persist crashes/errors to app storage so they're visible from Settings even on a
         // release build with no debugger attached (see utils/ErrorLogger.kt).
-        base?.let { ErrorLogger.init(it) }
+        normalSafeApiCall { base?.let { ErrorLogger.init(it) } }
 
         // CloudStream extension subsystem: injects our Context into the vendored
         // cloudstream3 classes and loads installed .cs3 plugins on a bg thread
-        base?.let { CsPluginManager.init(it) }
+        normalSafeApiCall { base?.let { CsPluginManager.init(it) } }
 
         normalSafeApiCall {
             base?.setKey(MAL_SHOULD_UPDATE_LIST, true)
@@ -98,7 +98,7 @@ class AcraApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         context = context ?: baseContext
-        Cyanea.init(this, resources)
+        normalSafeApiCall { Cyanea.init(this, resources) }
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
 //        normalSafeApiCall {
 //            // Cleaning up update folder

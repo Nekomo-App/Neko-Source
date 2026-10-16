@@ -18,8 +18,8 @@ android {
         minSdkVersion 21
         targetSdkVersion 34
         // Don't forget to update versionCode too :)
-        versionCode 35
-        versionName "2.8.0"
+        versionCode 36
+        versionName "2.8.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         multiDexEnabled true
@@ -76,7 +76,12 @@ android {
         }
         beta {
             buildConfigField("boolean", "BETA", "true")
+            applicationIdSuffix ".beta"
             versionNameSuffix '-Beta'
+            matchingFallbacks = ['release']
+            if (rootProject.file('keystore.properties').exists()) {
+                signingConfig signingConfigs.release
+            }
             debuggable false
             minifyEnabled true
             shrinkResources true
@@ -84,6 +89,7 @@ android {
         }
     }
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }

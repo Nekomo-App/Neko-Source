@@ -62,6 +62,7 @@ import com.lagradost.shiro.utils.VideoDownloadManager
 import com.lagradost.shiro.utils.VideoDownloadManager.KEY_RESUME_PACKAGES
 import com.lagradost.shiro.utils.VideoDownloadManager.currentDownloads
 import com.lagradost.shiro.utils.VideoDownloadManager.maxConcurrentDownloads
+import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import com.lagradost.shiro.utils.mvvm.observe
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
@@ -304,14 +305,16 @@ class MainActivity : CyaneaAppCompatActivity() {
             theme.applyStyle(R.style.darkText, true)
         }
         if (!Cyanea.instance.isThemeModified) {
-            val list: List<CyaneaTheme> = CyaneaTheme.Companion.from(assets, "themes/cyanea_themes.json")
-            list[0].apply(Cyanea.instance).recreate(this)
+            normalSafeApiCall {
+                val list: List<CyaneaTheme> = CyaneaTheme.Companion.from(assets, "themes/cyanea_themes.json")
+                list[0].apply(Cyanea.instance).recreate(this)
+            }
         }
 
         // -----------------
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this)
+        normalSafeApiCall { com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this) }
 
         /*window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
@@ -334,12 +337,12 @@ class MainActivity : CyaneaAppCompatActivity() {
         }*/
 
         thread {
-            initShiroApi()
+            normalSafeApiCall { initShiroApi() }
         }
         // Hardcoded for now since it fails for some people :|
         isDonor = true //getDonorStatus() == androidId
         thread {
-            runAutoUpdate()
+            normalSafeApiCall { runAutoUpdate() }
         }
         //https://stackoverflow.com/questions/29146757/set-windowtranslucentstatus-true-when-android-lollipop-or-higher
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

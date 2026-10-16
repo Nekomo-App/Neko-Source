@@ -144,6 +144,8 @@
         <item name="android:paddingStart">20dp</item>
         <item name="android:paddingEnd">20dp</item>
         <item name="android:selectAllOnFocus">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
         <item name="android:background">@drawable/outline_background</item>
         <item name="android:textColor">?attr/textColor</item>
         <item name="android:foreground">?attr/selectableItemBackgroundBorderless</item>

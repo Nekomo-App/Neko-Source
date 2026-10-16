@@ -27,6 +27,7 @@ import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.jaredrummler.cyanea.Cyanea
 import com.lagradost.shiro.R
+import com.lagradost.shiro.utils.safeNavigate
 import com.lagradost.shiro.ui.GlideApp
 import com.lagradost.shiro.ui.MainActivity
 import com.lagradost.shiro.ui.MainActivity.Companion.isDonor
@@ -162,7 +163,7 @@ class DownloadFragment : Fragment() {
                                 val arguments = Bundle().apply {
                                     putString(SLUG, parent.slug.replace("-dubbed", "-dub"))
                                 }
-                                activity?.getNavController()?.navigate(
+                                activity?.getNavController()?.safeNavigate(
                                     R.id.action_navigation_downloads_to_navigation_download_child, arguments
                                 )
 //                                activity?.addFragmentOnlyOnce(
@@ -218,7 +219,7 @@ class DownloadFragment : Fragment() {
             fv<androidx.cardview.widget.CardView>(R.id.queue_card)?.backgroundTintList = ColorStateList.valueOf(Cyanea.instance.backgroundColorDark)
         }
         fv<androidx.cardview.widget.CardView>(R.id.queue_card)?.setOnClickListener {
-            activity?.getNavController()?.navigate(
+            activity?.getNavController()?.safeNavigate(
                 R.id.action_navigation_downloads_to_navigation_download_queue
             )
 //            activity?.addFragmentOnlyOnce(

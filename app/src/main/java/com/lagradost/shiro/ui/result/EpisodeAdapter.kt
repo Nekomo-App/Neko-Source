@@ -138,12 +138,15 @@ class EpisodeAdapter(
         //lastSelectedEpisode = 0
         holder.itemView.setOnFocusChangeListener { _, _ ->
             //lastSelectedEpisode = position
-            if (prevFocus != null) {
-                if (kotlin.math.abs(position - prevFocus!!) > 3 * 2) {
-                    this.resView.fv<androidx.recyclerview.widget.RecyclerView>(R.id.episodes_res_view).layoutManager?.scrollToPosition(0)
+            val pos = holder.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION) {
+                if (prevFocus != null) {
+                    if (kotlin.math.abs(pos - prevFocus!!) > 3 * 2) {
+                        this.resView.fv<androidx.recyclerview.widget.RecyclerView>(R.id.episodes_res_view).layoutManager?.scrollToPosition(0)
+                    }
                 }
+                prevFocus = pos
             }
-            prevFocus = position
             //updateFocusPositions(holder, hasFocus, position)
         }
 

@@ -556,13 +556,17 @@ class PlayerFragment : Fragment() {
             filter.addAction(
                 ACTION_MEDIA_CONTROL
             )
-            activity?.registerReceiver(receiver, filter)
+            activity?.let { ContextCompat.registerReceiver(it, receiver!!, filter, ContextCompat.RECEIVER_NOT_EXPORTED) }
             updatePIPModeActions()
         } else {
             // Restore the full-screen UI.
             fv<android.widget.FrameLayout>(R.id.player_holder)?.alpha = 1f
             receiver?.let {
-                activity?.unregisterReceiver(it)
+                try {
+                    activity?.unregisterReceiver(it)
+                } catch (_: IllegalArgumentException) {
+                }
+                receiver = null
             }
             fv<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.nav_view)?.visibility = VISIBLE
 

@@ -87,7 +87,7 @@ class SettingsFragmentNew : Fragment() {
         fv<android.widget.TextView>(R.id.settings_integrations)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {
-                startActivity(Intent(getCurrentActivity(), IntegrationsActivity::class.java))
+                context?.let { startActivity(Intent(it, IntegrationsActivity::class.java)) }
             }
         }
 
@@ -96,14 +96,14 @@ class SettingsFragmentNew : Fragment() {
         fv<android.widget.TextView>(R.id.settings_extensions)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {
-                startActivity(Intent(getCurrentActivity(), ExtensionsActivity::class.java))
+                context?.let { startActivity(Intent(it, ExtensionsActivity::class.java)) }
             }
         }
 
         fv<android.widget.TextView>(R.id.settings_community_rules)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {
-                startActivity(Intent(getCurrentActivity(), CommunityRulesActivity::class.java))
+                context?.let { startActivity(Intent(it, CommunityRulesActivity::class.java)) }
             }
         }
 
@@ -191,7 +191,7 @@ class SettingsFragmentNew : Fragment() {
     }
 
     private fun openSettingSubMenu(xml: Int) {
-        val intent = Intent(getCurrentActivity()!!, SettingsActivity::class.java).apply {
+        val intent = Intent(context ?: return, SettingsActivity::class.java).apply {
             putExtra(XML_KEY, xml)
         }
         startActivity(intent)

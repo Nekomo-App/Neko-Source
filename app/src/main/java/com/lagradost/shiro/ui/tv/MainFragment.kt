@@ -17,6 +17,7 @@ import androidx.transition.AutoTransition
 import androidx.transition.Transition
 import androidx.transition.TransitionManager
 import com.lagradost.shiro.R
+import com.lagradost.shiro.utils.safeNavigate
 import com.lagradost.shiro.ui.home.HomeFragment.Companion.homeViewModel
 import com.lagradost.shiro.ui.home.HomeViewModel
 import com.lagradost.shiro.ui.home.MasterCardAdapter
@@ -86,17 +87,17 @@ class MainFragment : Fragment() {
         fv<android.widget.RelativeLayout>(R.id.tv_menu_bar).visibility = VISIBLE
 
         fv<android.widget.ImageView>(R.id.search_icon).setOnClickListener {
-            findNavController().navigate(
+            findNavController().safeNavigate(
                 R.id.global_to_navigation_search_tv
             )
         }
         fv<android.widget.ImageView>(R.id.library_icon).setOnClickListener {
-            findNavController().navigate(
+            findNavController().safeNavigate(
                 R.id.global_to_navigation_library_tv
             )
         }
         fv<android.widget.ImageView>(R.id.settings_icon).setOnClickListener {
-            findNavController().navigate(
+            findNavController().safeNavigate(
                 R.id.global_to_navigation_settings_tv
             )
         }

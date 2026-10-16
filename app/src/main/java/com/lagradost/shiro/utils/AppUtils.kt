@@ -524,7 +524,7 @@ object AppUtils {
             MediaStore.Video.Media.DATA + "=? ", arrayOf(videoFilePath), null
         )
         return if (cursor != null && cursor.moveToFirst()) {
-            val id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID))
+            val id = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID))
             cursor.close()
             Uri.withAppendedPath(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, "" + id)
         } else {
@@ -552,7 +552,7 @@ object AppUtils {
                         arrayOf(MediaStore.MediaColumns.DISPLAY_NAME), null, null, null
                     )
                     if (cursor != null && cursor.moveToFirst()) {
-                        val filename = cursor.getString(cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME))
+                        val filename = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME))
                             .replace("/", "")
                         inputStream = ctx.contentResolver.openInputStream(data)
                         if (inputStream == null) return data
@@ -935,7 +935,7 @@ object AppUtils {
                 putString(CARD_LIST, mapper.writeValueAsString(data))
                 putString(TITLE, textView.text.toString())
             }
-            getNavController()?.navigate(
+            getNavController()?.safeNavigate(
                 R.id.action_navigation_home_to_navigation_expanded_home,
                 arguments,
             )
@@ -1188,7 +1188,7 @@ fun loadPlayer(title: String?, url: String, startAt: Long?) {
             masterViewModel?.playerData?.value = data
             val destination =
                 if (tvActivity != null) R.id.global_to_navigation_player_tv else R.id.global_to_navigation_player
-            getNavController()?.navigate(
+            getNavController()?.safeNavigate(
                 destination
             )
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
@@ -1212,7 +1212,7 @@ fun loadPlayer(title: String?, url: String, startAt: Long?) {
 //            }
             val destination =
                 if (tvActivity != null) R.id.global_to_navigation_results_tv else R.id.global_to_navigation_results
-            it.navigate(destination, arguments, null, null)
+            it.safeNavigate(destination, arguments)
         }
     }
 
