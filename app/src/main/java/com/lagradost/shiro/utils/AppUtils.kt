@@ -813,17 +813,25 @@ object AppUtils {
     }
 
     fun Context.openBrowser(url: String) {
-        if (tvActivity != null) {
-            tvActivity?.addFragmentOnlyOnce(android.R.id.content, WebViewFragment.newInstance(url), "WEB_VIEW")
-        } else {
-            val components = arrayOf(ComponentName(applicationContext, MainActivity::class.java))
-            val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse(url)
+        try {
+            if (tvActivity != null) {
+                tvActivity?.addFragmentOnlyOnce(android.R.id.content, WebViewFragment.newInstance(url), "WEB_VIEW")
+            } else {
+                val components = arrayOf(ComponentName(applicationContext, MainActivity::class.java))
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.data = Uri.parse(url)
+                if (this !is Activity) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
-                startActivity(Intent.createChooser(intent, null).putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, components))
-            else
-                startActivity(intent)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+                    startActivity(Intent.createChooser(intent, null).putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, components).apply {
+                        if (this@openBrowser !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                else
+                    startActivity(intent)
+            }
+        } catch (e: Exception) {
+            logError(e)
+            android.widget.Toast.makeText(applicationContext, "No browser available to open $url", android.widget.Toast.LENGTH_LONG).show()
         }
     }
 

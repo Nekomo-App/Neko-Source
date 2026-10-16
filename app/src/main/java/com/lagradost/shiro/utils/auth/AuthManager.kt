@@ -19,6 +19,7 @@ const val KITSU_REFRESH_TOKEN_KEY = "kitsu_refresh_token"
 const val KITSU_USER_KEY = "kitsu_user"
 const val KITSU_ACCOUNT_ID = "0"
 private const val RULES_ACCEPTED_KEY = "community_rules_accepted"
+private const val SIGN_IN_SKIPPED_KEY = "sign_in_skipped"
 
 /**
  * Sign-in gate state. A user counts as signed in only when a token AND a fetched
@@ -46,8 +47,23 @@ object AuthManager {
         false
     }
 
-    fun hasAcceptedRules(context: Context): Boolean =
+    fun hasSkippedSignIn(context: Context): Boolean = try {
+        context.getKey<Boolean>(SIGN_IN_SKIPPED_KEY, false) ?: false
+    } catch (e: Exception) {
+        false
+    }
+
+    fun setSignInSkipped(context: Context) = context.setKey(SIGN_IN_SKIPPED_KEY, true)
+
+    /** Signed in or explicitly skipped; the community rules still have to be accepted. */
+    fun canEnter(context: Context): Boolean =
+        (isSignedIn(context) || hasSkippedSignIn(context)) && hasAcceptedRules(context)
+
+    fun hasAcceptedRules(context: Context): Boolean = try {
         context.getKey<Boolean>(RULES_ACCEPTED_KEY, false) ?: false
+    } catch (e: Exception) {
+        false
+    }
 
     fun setRulesAccepted(context: Context) = context.setKey(RULES_ACCEPTED_KEY, true)
 

@@ -56,7 +56,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
 
     companion object {
         fun attachIfNeeded(activity: FragmentActivity) {
-            if (AuthManager.isSignedIn(activity) && AuthManager.hasAcceptedRules(activity)) return
+            if (AuthManager.canEnter(activity)) return
             WelcomeGate(activity).show()
         }
 
@@ -104,18 +104,22 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
     private fun poll() {
         handler.postDelayed({
             if (activity.isFinishing || activity.isDestroyed) return@postDelayed
-            val signedIn = AuthManager.isSignedIn(ctx)
-            if (signedIn && step == Step.SIGN_IN) {
-                if (AuthManager.hasAcceptedRules(ctx)) {
-                    dialog.dismiss(); return@postDelayed
+            try {
+                val signedIn = AuthManager.isSignedIn(ctx)
+                if (signedIn && step == Step.SIGN_IN) {
+                    if (AuthManager.hasAcceptedRules(ctx)) {
+                        dialog.dismiss(); return@postDelayed
+                    }
+                    step = Step.RULES
+                    restore(); render()
+                } else if (!signedIn && hiddenForBrowser &&
+                    activity.supportFragmentManager.findFragmentByTag("WEB_VIEW") == null
+                ) {
+                    // TV in-app browser was closed without finishing sign-in
+                    restore()
                 }
-                step = Step.RULES
-                restore(); render()
-            } else if (!signedIn && hiddenForBrowser &&
-                activity.supportFragmentManager.findFragmentByTag("WEB_VIEW") == null
-            ) {
-                // TV in-app browser was closed without finishing sign-in
-                restore()
+            } catch (e: Exception) {
+                com.lagradost.shiro.utils.mvvm.logError(e)
             }
             poll()
         }, 600)
@@ -189,6 +193,16 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
         root.addView(button("Continue with Kitsu", 0xFFF75239.toInt()) { showKitsuDialog() })
         statusView = text("", 13f, alpha = true).also { root.addView(it) }
 
+        root.addView(button("Skip for now", 0xFF616161.toInt()) {
+            AuthManager.setSignInSkipped(ctx)
+            if (AuthManager.hasAcceptedRules(ctx)) {
+                handler.removeCallbacksAndMessages(null)
+                dialog.dismiss()
+            } else {
+                step = Step.RULES
+                render()
+            }
+        })
         root.addView(linkText("Create an account") { showCreateAccount() })
 
         val legal = LinearLayout(ctx).apply { gravity = Gravity.CENTER }

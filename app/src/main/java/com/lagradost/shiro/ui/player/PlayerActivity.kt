@@ -58,7 +58,7 @@ class PlayerActivity : CyaneaAppCompatActivity() {
     @SuppressLint("MissingSuperCall")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!AuthManager.isSignedIn(this) || !AuthManager.hasAcceptedRules(this)) {
+        if (!AuthManager.canEnter(this)) {
             packageManager.getLaunchIntentForPackage(packageName)?.let { startActivity(it) }
             finish()
             return

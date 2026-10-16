@@ -2,6 +2,7 @@ package com.lagradost.shiro.utils
 
 import android.content.Context
 import android.os.Build
+import android.os.Looper
 import com.lagradost.shiro.BuildConfig
 import java.io.File
 import java.text.SimpleDateFormat
@@ -33,13 +34,15 @@ object ErrorLogger {
 
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            // A failure on a worker thread (network/API/login callbacks) must not take the whole
+            // app down: log it and let the thread die. Main-thread crashes and OOM stay fatal.
+            val recoverable = thread !== Looper.getMainLooper().thread && throwable !is OutOfMemoryError
             try {
-                log(throwable, fatal = true)
+                log(throwable, fatal = !recoverable)
             } catch (_: Throwable) {
                 // Never let the logger itself interfere with the crash handling chain.
-            } finally {
-                previousHandler?.uncaughtException(thread, throwable)
             }
+            if (!recoverable) previousHandler?.uncaughtException(thread, throwable)
         }
     }
 
