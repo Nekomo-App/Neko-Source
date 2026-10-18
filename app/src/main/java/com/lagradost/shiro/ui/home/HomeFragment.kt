@@ -70,6 +70,7 @@ class HomeFragment : Fragment() {
 
     private fun homeLoaded(data: ShiroApi.ShiroHomePageNew?) {
         activity?.runOnUiThread {
+            try {
             /*fv<androidx.recyclerview.widget.RecyclerView>(R.id.trending_anime_scroll_view).removeAllViews()
             fv<androidx.recyclerview.widget.RecyclerView>(R.id.recentlySeenScrollView).removeAllViews()
             fv<androidx.recyclerview.widget.RecyclerView>(R.id.recently_updated_scroll_view).removeAllViews()
@@ -159,6 +160,10 @@ class HomeFragment : Fragment() {
             fv<android.widget.Button>(R.id.main_reload_data_btt)?.alpha = 0f
             fv<android.widget.Button>(R.id.main_reload_data_btt)?.isClickable = false
             fv<android.widget.LinearLayout>(R.id.main_layout)?.setPadding(0, MainActivity.statusHeight, 0, 0)
+            } catch (e: Exception) {
+                // View torn down mid-load (e.g. user switched tab while the home was loading)
+                logError(e)
+            }
         }
     }
 
@@ -207,7 +212,7 @@ class HomeFragment : Fragment() {
                         fv<android.widget.TextView>(R.id.main_name)?.text = randomData.title
                         normalSafeApiCall {
                             fv<android.widget.TextView>(R.id.main_genres)?.text =
-                                mapper.readValue<List<String>>(randomData.genres)
+                                randomData.genres.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                                     .joinToString(prefix = "", postfix = "", separator = " • ")
                         }
                         fv<com.google.android.material.button.MaterialButton>(R.id.main_watch_button).setOnClickListener {
@@ -390,7 +395,7 @@ class HomeFragment : Fragment() {
                 .setPositiveButton("I understand") { dialogInterface, _ ->
                     dialogInterface.dismiss()
                 }
-                .setMessage("The Shiro app is only a front-end to the shiro site available in the browser. As it's only a front-end it does not host nor control the videos accessible in the app. The legality of the content shown in the app is therefore the responsibility of the video hosts. It's also the users responsibility to make sure that their usage of this app is legal in their country. Use this app at your own risk!\n\nIn case of copyright infringement contact the offending video hosting provider!\n\nThis app is only for personal and educational use.\n")
+                .setMessage("Nekomo is only a front-end for content provided by third-party sources. It does not host nor control the videos accessible in the app. The legality of the content shown in the app is therefore the responsibility of the video hosts. It's also the users responsibility to make sure that their usage of this app is legal in their country. Use this app at your own risk!\n\nIn case of copyright infringement contact the offending video hosting provider!\n\nThis app is only for personal and educational use.\n")
                 .show()
         }
 

@@ -7,7 +7,7 @@ import com.lagradost.shiro.utils.Qualities
 import com.lagradost.shiro.utils.mvvm.logError
 
 class Shiro : ExtractorApi() {
-    override val name: String = "Shiro"
+    override val name: String = "Nekomo"
     override val mainUrl: String = "https://s04.subsplea.se"
     override val requiresReferer = false
 

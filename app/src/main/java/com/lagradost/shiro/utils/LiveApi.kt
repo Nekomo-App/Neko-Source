@@ -46,7 +46,10 @@ object LiveApi {
 
     private fun gql(url: String, query: String, variables: Map<String, Any?>): JsonNode? {
         return try {
-            val body = mapper.writeValueAsString(mapOf("query" to query, "variables" to variables))
+            // Plain JDK map: Jackson + kotlin-reflect fails on kotlin.collections.EmptyMap after R8
+            val body = mapper.writeValueAsString(
+                linkedMapOf<String, Any?>("query" to query, "variables" to LinkedHashMap(variables))
+            )
             val headers =
                 if (url.contains("allanime")) allAnimeHeaders else defaultHeaders
             val res = khttp.post(url, headers = headers, json = body, timeout = 30.0)
@@ -415,6 +418,7 @@ object LiveApi {
 
         // CloudStream extension slugs are self-contained "cs3-hexApi-hexUrl" tokens
         if (CsBridge.isCs3Slug(bare)) return CsBridge.getAnimePage(bare)
+        if (com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(bare)) return com.lagradost.shiro.utils.zg.ZangetsuBridge.getAnimePage(bare)
 
         try {
             when {
@@ -554,6 +558,7 @@ object LiveApi {
     fun resolveStreams(token: String, isCasting: Boolean, callback: (ExtractorLink) -> Unit): Boolean {
         // CloudStream extension tokens route to the provider's loadLinks
         if (CsBridge.isCs3Slug(token)) return CsBridge.resolveStreams(token, isCasting, callback)
+        if (com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(token)) return com.lagradost.shiro.utils.zg.ZangetsuBridge.resolveStreams(token, callback)
         try {
             val parts = token.split("|")
             if (parts.size != 3) return false
@@ -591,11 +596,15 @@ object LiveApi {
             }
 
             var emitted = false
+            // Embed pages (not video files) are only offered if nothing directly playable was found,
+            // otherwise the player may pick one first and fail on it.
+            val embedFallbacks = mutableListOf<ExtractorLink>()
             list.forEach { node ->
                 val raw = node.txt("sourceUrl").ifEmpty { node.txt("url") }
                 if (raw.isBlank()) return@forEach
                 val name = node.txt("sourceName").ifEmpty { "AllAnime" }
                 val url = decodeSourceUrl(raw) ?: return@forEach
+                android.util.Log.w("NekomoStreams", "source $name -> ${url.take(100)}")
 
                 when {
                     url.startsWith("/") -> {
@@ -614,11 +623,12 @@ object LiveApi {
                         emitted = true
                     }
                     else -> {
-                        emitted = runExtractors(url, name, isCasting, callback) || emitted
+                        emitted = runExtractors(url, name, isCasting, callback, embedFallbacks) || emitted
                     }
                 }
             }
-            return emitted
+            if (!emitted) embedFallbacks.forEach(callback)
+            return emitted || embedFallbacks.isNotEmpty()
         } catch (e: Exception) {
             logError(e)
             return false
@@ -677,6 +687,7 @@ object LiveApi {
     ): Boolean {
         return try {
             val res = khttp.get(clockUrl, headers = allAnimeHeaders)
+            android.util.Log.w("NekomoStreams", "clock ${clockUrl.take(80)} -> ${res.statusCode} ${res.text.take(120)}")
             if (res.statusCode != 200) return false
             val links = mapper.readTree(res.text).path("links")
             var emitted = false
@@ -711,6 +722,7 @@ object LiveApi {
     private val hostExtractorHints = mapOf(
         "streamtape" to "StreamTape",
         "mp4upload" to "Mp4Upload",
+        "ok.ru" to "OkRu",
         "mixdrop" to "MixDrop",
         "streamsb" to "StreamSB",
         "sbplay" to "StreamSB",
@@ -725,7 +737,8 @@ object LiveApi {
         url: String,
         name: String,
         isCasting: Boolean,
-        callback: (ExtractorLink) -> Unit
+        callback: (ExtractorLink) -> Unit,
+        embedFallbacks: MutableList<ExtractorLink>
     ): Boolean {
         var emitted = false
         val host = try {
@@ -751,16 +764,16 @@ object LiveApi {
             }
         }
         if (!emitted) {
-            // Last resort: hand the embed url itself over; the player may still fail,
-            // but a webview/direct-capable link is better than nothing.
-            callback(
+            // Last resort: the embed url itself. Collected, and only offered by the caller when
+            // no directly playable link exists at all.
+            embedFallbacks.add(
                 ExtractorLink(
                     name, url, "https://mkissa.to", Qualities.Unknown.value,
                     url.contains(".m3u8")
                 )
             )
         }
-        return true
+        return emitted
     }
 
     // endregion

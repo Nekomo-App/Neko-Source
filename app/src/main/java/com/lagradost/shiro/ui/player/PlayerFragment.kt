@@ -371,7 +371,7 @@ class PlayerFragment : Fragment() {
         // Prevent editing the text post-player
             !isCurrentlyPlaying &&
             // Add the link post url check
-            !link.name.startsWith("Shiro")
+            !link.name.startsWith("Nekomo")
         ) {
             main {
                 fv<android.widget.TextView>(R.id.links_loaded_text)?.text = "${safeLinks.distinctBy { it.url }.size} - Loaded ${link.name}"
@@ -1263,7 +1263,8 @@ class PlayerFragment : Fragment() {
                     true
                 )
                 res.setOnItemClickListener { _, _, which, _ ->
-                    playerViewModel?.selectedSource?.postValue(it[which])
+                    // setValue (not postValue): loadAndPlay() below reads selectedSource right away
+                    playerViewModel?.selectedSource?.value = it[which]
                     savePos()
                     releasePlayer()
                     loadAndPlay()
@@ -1428,7 +1429,8 @@ class PlayerFragment : Fragment() {
     /** Title/episode used to search subtitle providers. */
     private fun subtitleQuery(): Pair<String, Int?>? {
         val anime = data?.card?.anime
-        val isExtension = CsBridge.isCs3Slug(data?.slug ?: "")
+        val isExtension = CsBridge.isCs3Slug(data?.slug ?: "") ||
+                com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(data?.slug ?: "")
         val rawTitle = (if (isExtension) anime?.title else anime?.title_english?.takeIf { it.isNotBlank() } ?: anime?.title)
             ?: data?.title ?: return null
         val title = rawTitle.replace(Regex("\\s*\\((Dub|Sub)\\)\\s*$", RegexOption.IGNORE_CASE), "")
@@ -2192,12 +2194,28 @@ class PlayerFragment : Fragment() {
                             }
 
                             override fun onPlayerError(error: PlaybackException) {
-                                // Lets pray this doesn't spam Toasts :)
-                                Toast.makeText(
-                                    getCurrentContext() ?: context,
-                                    "Player error (${error.errorCodeName})\n" + (error.message ?: ""),
-                                    LENGTH_LONG
-                                ).show()
+                                val list = sources.second
+                                val idx = list?.indexOf(getCurrentUrl()) ?: -1
+                                if (list != null && idx >= 0 && idx + 1 < list.size && data?.url == null) {
+                                    // This link is dead or not playable: move on to the next source
+                                    Toast.makeText(
+                                        getCurrentContext() ?: context,
+                                        "Source \"${list[idx].name}\" failed, trying \"${list[idx + 1].name}\"…",
+                                        LENGTH_LONG
+                                    ).show()
+                                    playerViewModel?.selectedSource?.value = list[idx + 1]
+                                    handler.post {
+                                        releasePlayer()
+                                        loadAndPlay()
+                                    }
+                                } else {
+                                    // Lets pray this doesn't spam Toasts :)
+                                    Toast.makeText(
+                                        getCurrentContext() ?: context,
+                                        "Player error (${error.errorCodeName})\n" + (error.message ?: ""),
+                                        LENGTH_LONG
+                                    ).show()
+                                }
                             }
                         })
                         handler.removeCallbacks(skipTicker)

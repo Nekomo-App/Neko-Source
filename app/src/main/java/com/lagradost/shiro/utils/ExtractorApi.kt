@@ -35,6 +35,7 @@ val APIS: Array<ExtractorApi> = arrayOf(
     // Shiro() removed: subsplea.se is dead and its getUrl blindly emits any
     // url as a fake UHD link, poisoning link priority for embed pages.
     MultiQuality(),
+    OkRu(),
     Mp4Upload(),
     StreamTape(),
     MixDrop(),

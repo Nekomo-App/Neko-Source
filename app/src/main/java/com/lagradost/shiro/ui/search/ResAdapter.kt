@@ -159,7 +159,8 @@ class ResAdapter(
                     coverHeight
                 )
             }
-            itemView.fv<androidx.cardview.widget.CardView>(R.id.search_result_card)?.setCardBackgroundColor(Cyanea.instance.backgroundColorDark)
+            itemView.fv<androidx.cardview.widget.CardView>(R.id.search_result_card).setCardBackgroundColor(Cyanea.instance.backgroundColorDark)
+            itemView.findViewById<androidx.cardview.widget.CardView>(R.id.backgroundCard)?.setCardBackgroundColor(Cyanea.instance.backgroundColorDark)
             itemView.fv<android.widget.TextView>(R.id.imageText)?.text = fixCardTitle(card.name)
             if (card.english != null) {
                 itemView.fv<android.widget.TextView>(R.id.imageSubText)?.visibility = VISIBLE

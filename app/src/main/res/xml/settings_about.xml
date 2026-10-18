@@ -52,7 +52,7 @@
     <Preference
             android:title="Previous developers"
             android:icon="@drawable/ic_baseline_code_24"
-            app:summary="Lag (LagradOst) &amp; Blue Fire (Blatzar) — original Shiro app"
+            app:summary="Lag (LagradOst) &amp; Blue Fire (Blatzar) — original open-source project"
     />
     <Preference
             android:title="Light novel app by the original devs"

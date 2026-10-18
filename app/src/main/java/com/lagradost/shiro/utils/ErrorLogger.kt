@@ -30,7 +30,7 @@ object ErrorLogger {
     @Synchronized
     fun init(context: Context) {
         if (appContext != null) return
-        appContext = context.applicationContext
+        appContext = context.applicationContext ?: context
 
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->

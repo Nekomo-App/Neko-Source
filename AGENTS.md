@@ -127,3 +127,31 @@ this toggle would just add a switch that does nothing.
   in the new code (rest pre-existing: NewApi, Range, receiver flags).
 - Earlier note: phone + TV debug builds compile. NOT verified: on-device plugin loading, playback,
   and the release (R8) build - no emulator/device was available.
+
+## Device testing notes (verified on a Galaxy S22 Ultra, Android 16)
+
+- Extensions: `CsBridge.search` tries `search(query, page)` first, then the legacy `search(query)`
+  (each provider implements only one; the other throws NotImplementedError). Verified end to end with
+  CloudStream's official repo (`recloudstream/extensions`): install InternetArchiveProvider -> search ->
+  details -> play; the player logs `ExtractorLink(name=Internet Archive ...)` from archive.org.
+- `CsPluginManager.init` and `ErrorLogger.init` must run with a real context: `applicationContext` is null in
+  `attachBaseContext`. `ErrorLogger` silently dropped every entry before this was fixed.
+- R8: Jackson + kotlin-reflect failed on `kotlin.collections.EmptyMap` (home feed never loaded in release/beta,
+  with no logged error). `LiveApi.gql` now uses plain JDK maps and proguard keeps the empty collections,
+  view constructors (`Synthetics.fv` placeholders) and `com.lagradost.shiro.**`.
+- `desugar_jdk_libs` must be >= 2.1.5 (1.2.2 rewrote `List.addFirst` to a method that does not exist -> crash on
+  Android 16 at launch).
+- To read logs from a minified build, temporarily set `debuggable true` on the beta type and use
+  `adb exec-out run-as app.nekomo.beta cat files/logs/error_log.txt`.
+
+## Sources / playback (verified on device, release build)
+
+- Anime page has a cloud-icon "Choose source" button (`ResultFragment.showSourceChooser`): lists the built-in
+  catalogue plus every loaded extension provider, searches the title there and opens the match.
+- In-player "Source" menu picks a stream link; it now uses `setValue` (was `postValue`, which raced with the
+  reload) and `onPlayerError` automatically falls through to the next link.
+- Built-in backend (`LiveApi.resolveStreams`) only returns third-party embed hosts now; direct links come from
+  extractors in `utils/extractors` (new `OkRu`, direct mp4/HLS from ok.ru embeds). Embed pages that no
+  extractor can resolve are only emitted as a last resort. `Mkissa.buildInjectionHtml` used `Regex.replace`
+  with a `$`-heavy replacement ("Illegal group reference") which silently broke every stream lookup.
+- Not yet implemented: Aniyomi/Mihon extension APKs, Zangetsu, LN Reader plugins (see chat for scope).

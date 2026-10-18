@@ -600,8 +600,15 @@ class ShiroApi {
                 logError(e)
                 emptyList()
             }
-            return if (base == null && extensionResults.isEmpty()) null
-            else base.orEmpty() + extensionResults
+            val zangetsuResults = try {
+                com.lagradost.shiro.utils.zg.ZangetsuBridge.search(query)
+            } catch (e: Exception) {
+                logError(e)
+                emptyList()
+            }
+            val extra = extensionResults + zangetsuResults
+            return if (base == null && extra.isEmpty()) null
+            else base.orEmpty() + extra
         }
 
         fun getFullUrlCdn(url: String): String {
@@ -885,7 +892,8 @@ class ShiroApi {
             // Anything below here shouldn't do network requests (network on main thread)
             // (card.removeButton.setOnClickListener {requestHome(true)})
 
-            if (res == null) {
+            if (res == null || (res.recents.isNullOrEmpty() && res.trending?.data.isNullOrEmpty())) {
+                if (res != null && res === cachedHome) cachedHome = null
                 hasThrownError = 0
                 onHomeError.invoke(false)
                 return null

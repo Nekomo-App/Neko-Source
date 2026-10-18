@@ -77,6 +77,8 @@ import com.lagradost.shiro.utils.AppUtils.getTextColor
 import com.lagradost.shiro.utils.AppUtils.getViewKey
 import com.lagradost.shiro.utils.AppUtils.getViewPosDur
 import com.lagradost.shiro.utils.AppUtils.guaranteedContext
+import com.lagradost.shiro.utils.AppUtils.loadPage
+import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.AppUtils.hideKeyboard
 import com.lagradost.shiro.utils.AppUtils.isCastApiAvailable
 import com.lagradost.shiro.utils.AppUtils.loadPlayer
@@ -184,6 +186,95 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         onPlayerNavigated += ::handleVideoPlayerNavigation
         // DownloadManager.downloadStartEvent += ::onDownloadStarted
         isInResults = true
+    }
+
+    /**
+     * Lets the user pick where this title is streamed from: the built-in catalogue or any installed
+     * extension provider (CloudStream etc.). The title is searched in the chosen source and the
+     * matching entry opened, replacing this page.
+     */
+    private fun showSourceChooser() {
+        val ctx = context ?: return
+        val anime = resultViewModel?.data?.value?.anime
+        val title = (anime?.title_english?.takeIf { it.isNotBlank() && !com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(anime.slug) }
+            ?: anime?.title) ?: return
+        val currentSlug = anime?.slug ?: ""
+        thread {
+            val providers = try {
+                com.lagradost.shiro.utils.cs3.CsPluginManager.providers().map { it.name }.distinct()
+            } catch (e: Exception) {
+                emptyList()
+            }
+            val zgSources = try {
+                com.lagradost.shiro.utils.zg.ZangetsuManager.enabledSources(ctx)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            main {
+                // (label, key): key null = default, "cs:<name>" = CloudStream provider, "zg:<id>" = Zangetsu source
+                val entries: List<Pair<String, String?>> = listOf("Default (built-in)" to null) +
+                        providers.map { it to "cs:$it" } +
+                        zgSources.map { "Zangetsu · ${it.name}" to "zg:${it.id}" }
+                val currentKey = com.lagradost.shiro.utils.cs3.CsBridge.parseSlug(currentSlug)?.first?.let { "cs:$it" }
+                    ?: com.lagradost.shiro.utils.zg.ZangetsuBridge.parseSlug(currentSlug)?.first?.let { "zg:$it" }
+                val checked = entries.indexOfFirst { it.second == currentKey }.takeIf { it >= 0 } ?: 0
+                AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                    .setTitle("Choose source")
+                    .setSingleChoiceItems(entries.map { it.first }.toTypedArray(), checked) { dialog, which ->
+                        dialog.dismiss()
+                        searchSource(entries[which].second, entries[which].first, title)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .apply {
+                        if (entries.size == 1) setMessage("No extensions or sources installed. Add them in Settings → Extensions.")
+                    }
+                    .show()
+            }
+        }
+    }
+
+    private fun searchSource(key: String?, label: String, title: String) {
+        val ctx = context ?: return
+        val providerName = if (key == null) null else label
+        Toast.makeText(ctx, "Searching ${providerName ?: "default source"}…", Toast.LENGTH_SHORT).show()
+        thread {
+            val hits: List<Pair<String, String>> = try {
+                when {
+                    key == null ->
+                        com.lagradost.shiro.utils.LiveApi.search(title, null).orEmpty()
+                            .filter {
+                                !com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(it.slug) &&
+                                        !com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(it.slug)
+                            }
+                            .map { (it.title_english?.takeIf { e -> e.isNotBlank() } ?: it.title) to it.slug }
+                    key.startsWith("zg:") ->
+                        com.lagradost.shiro.utils.zg.ZangetsuBridge.searchBySource(key.removePrefix("zg:"), title)
+                            .map { it.title to it.slug }
+                    else ->
+                        com.lagradost.shiro.utils.cs3.CsBridge.searchByProvider(key.removePrefix("cs:"), title)
+                            .map { it.title to it.slug }
+                }
+            } catch (e: Exception) {
+                logError(e)
+                emptyList()
+            }
+            main {
+                if (hits.isEmpty()) {
+                    Toast.makeText(context, "\"$title\" was not found in ${providerName ?: "the default source"}", Toast.LENGTH_LONG).show()
+                    return@main
+                }
+                val labels = hits.map { it.first }.toTypedArray()
+                AlertDialog.Builder(guaranteedContext(context), R.style.AlertDialogCustom)
+                    .setTitle("${providerName ?: "Default"}: pick a match")
+                    .setItems(labels) { _, which ->
+                        val (name, slug) = hits[which]
+                        activity?.onBackPressed()
+                        activity?.loadPage(slug, name)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        }
     }
 
     private fun onDataLoaded(data: ShiroApi.Companion.AnimePageNewData?) {
@@ -910,6 +1001,8 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         fv<android.widget.ImageView>(R.id.language_btt)?.setOnClickListener {
             resultViewModel?.swapData()
         }
+
+        fv<android.widget.ImageView>(R.id.source_btt)?.setOnClickListener { showSourceChooser() }
 
         observe(resultViewModel!!.hasLoadedOther) {
             val transition: Transition = ChangeBounds()

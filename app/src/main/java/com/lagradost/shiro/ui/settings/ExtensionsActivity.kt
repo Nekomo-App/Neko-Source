@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.lagradost.shiro.R
 import com.lagradost.shiro.utils.cs3.CsPluginManager
+import com.lagradost.shiro.utils.zg.ZangetsuManager
 import kotlin.concurrent.thread
 
 /**
@@ -71,6 +72,127 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
 
         refreshRepos()
         refreshPlugins()
+        refreshZangetsu()
+    }
+
+    // ---------- Zangetsu sources ----------
+
+    private fun refreshZangetsu() {
+        val box = findViewById<LinearLayout>(R.id.zangetsu_container)
+        box.removeAllViews()
+        val repos = ZangetsuManager.getRepos(this)
+        if (repos.isEmpty()) box.addView(rowText("No Zangetsu repositories added yet"))
+        for (repo in repos) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            row.addView(rowText(repo.name ?: repo.url))
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            buttons.addView(rowButton("Browse") { browseZangetsu(repo.url) })
+            buttons.addView(rowButton("Remove") {
+                ZangetsuManager.removeRepo(this, repo.url)
+                refreshZangetsu()
+            })
+            row.addView(buttons)
+            box.addView(row)
+        }
+
+        val input = EditText(this).apply {
+            hint = "Zangetsu repository URL (index.json)"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
+            maxLines = 1
+        }
+        box.addView(input)
+        box.addView(rowButton("Add Zangetsu repository") {
+            val url = input.text.toString().trim()
+            if (!url.startsWith("http")) {
+                toast("Enter the full https URL of the repository's index.json")
+                return@rowButton
+            }
+            confirmRisk {
+                setStatus("Reading repository…")
+                thread {
+                    val manifest = ZangetsuManager.fetchManifest(url)
+                    runOnUiThread {
+                        if (manifest == null) {
+                            setStatus("Could not read a Zangetsu manifest at that URL")
+                            toast("Not a valid Zangetsu repository")
+                        } else {
+                            ZangetsuManager.addRepo(this, ZangetsuManager.ZgRepo(url, manifest.name))
+                            setStatus("")
+                            refreshZangetsu()
+                        }
+                    }
+                }
+            }
+        })
+
+        val installed = ZangetsuManager.getInstalled(this)
+        box.addView(rowText(if (installed.isEmpty()) "No Zangetsu sources installed" else "Installed sources"))
+        if (installed.isNotEmpty()) box.addView(rowButton("Update all sources") {
+            setStatus("Updating Zangetsu sources…")
+            thread {
+                val n = ZangetsuManager.updateAll(this)
+                runOnUiThread {
+                    setStatus("Updated $n source(s)")
+                    refreshZangetsu()
+                }
+            }
+        })
+        for (src in installed) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            row.addView(rowText("${src.name}  v${src.version}  •  ${src.type} / ${src.lang}"))
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            buttons.addView(Switch(this).apply {
+                isChecked = ZangetsuManager.isEnabled(this@ExtensionsActivity, src.id)
+                text = "Enabled"
+                setOnCheckedChangeListener { _, checked -> ZangetsuManager.setEnabled(this@ExtensionsActivity, src.id, checked) }
+            })
+            buttons.addView(rowButton("Uninstall") {
+                ZangetsuManager.uninstall(this, src.id)
+                refreshZangetsu()
+            })
+            row.addView(buttons)
+            box.addView(row)
+        }
+    }
+
+    private fun browseZangetsu(repoUrl: String) {
+        setStatus("Fetching sources…")
+        thread {
+            val manifest = ZangetsuManager.fetchManifest(repoUrl)
+            runOnUiThread {
+                setStatus("")
+                val sources = manifest?.sources.orEmpty()
+                if (sources.isEmpty()) {
+                    toast("No sources found (or repository is offline)")
+                    return@runOnUiThread
+                }
+                val installed = ZangetsuManager.getInstalled(this)
+                val labels = sources.map { s ->
+                    val inst = installed.firstOrNull { it.id == s.id }
+                    val marker = when {
+                        inst == null -> ""
+                        inst.version != s.version -> "  [update ${inst.version}→${s.version}]"
+                        else -> "  [installed]"
+                    }
+                    "${s.name} (${s.type}, ${s.lang})$marker"
+                }.toTypedArray()
+                AlertDialog.Builder(this)
+                    .setTitle("Zangetsu sources")
+                    .setItems(labels) { _, which ->
+                        confirmRisk {
+                            setStatus("Installing ${sources[which].name}…")
+                            thread {
+                                val (ok, msg) = ZangetsuManager.install(this, repoUrl, sources[which])
+                                runOnUiThread {
+                                    setStatus(msg)
+                                    if (ok) refreshZangetsu()
+                                }
+                            }
+                        }
+                    }
+                    .show()
+            }
+        }
     }
 
     private fun addRepoFromInput(raw: String, input: EditText) {
@@ -105,19 +227,21 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         }
         for (repo in repos) {
             val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
+                orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             }
-            row.addView(rowText(repo.name ?: repo.url, weight = 1f))
-            row.addView(rowButton("Browse") { browseRepo(repo.url) })
-            row.addView(rowButton("Install all") { confirmRisk { installAll(repo.url) } })
-            row.addView(rowButton("Remove") {
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            row.addView(rowText(repo.name ?: repo.url))
+            buttons.addView(rowButton("Browse") { browseRepo(repo.url) })
+            buttons.addView(rowButton("Install all") { confirmRisk { installAll(repo.url) } })
+            buttons.addView(rowButton("Remove") {
                 CsPluginManager.removeRepo(this, repo.url)
                 refreshRepos()
             })
+            row.addView(buttons)
             repoList.addView(row)
         }
     }

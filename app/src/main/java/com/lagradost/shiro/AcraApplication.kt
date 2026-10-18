@@ -65,10 +65,6 @@ class AcraApplication : Application() {
         // release build with no debugger attached (see utils/ErrorLogger.kt).
         normalSafeApiCall { base?.let { ErrorLogger.init(it) } }
 
-        // CloudStream extension subsystem: injects our Context into the vendored
-        // cloudstream3 classes and loads installed .cs3 plugins on a bg thread
-        normalSafeApiCall { base?.let { CsPluginManager.init(it) } }
-
         normalSafeApiCall {
             base?.setKey(MAL_SHOULD_UPDATE_LIST, true)
             base?.setKey(ANILIST_SHOULD_UPDATE_LIST, true)
@@ -99,6 +95,10 @@ class AcraApplication : Application() {
         super.onCreate()
         context = context ?: baseContext
         normalSafeApiCall { Cyanea.init(this, resources) }
+        // CloudStream extension subsystem: injects our Context into the vendored
+        // cloudstream3 classes and loads installed .cs3 plugins on a bg thread.
+        // Must run here (not attachBaseContext) because applicationContext is null until now.
+        normalSafeApiCall { CsPluginManager.init(this) }
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
 //        normalSafeApiCall {
 //            // Cleaning up update folder

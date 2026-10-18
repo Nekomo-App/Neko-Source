@@ -205,12 +205,12 @@ object Mkissa {
         val landing = httpText("$ORIGIN/") ?: return null
         val chunk = findCryptoChunk(landing) ?: return null
         val script = buildChunkScript(chunk)
-        return if (landing.contains("</body>", ignoreCase = true)) {
-            landing.replace(
-                Regex("""</body>""", RegexOption.IGNORE_CASE),
-                "<script>$script</script></body>"
-            )
-        } else landing + "<script>$script</script>"
+        // Insert by position: the script is full of '$' and '\', which Regex.replace would treat as
+        // group references / escapes ("Illegal group reference").
+        val tag = "<script>$script</script>"
+        val bodyEnd = landing.lastIndexOf("</body>", ignoreCase = true)
+        return if (bodyEnd >= 0) landing.substring(0, bodyEnd) + tag + landing.substring(bodyEnd)
+        else landing + tag
     }
 
     // ---------- webview driver ----------

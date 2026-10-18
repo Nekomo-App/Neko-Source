@@ -14,8 +14,9 @@ class HomeViewModel : ViewModel() {
     val subscribed = MutableLiveData<List<BookmarkedTitle?>?>()
 
     private fun homeLoaded(data: ShiroApi.ShiroHomePageNew?) {
-        favorites.postValue(data?.favorites)
-        subscribed.postValue(data?.subscribed)
-        apiData.postValue(data!!)
+        if (data == null) return
+        favorites.postValue(data.favorites)
+        subscribed.postValue(data.subscribed)
+        apiData.postValue(data)
     }
 }

@@ -60,7 +60,7 @@ class MALApi {
         fun Context.authenticateMalLogin(data: String) {
             try {
                 val sanitizer =
-                    splitQuery(URL(data.replace("shiroapp", "https").replace("/#", "?"))) // FIX ERROR
+                    splitQuery(URL(data.replace("shiroapp", "https").replace("nekomo", "https").replace("/#", "?"))) // FIX ERROR
                 val state = sanitizer["state"]!!
                 if (state == "RequestID$requestId") {
                     val currentCode = sanitizer["code"]!!

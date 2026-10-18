@@ -26,11 +26,23 @@ fun androidx.navigation.NavController.safeNavigate(
     }
 }
 
-@Suppress("UNCHECKED_CAST")
-fun <T : View> View.fv(@IdRes id: Int): T = findViewById(id) as T
+/**
+ * A view id missing from a layout (e.g. the compact vs. full search card) used to throw an NPE
+ * from the non-null cast, although call sites use `?.`. Hand back a detached throwaway view of
+ * the requested type instead so the update is a harmless no-op.
+ */
+@PublishedApi
+internal fun <T : View> missingView(cls: Class<T>, ctx: Context): T = try {
+    cls.getConstructor(Context::class.java).newInstance(ctx)
+} catch (t: Throwable) {
+    throw IllegalStateException("View of type ${cls.name} is not available", t)
+}
 
-@Suppress("UNCHECKED_CAST")
-fun <T : View> Activity.fv(@IdRes id: Int): T = findViewById(id) as T
+inline fun <reified T : View> View.fv(@IdRes id: Int): T =
+    (findViewById<View>(id) as? T) ?: missingView(T::class.java, context)
+
+inline fun <reified T : View> Activity.fv(@IdRes id: Int): T =
+    (findViewById<View>(id) as? T) ?: missingView(T::class.java, this)
 
 /**
  * Callbacks can fire after a fragment's view is destroyed (back navigation, async results).
@@ -50,8 +62,8 @@ inline fun <reified T : View> Fragment.fv(@IdRes id: Int): T =
     (view?.findViewById<View>(id) as? T) ?: detachedView(T::class.java, this)
     ?: throw IllegalStateException("View $id is not available (fragment view destroyed?)")
 
-@Suppress("UNCHECKED_CAST")
-fun <T : View> Dialog.fv(@IdRes id: Int): T = findViewById(id) as T
+inline fun <reified T : View> Dialog.fv(@IdRes id: Int): T =
+    (findViewById<View>(id) as? T) ?: missingView(T::class.java, context)
 
 @Suppress("UNCHECKED_CAST")
 inline fun <reified T : View> DialogFragment.fv(@IdRes id: Int): T =
@@ -59,4 +71,5 @@ inline fun <reified T : View> DialogFragment.fv(@IdRes id: Int): T =
     ?: throw IllegalStateException("View $id is not available (dialog destroyed?)")
 
 @Suppress("UNCHECKED_CAST")
-fun <T : View> RecyclerView.ViewHolder.fv(@IdRes id: Int): T = itemView.findViewById(id) as T
+inline fun <reified T : View> RecyclerView.ViewHolder.fv(@IdRes id: Int): T =
+    (itemView.findViewById<View>(id) as? T) ?: missingView(T::class.java, itemView.context)

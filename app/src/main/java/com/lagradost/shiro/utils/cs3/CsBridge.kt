@@ -76,7 +76,7 @@ object CsBridge {
                 apis.map { api ->
                     async(Dispatchers.IO) {
                         api to try {
-                            withTimeout(SEARCH_TIMEOUT_MS) { api.search(query) }
+                            withTimeout(SEARCH_TIMEOUT_MS) { searchProvider(api, query) }
                         } catch (t: Throwable) {
                             logError(t); null
                         }
@@ -85,6 +85,31 @@ object CsBridge {
             }.flatMap { (api, results) ->
                 results.orEmpty().map { it.toAppData(api) }
             }
+        } catch (t: Throwable) {
+            logError(t)
+            emptyList()
+        }
+    }
+
+    /**
+     * Providers implement exactly one of search(query, page) or the legacy search(query); the other
+     * is a stub that throws NotImplementedError, so try the paged one first and fall back.
+     */
+    private suspend fun searchProvider(api: MainAPI, query: String): List<com.lagradost.cloudstream3.SearchResponse>? =
+        try {
+            api.search(query, 1)?.items
+        } catch (e: NotImplementedError) {
+            api.search(query)
+        }
+
+    data class ProviderHit(val title: String, val slug: String)
+
+    /** Searches a single provider by name (blocking); used by the per-anime source chooser. */
+    fun searchByProvider(apiName: String, query: String): List<ProviderHit> {
+        val api = CsPluginManager.findProvider(apiName) ?: return emptyList()
+        return try {
+            runBlocking { withTimeout(SEARCH_TIMEOUT_MS) { searchProvider(api, query) } }
+                .orEmpty().map { ProviderHit(it.name, makeSlug(api.name, it.url)) }
         } catch (t: Throwable) {
             logError(t)
             emptyList()

@@ -164,7 +164,7 @@ object AppUtils {
         if (data != null) {
             val dataString = data.toString()
             if (dataString != "") {
-                if (dataString.contains("shiroapp")) {
+                if (dataString.contains("shiroapp") || dataString.startsWith("nekomo://")) {
                     if (dataString.contains("/anilistlogin")) {
                         authenticateLogin(dataString)
                     } else if (dataString.contains("/mallogin")) {
@@ -716,7 +716,10 @@ object AppUtils {
                 cards?.filter { it.slug.endsWith("-dub").not() }
             // Extension results have no sub/dub split, so never hide them
             "Hide subbed" ->
-                cards?.filter { it.slug.endsWith("-dub") || com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(it.slug) }
+                cards?.filter {
+                    it.slug.endsWith("-dub") || com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(it.slug) ||
+                            com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(it.slug)
+                }
             else ->
                 cards
         }
@@ -1158,7 +1161,7 @@ object AppUtils {
     }
 
     fun <T> LifecycleOwner.observe(liveData: LiveData<T>, action: (t: T) -> Unit) {
-        liveData.observe(this) { it?.let { t -> action(t) } }
+        liveData.observe(this) { it?.let { t -> try { action(t) } catch (e: Exception) { logError(e) } } }
     }
 
     fun FragmentActivity.loadPlayer(

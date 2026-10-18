@@ -135,3 +135,24 @@
 -keep public class org.acra.ErrorReporter {
     public void handleSilentException(java.lang.Throwable);
 }
+
+# The app relies heavily on Jackson/reflection over its own model classes and on event/function
+# references; R8 shrinking of these broke the home feed in release builds (spinner forever).
+-keep class com.lagradost.shiro.** { *; }
+-keep class khttp.** { *; }
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,RuntimeVisibleAnnotations,KotlinMetadata
+-keep class kotlin.Metadata { *; }
+-keepclassmembers class kotlin.collections.EmptyMap { *; }
+-keepclassmembers class kotlin.collections.EmptyList { *; }
+-keepclassmembers class kotlin.collections.EmptySet { *; }
+
+# Synthetics.fv() creates detached placeholder views reflectively when an id is missing from a layout.
+-keepclassmembers class * extends android.view.View {
+    public <init>(android.content.Context);
+}
+
+# Zangetsu provider scripts run on Rhino, which is reflection-heavy.
+-keep class org.mozilla.javascript.** { *; }
+-dontwarn org.mozilla.javascript.**
+-dontwarn javax.script.**
+-dontwarn org.mozilla.classfile.**

@@ -10,14 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 fun <T> LifecycleOwner.observe(liveData: LiveData<T>, action: (t: T) -> Unit) {
-    liveData.observe(this, Observer { it?.let { t -> action(t) } })
+    liveData.observe(this, Observer { it?.let { t -> try { action(t) } catch (e: Exception) { logError(e) } } })
 }
 
 fun <T> LifecycleOwner.observeDirectly(liveData: LiveData<T>, action: (t: T) -> Unit) {
-    liveData.observe(this, Observer { it?.let { t -> action(t) } })
+    liveData.observe(this, Observer { it?.let { t -> try { action(t) } catch (e: Exception) { logError(e) } } })
     val currentValue = liveData.value
     if (currentValue != null)
-        action(currentValue)
+        try { action(currentValue) } catch (e: Exception) { logError(e) }
 }
 
 sealed class Resource<out T> {

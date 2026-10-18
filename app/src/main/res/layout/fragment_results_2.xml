@@ -415,6 +415,21 @@
                     android:layout_gravity="center"
             />
 
+            <ImageView
+                    android:id="@+id/source_btt"
+                    android:layout_width="50dp"
+                    android:layout_height="50dp"
+                    android:padding="10dp"
+                    android:elevation="10dp"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:layout_toStartOf="@+id/media_route_button"
+                    android:background="@drawable/video_tap_button"
+                    android:src="@drawable/cs3_cloud"
+                    android:layout_gravity="center"
+                    android:contentDescription="Choose source"
+            />
+
             <androidx.mediarouter.app.MediaRouteButton
                     android:id="@+id/media_route_button"
                     android:layout_width="50dp"
