@@ -12,6 +12,8 @@ import androidx.appcompat.app.AlertDialog
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.lagradost.shiro.R
 import com.lagradost.shiro.utils.cs3.CsPluginManager
+import com.lagradost.shiro.utils.aniyomi.AniyomiManager
+import com.lagradost.shiro.utils.mihon.MihonManager
 import com.lagradost.shiro.utils.zg.ZangetsuManager
 import kotlin.concurrent.thread
 
@@ -42,37 +44,235 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
             confirmRisk { addRepoFromInput(raw, input) }
         }
 
-        findViewById<Button>(R.id.browse_repos_button).setOnClickListener {
-            setStatus("Fetching public repository list…")
-            thread {
-                val known = CsPluginManager.fetchKnownRepos()
-                runOnUiThread {
-                    setStatus("")
-                    if (known.isEmpty()) {
-                        toast("Could not fetch repository list")
-                        return@runOnUiThread
-                    }
-                    val labels = known.map { (url, verified) ->
-                        url.removePrefix("https://").removePrefix("http://") +
-                                (if (verified) " ✓" else "")
-                    }.toTypedArray()
-                    AlertDialog.Builder(this)
-                        .setTitle("Public repositories")
-                        .setItems(labels) { _, which ->
-                            val (url, _) = known[which]
-                            confirmRisk {
-                                CsPluginManager.addRepo(this, CsPluginManager.CsRepo(url))
-                                refreshRepos()
-                            }
-                        }
-                        .show()
-                }
-            }
-        }
-
         refreshRepos()
         refreshPlugins()
         refreshZangetsu()
+        refreshAniyomi()
+        refreshMihon()
+    }
+
+    // ---------- Aniyomi extensions ----------
+
+    private fun refreshAniyomi() {
+        val box = findViewById<LinearLayout>(R.id.aniyomi_container)
+        box.removeAllViews()
+        val repos = AniyomiManager.getRepos(this)
+        if (repos.isEmpty()) box.addView(rowText("No Aniyomi repositories added yet"))
+        for (repo in repos) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            row.addView(rowText(repo.name ?: repo.url))
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            buttons.addView(rowButton("Browse") { browseAniyomi(repo.url) })
+            buttons.addView(rowButton("Remove") {
+                AniyomiManager.removeRepo(this, repo.url)
+                refreshAniyomi()
+            })
+            row.addView(buttons)
+            box.addView(row)
+        }
+
+        val input = EditText(this).apply {
+            hint = "Aniyomi repository URL (index.min.json)"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
+            maxLines = 1
+        }
+        box.addView(input)
+        box.addView(rowButton("Add Aniyomi repository") {
+            val raw = input.text.toString().trim()
+            if (!raw.startsWith("http")) {
+                toast("Enter the full https URL of the repository")
+                return@rowButton
+            }
+            val url = AniyomiManager.normaliseRepoUrl(raw)
+            confirmRisk {
+                setStatus("Reading repository…")
+                thread {
+                    val index = AniyomiManager.fetchIndex(url)
+                    runOnUiThread {
+                        if (index == null) {
+                            setStatus("Could not read an Aniyomi repository at that URL")
+                            toast("Not a valid Aniyomi repository")
+                        } else {
+                            AniyomiManager.addRepo(this, AniyomiManager.AyRepo(url, url.substringBeforeLast('/').substringAfterLast('/')))
+                            setStatus("")
+                            refreshAniyomi()
+                        }
+                    }
+                }
+            }
+        })
+
+        val installed = AniyomiManager.getInstalled(this)
+        box.addView(rowText(if (installed.isEmpty()) "No Aniyomi extensions installed" else "Installed extensions"))
+        for (ext in installed) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            row.addView(rowText("${ext.name.removePrefix("Aniyomi: ")}  v${ext.version}  •  ${ext.lang}"))
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            buttons.addView(Switch(this).apply {
+                isChecked = AniyomiManager.isEnabled(this@ExtensionsActivity, ext.pkg)
+                text = "Enabled"
+                setOnCheckedChangeListener { _, checked -> AniyomiManager.setEnabled(this@ExtensionsActivity, ext.pkg, checked) }
+            })
+            buttons.addView(rowButton("Report") { reportExtension(ext.repoUrl) })
+            buttons.addView(rowButton("Uninstall") {
+                AniyomiManager.uninstall(this, ext.pkg)
+                refreshAniyomi()
+            })
+            row.addView(buttons)
+            box.addView(row)
+        }
+    }
+
+    private fun browseAniyomi(repoUrl: String) {
+        setStatus("Fetching extensions…")
+        thread {
+            val index = AniyomiManager.fetchIndex(repoUrl)
+            runOnUiThread {
+                setStatus("")
+                val entries = index.orEmpty().sortedBy { it.name }
+                if (entries.isEmpty()) {
+                    toast("No extensions found (or repository is offline)")
+                    return@runOnUiThread
+                }
+                val installed = AniyomiManager.getInstalled(this)
+                val labels = entries.map { e ->
+                    val inst = installed.firstOrNull { it.pkg == e.pkg }
+                    val marker = when {
+                        inst == null -> ""
+                        inst.version != e.version -> "  [update]"
+                        else -> "  [installed]"
+                    }
+                    "${e.name.removePrefix("Aniyomi: ")} (${e.lang})${if (e.nsfw == 1) " 18+" else ""}$marker"
+                }.toTypedArray()
+                AlertDialog.Builder(this)
+                    .setTitle("Aniyomi extensions")
+                    .setItems(labels) { _, which ->
+                        confirmRisk {
+                            setStatus("Installing ${entries[which].name}…")
+                            thread {
+                                val (ok, msg) = AniyomiManager.install(this, repoUrl, entries[which])
+                                runOnUiThread {
+                                    setStatus(msg)
+                                    if (ok) refreshAniyomi()
+                                }
+                            }
+                        }
+                    }
+                    .show()
+            }
+        }
+    }
+
+    // ---------- Mihon extensions ----------
+
+    private fun refreshMihon() {
+        val box = findViewById<LinearLayout>(R.id.mihon_container)
+        box.removeAllViews()
+        val repos = MihonManager.getRepos(this)
+        if (repos.isEmpty()) box.addView(rowText("No Mihon repositories added yet"))
+        for (repo in repos) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            row.addView(rowText(repo.name ?: repo.url))
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            buttons.addView(rowButton("Browse") { browseMihon(repo.url) })
+            buttons.addView(rowButton("Remove") {
+                MihonManager.removeRepo(this, repo.url)
+                refreshMihon()
+            })
+            row.addView(buttons)
+            box.addView(row)
+        }
+
+        val input = EditText(this).apply {
+            hint = "Mihon repository URL (index.min.json)"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
+            maxLines = 1
+        }
+        box.addView(input)
+        box.addView(rowButton("Add Mihon repository") {
+            val raw = input.text.toString().trim()
+            if (!raw.startsWith("http")) {
+                toast("Enter the full https URL of the repository")
+                return@rowButton
+            }
+            val url = MihonManager.normaliseRepoUrl(raw)
+            confirmRisk {
+                setStatus("Reading repository…")
+                thread {
+                    val index = MihonManager.fetchIndex(url)
+                    runOnUiThread {
+                        if (index == null) {
+                            setStatus("Could not read an Mihon repository at that URL")
+                            toast("Not a valid Mihon repository")
+                        } else {
+                            MihonManager.addRepo(this, MihonManager.MhRepo(url, url.substringBeforeLast('/').substringAfterLast('/')))
+                            setStatus("")
+                            refreshMihon()
+                        }
+                    }
+                }
+            }
+        })
+
+        val installed = MihonManager.getInstalled(this)
+        box.addView(rowText(if (installed.isEmpty()) "No Mihon extensions installed" else "Installed extensions"))
+        for (ext in installed) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            row.addView(rowText("${ext.name.removePrefix("Mihon: ")}  v${ext.version}  •  ${ext.lang}"))
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            buttons.addView(Switch(this).apply {
+                isChecked = MihonManager.isEnabled(this@ExtensionsActivity, ext.pkg)
+                text = "Enabled"
+                setOnCheckedChangeListener { _, checked -> MihonManager.setEnabled(this@ExtensionsActivity, ext.pkg, checked) }
+            })
+            buttons.addView(rowButton("Report") { reportExtension(ext.repoUrl) })
+            buttons.addView(rowButton("Uninstall") {
+                MihonManager.uninstall(this, ext.pkg)
+                refreshMihon()
+            })
+            row.addView(buttons)
+            box.addView(row)
+        }
+    }
+
+    private fun browseMihon(repoUrl: String) {
+        setStatus("Fetching extensions…")
+        thread {
+            val index = MihonManager.fetchIndex(repoUrl)
+            runOnUiThread {
+                setStatus("")
+                val entries = index.orEmpty().sortedBy { it.name }
+                if (entries.isEmpty()) {
+                    toast("No extensions found (or repository is offline)")
+                    return@runOnUiThread
+                }
+                val installed = MihonManager.getInstalled(this)
+                val labels = entries.map { e ->
+                    val inst = installed.firstOrNull { it.pkg == e.pkg }
+                    val marker = when {
+                        inst == null -> ""
+                        inst.version != e.version -> "  [update]"
+                        else -> "  [installed]"
+                    }
+                    "${e.name.removePrefix("Mihon: ")} (${e.lang})${if (e.nsfw == 1) " 18+" else ""}$marker"
+                }.toTypedArray()
+                AlertDialog.Builder(this)
+                    .setTitle("Mihon extensions")
+                    .setItems(labels) { _, which ->
+                        confirmRisk {
+                            setStatus("Installing ${entries[which].name}…")
+                            thread {
+                                val (ok, msg) = MihonManager.install(this, repoUrl, entries[which])
+                                runOnUiThread {
+                                    setStatus(msg)
+                                    if (ok) refreshMihon()
+                                }
+                            }
+                        }
+                    }
+                    .show()
+            }
+        }
     }
 
     // ---------- Zangetsu sources ----------
@@ -146,6 +346,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 text = "Enabled"
                 setOnCheckedChangeListener { _, checked -> ZangetsuManager.setEnabled(this@ExtensionsActivity, src.id, checked) }
             })
+            buttons.addView(rowButton("Report") { reportExtension(src.repoUrl) })
             buttons.addView(rowButton("Uninstall") {
                 ZangetsuManager.uninstall(this, src.id)
                 refreshZangetsu()
@@ -312,8 +513,6 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
 
     /** One-time warning: extensions are third-party code running inside the app. */
     private fun confirmRisk(action: () -> Unit) {
-        val prefs = getSharedPreferences("extensions_prefs", MODE_PRIVATE)
-        if (prefs.getBoolean("risk_accepted", false)) return action()
         AlertDialog.Builder(this)
             .setTitle("Only install extensions you trust")
             .setMessage(
@@ -321,10 +520,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                         "it has (network, your stored accounts and settings). Nekomo does not review them. " +
                         "Only add repositories and install extensions from sources you trust."
             )
-            .setPositiveButton("I understand") { _, _ ->
-                prefs.edit().putBoolean("risk_accepted", true).apply()
-                action()
-            }
+            .setPositiveButton("Continue") { _, _ -> action() }
             .setNegativeButton("Cancel", null)
             .show()
     }
@@ -390,6 +586,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                     }
                 }
             })
+            buttons.addView(rowButton("Report") { reportExtension(plugin.repoUrl) })
             buttons.addView(rowButton("Uninstall") {
                 CsPluginManager.uninstallPlugin(this, plugin.internalName)
                 refreshPlugins()
@@ -407,6 +604,20 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                     })
                 }
             pluginList.addView(row)
+        }
+    }
+
+    /** Opens the issue tracker of the repository an extension came from (the author, not Nekomo, maintains it). */
+    private fun reportExtension(repoUrl: String?) {
+        val url = repoUrl ?: run { toast("No repository recorded for this extension"); return }
+        val gh = Regex("""https?://raw\.githubusercontent\.com/([^/]+)/([^/]+)/""").find(url)
+        val target = if (gh != null) "https://github.com/${gh.groupValues[1]}/${gh.groupValues[2]}/issues" else url.substringBefore('/', "").let { _ ->
+            Regex("""^(https?://[^/]+)""").find(url)?.groupValues?.get(1) ?: url
+        }
+        try {
+            startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(target)))
+        } catch (e: Exception) {
+            toast("No browser available")
         }
     }
 

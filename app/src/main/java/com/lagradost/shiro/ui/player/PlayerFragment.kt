@@ -355,6 +355,16 @@ class PlayerFragment : Fragment() {
                         callback = ::linkLoaded
                     )
                 }
+                if (extractorLinks.isEmpty() && data?.url == null) {
+                    main {
+                        Toast.makeText(
+                            getCurrentContext() ?: context,
+                            "No playable streams were found for this episode from this source. " +
+                                    "Go back and pick another source with the cloud icon on the anime page.",
+                            LENGTH_LONG
+                        ).show()
+                    }
+                }
             }
             main {
                 initPlayerIfPossible()
@@ -1429,8 +1439,7 @@ class PlayerFragment : Fragment() {
     /** Title/episode used to search subtitle providers. */
     private fun subtitleQuery(): Pair<String, Int?>? {
         val anime = data?.card?.anime
-        val isExtension = CsBridge.isCs3Slug(data?.slug ?: "") ||
-                com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(data?.slug ?: "")
+        val isExtension = com.lagradost.shiro.utils.isExtensionSlug(data?.slug ?: "")
         val rawTitle = (if (isExtension) anime?.title else anime?.title_english?.takeIf { it.isNotBlank() } ?: anime?.title)
             ?: data?.title ?: return null
         val title = rawTitle.replace(Regex("\\s*\\((Dub|Sub)\\)\\s*$", RegexOption.IGNORE_CASE), "")

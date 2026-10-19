@@ -21,7 +21,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="CloudStream extension repositories. Paste a repository URL, cs.repo code, or pick one from the public list."
+                android:text="CloudStream extension repositories. Paste a repository URL or cs.repo code. Nothing is added by default."
                 android:textSize="13sp"/>
 
         <LinearLayout
@@ -52,13 +52,6 @@
                     android:layout_height="wrap_content"
                     android:text="Add"/>
         </LinearLayout>
-
-        <Button
-                android:id="@+id/browse_repos_button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Browse public repositories"/>
 
         <View
                 android:layout_width="match_parent"
@@ -110,6 +103,60 @@
 
         <LinearLayout
                 android:id="@+id/zangetsu_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+
+        <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp"
+                android:background="?android:attr/listDivider"/>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aniyomi extensions"
+                android:textSize="22sp"
+                android:textStyle="bold"/>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Add an Aniyomi extension repository (its index.min.json URL), then install the anime extensions you want. Nothing is installed by default."
+                android:textSize="13sp"/>
+
+        <LinearLayout
+                android:id="@+id/aniyomi_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+
+        <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="20dp"
+                android:background="?android:attr/listDivider"/>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mihon extensions (manga)"
+                android:textSize="22sp"
+                android:textStyle="bold"/>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="Add a Mihon extension repository (its index.min.json URL), then install the manga extensions you want. They are read from Settings → Manga. Nothing is installed by default."
+                android:textSize="13sp"/>
+
+        <LinearLayout
+                android:id="@+id/mihon_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"/>

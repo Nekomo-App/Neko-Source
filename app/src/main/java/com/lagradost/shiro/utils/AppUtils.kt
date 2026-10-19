@@ -717,8 +717,7 @@ object AppUtils {
             // Extension results have no sub/dub split, so never hide them
             "Hide subbed" ->
                 cards?.filter {
-                    it.slug.endsWith("-dub") || com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(it.slug) ||
-                            com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(it.slug)
+                    it.slug.endsWith("-dub") || com.lagradost.shiro.utils.isExtensionSlug(it.slug)
                 }
             else ->
                 cards

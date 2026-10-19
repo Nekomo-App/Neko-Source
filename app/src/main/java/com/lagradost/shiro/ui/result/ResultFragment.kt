@@ -196,7 +196,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
     private fun showSourceChooser() {
         val ctx = context ?: return
         val anime = resultViewModel?.data?.value?.anime
-        val title = (anime?.title_english?.takeIf { it.isNotBlank() && !com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(anime.slug) }
+        val title = (anime?.title_english?.takeIf { it.isNotBlank() && !com.lagradost.shiro.utils.isExtensionSlug(anime.slug) }
             ?: anime?.title) ?: return
         val currentSlug = anime?.slug ?: ""
         thread {
@@ -210,13 +210,20 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             } catch (e: Exception) {
                 emptyList()
             }
+            val ayChoices = try {
+                com.lagradost.shiro.utils.aniyomi.AniyomiBridge.sourceChoices()
+            } catch (e: Exception) {
+                emptyList()
+            }
             main {
                 // (label, key): key null = default, "cs:<name>" = CloudStream provider, "zg:<id>" = Zangetsu source
-                val entries: List<Pair<String, String?>> = listOf("Default (built-in)" to null) +
+                val entries: List<Pair<String, String?>> = listOf("AniList info (no streams)" to null) +
                         providers.map { it to "cs:$it" } +
-                        zgSources.map { "Zangetsu · ${it.name}" to "zg:${it.id}" }
+                        zgSources.map { "Zangetsu · ${it.name}" to "zg:${it.id}" } +
+                        ayChoices.map { "Aniyomi · ${it.first}" to "ay:${it.second}" }
                 val currentKey = com.lagradost.shiro.utils.cs3.CsBridge.parseSlug(currentSlug)?.first?.let { "cs:$it" }
                     ?: com.lagradost.shiro.utils.zg.ZangetsuBridge.parseSlug(currentSlug)?.first?.let { "zg:$it" }
+                    ?: com.lagradost.shiro.utils.aniyomi.AniyomiBridge.parseSlug(currentSlug)?.first?.let { "ay:$it" }
                 val checked = entries.indexOfFirst { it.second == currentKey }.takeIf { it >= 0 } ?: 0
                 AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
                     .setTitle("Choose source")
@@ -244,9 +251,13 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                         com.lagradost.shiro.utils.LiveApi.search(title, null).orEmpty()
                             .filter {
                                 !com.lagradost.shiro.utils.cs3.CsBridge.isCs3Slug(it.slug) &&
-                                        !com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(it.slug)
+                                        !com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(it.slug) &&
+                                        !com.lagradost.shiro.utils.aniyomi.AniyomiBridge.isAySlug(it.slug)
                             }
                             .map { (it.title_english?.takeIf { e -> e.isNotBlank() } ?: it.title) to it.slug }
+                    key.startsWith("ay:") ->
+                        com.lagradost.shiro.utils.aniyomi.AniyomiBridge.searchBySource(key.removePrefix("ay:").toLong(), title)
+                            .map { it.title to it.slug }
                     key.startsWith("zg:") ->
                         com.lagradost.shiro.utils.zg.ZangetsuBridge.searchBySource(key.removePrefix("zg:"), title)
                             .map { it.title to it.slug }
@@ -293,6 +304,11 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             fv<android.widget.FrameLayout>(R.id.loading_overlay)?.startAnimation(fadeAnimation)
             fv<android.widget.Button>(R.id.open_website_btt)?.isEnabled = false
             loadSeason()
+            // Nekomo bundles no streaming source: an AniList title has no episodes until the user
+            // picks one of the sources they installed themselves.
+            if (data.episodes.isEmpty() && !com.lagradost.shiro.utils.isExtensionSlug(data.anime.slug)) {
+                showSourceChooser()
+            }
 
             data class IdObject(
                 @JsonProperty("mal") val mal: String?,

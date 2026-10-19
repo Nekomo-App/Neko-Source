@@ -49,10 +49,6 @@ object CsPluginManager {
     private const val REPOS_KEY = "cs3_repositories"
     private const val DISABLED_PLUGINS_KEY = "cs3_disabled_plugins"
 
-    /** Curated list of community repositories (same list CloudStream links users to). */
-    const val REPOS_DB_URL =
-        "https://raw.githubusercontent.com/recloudstream/cs-repos/master/repos-db.json"
-
     private val mapper: JsonMapper = JsonMapper.builder()
         .addModule(KotlinModule.Builder().build())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -393,26 +389,6 @@ object CsPluginManager {
                 logError(t)
                 emptyList()
             }
-        }
-    }
-
-    /** The public index of community repos; entries are either strings or {"url","verified"}. */
-    fun fetchKnownRepos(): List<Pair<String, Boolean>> {
-        return try {
-            val res = khttp.get(REPOS_DB_URL, timeout = 30.0)
-            if (res.statusCode != 200) return emptyList()
-            mapper.readTree(res.text).mapNotNull { node ->
-                when {
-                    node.isTextual -> node.asText() to false
-                    node.isObject -> node.get("url")?.asText()?.let {
-                        it to (node.get("verified")?.asBoolean() ?: false)
-                    }
-                    else -> null
-                }
-            }
-        } catch (t: Throwable) {
-            logError(t)
-            emptyList()
         }
     }
 

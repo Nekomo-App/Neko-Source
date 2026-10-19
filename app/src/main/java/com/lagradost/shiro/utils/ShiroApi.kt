@@ -606,7 +606,13 @@ class ShiroApi {
                 logError(e)
                 emptyList()
             }
-            val extra = extensionResults + zangetsuResults
+            val aniyomiResults = try {
+                com.lagradost.shiro.utils.aniyomi.AniyomiBridge.search(query)
+            } catch (e: Exception) {
+                logError(e)
+                emptyList()
+            }
+            val extra = extensionResults + zangetsuResults + aniyomiResults
             return if (base == null && extra.isEmpty()) null
             else base.orEmpty() + extra
         }

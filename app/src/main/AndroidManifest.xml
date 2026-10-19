@@ -105,6 +105,21 @@
                   android:theme="@style/preferenceActivityTheme"
                   android:fitsSystemWindows="true"
         />
+        <activity android:name=".ui.manga.MangaBrowseActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Manga"
+                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+        />
+        <activity android:name=".ui.manga.MangaDetailActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Manga"
+                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+        />
+        <activity android:name=".ui.manga.MangaReaderActivity"
+                  android:theme="@style/Theme.AppCompat.NoActionBar"
+                  android:label="Reader"
+                  android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
+        />
         <activity android:name=".ui.settings.ExtensionsActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:fitsSystemWindows="true"

@@ -142,6 +142,13 @@
                     </TextView>
                     <View style="@style/Divider"/>
                     <TextView
+                            android:id="@+id/settings_manga"
+                            android:text="Manga"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
+                    <TextView
                             android:id="@+id/settings_community_rules"
                             android:text="Community Rules"
                             style="@style/SettingsItem"

@@ -1,6 +1,5 @@
 package com.lagradost.shiro.utils
 
-import com.lagradost.shiro.utils.extractors.*
 
 data class ExtractorLink(
     val name: String,
@@ -30,18 +29,9 @@ fun getAndUnpack(string: String): String? {
     return packedText?.let { JsUnpacker(it).unpack() }
 }
 
-val APIS: Array<ExtractorApi> = arrayOf(
-    // AllProvider(),
-    // Shiro() removed: subsplea.se is dead and its getUrl blindly emits any
-    // url as a fake UHD link, poisoning link priority for embed pages.
-    MultiQuality(),
-    OkRu(),
-    Mp4Upload(),
-    StreamTape(),
-    MixDrop(),
-    XStreamCdn(),
-    StreamSB()
-)
+// Nekomo bundles no host extractors or streaming sources; everything playable comes from sources the
+// user installs (CloudStream extensions, Zangetsu sources, Aniyomi extensions).
+val APIS: Array<ExtractorApi> = arrayOf()
 
 /*val linKLoadingTimeout: Double
     get() {

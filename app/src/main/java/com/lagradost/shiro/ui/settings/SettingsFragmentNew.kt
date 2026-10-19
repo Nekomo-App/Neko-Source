@@ -100,6 +100,13 @@ class SettingsFragmentNew : Fragment() {
             }
         }
 
+        fv<android.widget.TextView>(R.id.settings_manga)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                context?.let { startActivity(Intent(it, com.lagradost.shiro.ui.manga.MangaBrowseActivity::class.java)) }
+            }
+        }
+
         fv<android.widget.TextView>(R.id.settings_community_rules)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {

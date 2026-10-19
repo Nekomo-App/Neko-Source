@@ -155,3 +155,16 @@ this toggle would just add a switch that does nothing.
   extractor can resolve are only emitted as a last resort. `Mkissa.buildInjectionHtml` used `Regex.replace`
   with a `$`-heavy replacement ("Illegal group reference") which silently broke every stream lookup.
 - Not yet implemented: Aniyomi/Mihon extension APKs, Zangetsu, LN Reader plugins (see chat for scope).
+
+## Zangetsu sources (JS providers)
+
+- `utils/zg/ZangetsuEngine` runs Zangetsu provider scripts on Rhino (interpreted, ES6, one big-stack thread;
+  host API = promise `fetch`, timers, `htmlText`, `absUrl`, base64/hex helpers, sha256/AES-CTR). `ZangetsuManager`
+  stores repos (manifest `index.json` URLs) and installed scripts in `filesDir/Zangetsu`; `ZangetsuBridge` maps
+  `search` / `getDetail` / `getVideoSources` into app models. Slugs are `zg-<hex id>-<hex url>`.
+- Nothing is bundled: the user adds a repo and installs sources in Settings -> Extensions -> Zangetsu sources.
+- Verified on device (debug + minified release): add `Spyou/zangetsu-providers` -> install HiAnime -> results show
+  in search, anime page loads, and an episode streamed (HLS) in debug. HiAnime itself can answer
+  "no playable server" for some episodes; the player now says so instead of spinning forever.
+- Still not implemented: Aniyomi / Mihon extension APKs, LN Reader plugins (Zangetsu's own repo has reference
+  `AniyomiBridge.kt` / `MihonBridge.kt`, GPLv3).
