@@ -56,8 +56,8 @@ import com.lagradost.shiro.utils.DownloadManager.checkDownloadsUsingWorker
 import com.lagradost.shiro.utils.DownloadManager.resumeEpisodeUsingWorker
 import com.lagradost.shiro.utils.Event
 import com.lagradost.shiro.utils.InAppUpdater.runAutoUpdate
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.initShiroApi
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.initShiroApi
 import com.lagradost.shiro.utils.VideoDownloadManager
 import com.lagradost.shiro.utils.VideoDownloadManager.KEY_RESUME_PACKAGES
 import com.lagradost.shiro.utils.VideoDownloadManager.currentDownloads
@@ -80,7 +80,7 @@ data class LastEpisodeInfoLegacy(
     @JsonProperty("pos") val pos: Long,
     @JsonProperty("dur") val dur: Long,
     @JsonProperty("seenAt") val seenAt: Long,
-    @JsonProperty("id") val id: ShiroApi.AnimePageData,
+    @JsonProperty("id") val id: NekomoApi.AnimePageData,
 
     // Old, is actually used for slugs
     @JsonProperty("aniListId") val aniListId: String,
@@ -88,7 +88,7 @@ data class LastEpisodeInfoLegacy(
     @JsonProperty("episodeIndex") val episodeIndex: Int,
     @JsonProperty("seasonIndex") val seasonIndex: Int,
     @JsonProperty("isMovie") val isMovie: Boolean,
-    @JsonProperty("episode") val episode: ShiroApi.ShiroEpisodes,
+    @JsonProperty("episode") val episode: NekomoApi.ShiroEpisodes,
     @JsonProperty("coverImage") val coverImage: String,
     @JsonProperty("title") val title: String?,
     @JsonProperty("bannerImage") val bannerImage: String,
@@ -103,7 +103,7 @@ data class LastEpisodeInfo(
     @JsonProperty("pos") val pos: Long,
     @JsonProperty("dur") val dur: Long,
     @JsonProperty("seenAt") val seenAt: Long,
-    @JsonProperty("data") val data: ShiroApi.Companion.AnimePageNewData?,
+    @JsonProperty("data") val data: NekomoApi.Companion.AnimePageNewData?,
 
     // Old, is actually used for slugs
     @JsonProperty("slug") val slug: String,
@@ -111,7 +111,7 @@ data class LastEpisodeInfo(
     @JsonProperty("episodeIndex") val episodeIndex: Int,
     @JsonProperty("seasonIndex") val seasonIndex: Int,
     @JsonProperty("isMovie") val isMovie: Boolean,
-    @JsonProperty("episode") val episode: ShiroApi.Companion.AnimePageNewEpisodes?,
+    @JsonProperty("episode") val episode: NekomoApi.Companion.AnimePageNewEpisodes?,
     @JsonProperty("coverImage") val coverImage: String,
     @JsonProperty("title") val title: String,
     @JsonProperty("bannerImage") val bannerImage: String,
@@ -134,7 +134,7 @@ data class BookmarkedTitle(
     @JsonProperty("image") override val image: String,
     @JsonProperty("slug") override val slug: String,
     @JsonProperty("english") override val english: String?
-) : ShiroApi.CommonAnimePage
+) : NekomoApi.CommonAnimePage
 
 class MainActivity : CyaneaAppCompatActivity() {
     companion object {

@@ -11,7 +11,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLink as CsExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.shiro.utils.ExtractorLink
 import com.lagradost.shiro.utils.Qualities
-import com.lagradost.shiro.utils.ShiroApi
+import com.lagradost.shiro.utils.NekomoApi
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.subs.SubtitleProviders
 import com.lagradost.shiro.utils.subs.SubtitleResult
@@ -26,7 +26,7 @@ import java.nio.charset.Charset
  * Bridges CloudStream MainAPI providers into the app's existing data model so
  * loaded extensions show up in search/results/player without rewriting the UI.
  *
- * Routing: slugs and source tokens look like "cs3-hex(apiName)-hex(originalUrl)". ShiroApi/LiveApi/Vidstream check isCs3Slug
+ * Routing: slugs and source tokens look like "cs3-hex(apiName)-hex(originalUrl)". NekomoApi/LiveApi/Vidstream check isCs3Slug
  * and forward here; everything else flows through the legacy paths untouched.
  *
  * CloudStream calls are suspend functions; they're wrapped in runBlocking since
@@ -68,7 +68,7 @@ object CsBridge {
     // ---------- search ----------
 
     /** Queries every loaded provider in parallel; returns app-format results. */
-    fun search(query: String): List<ShiroApi.Companion.Data> {
+    fun search(query: String): List<NekomoApi.Companion.Data> {
         val apis = CsPluginManager.providers()
         if (apis.isEmpty()) return emptyList()
         return try {
@@ -83,7 +83,12 @@ object CsBridge {
                     }
                 }.awaitAll()
             }.flatMap { (api, results) ->
-                results.orEmpty().map { it.toAppData(api) }
+                val nsfwOk = com.lagradost.shiro.utils.ContentPrefs.nsfw()
+                val nonAnimeOk = com.lagradost.shiro.utils.ContentPrefs.nonAnime()
+                results.orEmpty().filter {
+                    val t = it.type?.name
+                    (nsfwOk || t != "NSFW") && (nonAnimeOk || t == null || t == "Anime" || t == "AnimeMovie" || t == "OVA")
+                }.map { it.toAppData(api) }
             }
         } catch (t: Throwable) {
             logError(t)
@@ -117,7 +122,7 @@ object CsBridge {
     }
 
     private fun com.lagradost.cloudstream3.SearchResponse.toAppData(api: MainAPI) =
-        ShiroApi.Companion.Data(
+        NekomoApi.Companion.Data(
             id = "",
             slug = makeSlug(api.name, url),
             title = name,
@@ -149,7 +154,7 @@ object CsBridge {
 
     // ---------- details / episodes ----------
 
-    fun getAnimePage(slug: String): ShiroApi.Companion.AnimePageNewRoot? {
+    fun getAnimePage(slug: String): NekomoApi.Companion.AnimePageNewRoot? {
         val (apiName, url) = parseSlug(slug) ?: return null
         val api = CsPluginManager.findProvider(apiName) ?: return null
         val res = try {
@@ -160,7 +165,7 @@ object CsBridge {
         } ?: return null
 
         val episodes = res.toEpisodes(apiName)
-        val anime = ShiroApi.Companion.AnimePageNew(
+        val anime = NekomoApi.Companion.AnimePageNew(
             id = "",
             slug = slug,
             title = res.name,
@@ -193,19 +198,19 @@ object CsBridge {
             created_at = "",
             updated_at = ""
         )
-        return ShiroApi.Companion.AnimePageNewRoot(
+        return NekomoApi.Companion.AnimePageNewRoot(
             status = "success",
             message = "",
-            data = ShiroApi.Companion.AnimePageNewData(anime = anime, episodes = episodes)
+            data = NekomoApi.Companion.AnimePageNewData(anime = anime, episodes = episodes)
         )
     }
 
     /** Flattens a LoadResponse into app episode entries with cs3 token sources. */
     private fun LoadResponse.toEpisodes(
         apiName: String
-    ): List<ShiroApi.Companion.AnimePageNewEpisodes> {
+    ): List<NekomoApi.Companion.AnimePageNewEpisodes> {
         fun epEntry(index: Int, data: String, epNum: Int?, name: String?, dub: String?, poster: String?, season: Int?) =
-            ShiroApi.Companion.AnimePageNewEpisodes(
+            NekomoApi.Companion.AnimePageNewEpisodes(
                 id = "$apiName-$index",
                 slug = "$apiName-$index",
                 title = (if (season != null && season > 1) "S$season " else "") +

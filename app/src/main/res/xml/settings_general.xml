@@ -5,6 +5,20 @@
 >
 
     <SwitchPreference
+            android:icon="@drawable/ic_baseline_filter_list_24"
+            app:key="non_anime_enabled"
+            android:title="Show movies and TV shows"
+            android:summary="Off: anime sources only. On: also show sources that provide movies and series."
+            app:defaultValue="false"
+    />
+    <SwitchPreference
+            android:icon="@drawable/ic_baseline_filter_list_24"
+            app:key="nsfw_enabled"
+            android:title="Show 18+ sources and extensions"
+            android:summary="Off by default. Includes adult sources in extension lists, search and the source chooser."
+            app:defaultValue="false"
+    />
+    <SwitchPreference
             android:icon="@drawable/ic_baseline_screen_lock_landscape_24"
             app:key="force_landscape"
             android:title="Force landscape"

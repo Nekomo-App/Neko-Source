@@ -44,7 +44,7 @@ Users can view/copy/save/share/clear it from Settings -> History -> "Error log"
 
 ## Networking / DNS over HTTPS
 
-The app's own network calls (`ShiroApi`, `LiveApi`, `MALApi`, `AniListApi`, extractors, ...)
+The app's own network calls (`NekomoApi`, `LiveApi`, `MALApi`, `AniListApi`, extractors, ...)
 all go through the `khttp.get/post/put/delete/head/patch` facade in
 `app/src/main/java/khttp/KHttp.kt`. That facade is now backed by OkHttp (previously raw
 `HttpURLConnection`) specifically so a single `okhttp3.Dns` can be swapped in for DNS-over-HTTPS.
@@ -102,7 +102,7 @@ this toggle would just add a switch that does nothing.
 - `utils/cs3/CsPluginManager.kt`: repos, install (sha256 verify, atomic replace), `PathClassLoader`
   loading from `filesDir/Extensions`, enable/disable, update. Initialised in `AcraApplication`.
 - `utils/cs3/CsBridge.kt`: maps providers into app models. Slugs/tokens are `cs3|<api>|<hex url>`;
-  hooks are in `ShiroApi.searchNew`, `LiveApi.getAnimePage` and `LiveApi.resolveStreams`.
+  hooks are in `NekomoApi.searchNew`, `LiveApi.getAnimePage` and `LiveApi.resolveStreams`.
 - `ExtractorLink` gained `isDash` and `headers`; `PlayerFragment` applies them.
 - UI: Settings -> Extensions (`ui/settings/ExtensionsActivity`).
 - Slugs/tokens are now `cs3-<hex api>-<hex url>` (hex + `-` only: safe in file names, prefs keys and
@@ -168,3 +168,35 @@ this toggle would just add a switch that does nothing.
   "no playable server" for some episodes; the player now says so instead of spinning forever.
 - Still not implemented: Aniyomi / Mihon extension APKs, LN Reader plugins (Zangetsu's own repo has reference
   `AniyomiBridge.kt` / `MihonBridge.kt`, GPLv3).
+
+## No bundled sources (policy) + Aniyomi / Mihon / filters
+
+- A fresh install ships NO streaming source, repo, extractor or extension. AniList (graphql.anilist.co) is used for
+  metadata only (trending/search/details); an AniList title has no episodes until the user picks one of their own
+  sources via the cloud "Choose source" button (the page opens the chooser automatically). The old AllAnime/mkissa
+  backend, its WebView scraper and all host extractors were removed; there is no "browse public repositories" list.
+- Sources the user adds themselves: CloudStream (`cs3-`), Zangetsu (`zg-`), Aniyomi anime extensions (`ay-`), and
+  Mihon manga extensions (Settings -> Manga). Settings -> Extensions has one section per kind; every add/install asks
+  for confirmation, and each installed item has a "Report" button (opens the repo's issue tracker).
+- `eu/kanade/tachiyomi/**`, `tachiyomi/**` are the vendored Aniyomi/Mihon extension API (Apache-2.0, copied from
+  Zangetsu's repo, GPLv3 host). `utils/aniyomi/AniyomiRuntime` stands up Injekt; `AniyomiManager`/`MihonManager`
+  download APKs from an `index.min.json` repo, validate and load them with `DexClassLoader`.
+- Settings -> General: "Show movies and TV shows" (`non_anime_enabled`, default off) and "Show 18+ sources and
+  extensions" (`nsfw_enabled`, default off); see `utils/ContentPrefs`.
+- Verified on device: Aniyomi repo (yuzono/anime-repo) -> install -> search -> details -> episode list. Streams from
+  that extension could not be played on the test phone because its DNS-filter VPN blocks the extension's backends.
+  Mihon reader screens compile and are registered but could not be tested (Keiyoushi's repo currently serves only an
+  "update your app" stub to non-Mihon clients). LN Reader plugins are not implemented (need a cheerio-compatible JS DOM).
+
+## Update channel (in-app updater)
+
+- `utils/InAppUpdater` reads GitHub releases from every repo in the `update_repos` setting (default
+  `Nekomo-App/Nekomo,Nekomo-App/neko-source`), compares versions numerically, and offers the newest one.
+- Assets are matched to the installed build: `Nekomo-<phone|tv>-<release|beta|debug>.apk` (legacy `x.y.z.apk` /
+  `x.y.z-TV.apk` still match for stable). Beta/Debug apps (different package + signature) only ever see their own
+  APK and always follow pre-releases; the stable app follows pre-releases only with "beta_mode".
+- Settings -> Updates: startup check (`auto_update`, throttled to 1/h), pre-release switch, repositories, manual
+  check, version/channel line. Downloads are restricted to https github.com / *.githubusercontent.com.
+- Publish with `scripts/publish-release.sh <version> [stable|beta] [owner/repo]` (needs `gh`). No releases exist
+  yet in either Nekomo-App repo, so the updater currently reports "up to date".
+- `ShiroApi` was renamed `NekomoApi`; the old Shiro token/donor/shiro-db/fastani endpoints were deleted.

@@ -188,6 +188,11 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
             (layoutParams as LinearLayout.LayoutParams).bottomMargin = SocialLinks.dp(ctx, 24)
         })
 
+        root.addView(text(
+            "Nekomo does not host, include or provide any videos, manga or other content. After setup you choose and " +
+                    "install the sources and extensions you want yourself, and you are responsible for what you use them for.",
+            12f, alpha = true
+        ).apply { setPadding(0, 0, 0, SocialLinks.dp(ctx, 16)) })
         root.addView(button("Sign in with AniList", 0xFF02A9FF.toInt()) { startBrowserSignIn { ctx.authenticateAniList() } })
         root.addView(button("Sign in with MyAnimeList", 0xFF2E51A2.toInt()) { startBrowserSignIn { ctx.authenticateMAL() } })
         root.addView(button("Continue with Kitsu", 0xFFF75239.toInt()) { showKitsuDialog() })
@@ -210,6 +215,9 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
         legal.addView(linkText("Privacy Policy") { SocialLinks.openUrl(ctx, ctx.getString(R.string.link_privacy)) })
         root.addView(legal)
 
+        root.addView(text("Signing in only stores your login token on this device, in the app's private storage. Nekomo never sends it anywhere except to the service you sign in to.", 12f, alpha = true).apply {
+            setPadding(0, SocialLinks.dp(ctx, 8), 0, 0)
+        })
         root.addView(text("Please make sure to follow the community rules. You will be asked to accept them after signing in.", 12f, alpha = true).apply {
             setPadding(0, SocialLinks.dp(ctx, 12), 0, SocialLinks.dp(ctx, 12))
         })

@@ -90,10 +90,10 @@ import com.lagradost.shiro.utils.AppUtils.showNavigation
 import com.lagradost.shiro.utils.AppUtils.transparentStatusAndNavigation
 import com.lagradost.shiro.utils.Coroutines.main
 import com.lagradost.shiro.utils.MALApi.Companion.authenticateMAL
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFav
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFullUrlCdn
-import com.lagradost.shiro.utils.ShiroApi.Companion.getSubbed
-import com.lagradost.shiro.utils.ShiroApi.Companion.getVideoLink
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFav
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFullUrlCdn
+import com.lagradost.shiro.utils.NekomoApi.Companion.getSubbed
+import com.lagradost.shiro.utils.NekomoApi.Companion.getVideoLink
 import com.lagradost.shiro.utils.mvvm.Resource
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import com.lagradost.shiro.utils.mvvm.safeApiCall
@@ -288,7 +288,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         }
     }
 
-    private fun onDataLoaded(data: ShiroApi.Companion.AnimePageNewData?) {
+    private fun onDataLoaded(data: NekomoApi.Companion.AnimePageNewData?) {
         episodeOffset = if (data?.episodes?.filter { it.episode == "0" }.isNullOrEmpty()) 0 else -1
 
         main {
@@ -671,7 +671,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             }
 
             val episodes = clickData.episodes.getOrNull(index)?.sources?.let {
-                mapper.readValue<List<ShiroApi.Companion.EpisodeObject?>?>(it)
+                mapper.readValue<List<NekomoApi.Companion.EpisodeObject?>?>(it)
             }
             val videoId = episodes?.firstOrNull { it?.slug == "gogostream" }
             val sources = safeApiCall {
@@ -804,7 +804,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                 currentLinks?.let {
                     guaranteedContext(context).castEpisode(
                         it,
-                        ShiroApi.CommonAnimePageData(
+                        NekomoApi.CommonAnimePageData(
                             clickData.anime.title,
                             clickData.anime.poster,
                             clickData.anime.slug,
@@ -1033,7 +1033,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
 
         observe(resultViewModel!!.related) {
             val commonData = it?.map {
-                ShiroApi.CommonAnimePageData(
+                NekomoApi.CommonAnimePageData(
                     it.title,
                     it.poster,
                     it.idMal.toString(),
@@ -1058,7 +1058,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
 
         observe(resultViewModel!!.recommendations) {
             val commonData = it?.map {
-                ShiroApi.CommonAnimePageData(
+                NekomoApi.CommonAnimePageData(
                     it.title,
                     it.poster,
                     it.idMal.toString(),

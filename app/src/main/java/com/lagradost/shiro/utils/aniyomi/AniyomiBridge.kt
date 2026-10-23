@@ -3,7 +3,7 @@ package com.lagradost.shiro.utils.aniyomi
 import com.lagradost.shiro.AcraApplication
 import com.lagradost.shiro.utils.ExtractorLink
 import com.lagradost.shiro.utils.Qualities
-import com.lagradost.shiro.utils.ShiroApi
+import com.lagradost.shiro.utils.NekomoApi
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.subs.SubtitleProviders
 import com.lagradost.shiro.utils.subs.SubtitleResult
@@ -63,7 +63,7 @@ object AniyomiBridge {
 
     data class Hit(val title: String, val slug: String)
 
-    private fun toData(src: AnimeSource, a: SAnime) = ShiroApi.Companion.Data(
+    private fun toData(src: AnimeSource, a: SAnime) = NekomoApi.Companion.Data(
         id = "", slug = makeSlug(src.id, a.url), title = a.title, title_english = sourceLabel(src),
         native_title = "", poster = a.thumbnail_url ?: "", banner = "", ids = "{}", type = "anime", format = "",
         episodes = "", episode_duration = "", synopsis = a.description ?: "", language = src.lang, synonyms = "",
@@ -75,7 +75,7 @@ object AniyomiBridge {
         withTimeout(SEARCH_TIMEOUT) { src.getSearchAnime(1, query, AnimeFilterList()).animes }
 
     /** Queries every enabled Aniyomi source in parallel. */
-    fun search(query: String): List<ShiroApi.Companion.Data> {
+    fun search(query: String): List<NekomoApi.Companion.Data> {
         val list = sources()
         if (list.isEmpty()) return emptyList()
         return try {
@@ -111,7 +111,7 @@ object AniyomiBridge {
 
     // ---------- details / episodes ----------
 
-    fun getAnimePage(slug: String): ShiroApi.Companion.AnimePageNewRoot? {
+    fun getAnimePage(slug: String): NekomoApi.Companion.AnimePageNewRoot? {
         val (sourceId, url) = parseSlug(slug) ?: return null
         val src = ctx()?.let { AniyomiManager.sourceById(it, sourceId) } ?: return null
         return try {
@@ -130,7 +130,7 @@ object AniyomiBridge {
                     val epModels = ordered.mapIndexed { i, e ->
                         val n = if (e.episode_number > 0) e.episode_number else (i + 1).toFloat()
                         val label = if (n % 1f == 0f) n.toInt().toString() else n.toString()
-                        ShiroApi.Companion.AnimePageNewEpisodes(
+                        NekomoApi.Companion.AnimePageNewEpisodes(
                             id = "$sourceId-$i", slug = "$sourceId-$i",
                             title = e.name.ifBlank { "Episode $label" }, episode = label,
                             image = e.preview_url, insight = null,
@@ -139,7 +139,7 @@ object AniyomiBridge {
                         )
                     }
                     val poster = d.thumbnail_url ?: ""
-                    val anime = ShiroApi.Companion.AnimePageNew(
+                    val anime = NekomoApi.Companion.AnimePageNew(
                         id = "", slug = slug, title = d.title.ifBlank { "Unknown" }, title_english = sourceLabel(src),
                         native_title = "", poster = poster, banner = d.background_url ?: poster, ids = "{}",
                         type = "anime", format = "", episodes = epModels.size.toString(), episode_duration = "",
@@ -149,8 +149,8 @@ object AniyomiBridge {
                         status = when (d.status) { 1 -> "Ongoing"; 2 -> "Completed"; 3 -> "Licensed"; else -> "" },
                         trailer = "", total_views = "0", created_at = "", updated_at = ""
                     )
-                    ShiroApi.Companion.AnimePageNewRoot(
-                        "success", "", ShiroApi.Companion.AnimePageNewData(anime = anime, episodes = epModels)
+                    NekomoApi.Companion.AnimePageNewRoot(
+                        "success", "", NekomoApi.Companion.AnimePageNewData(anime = anime, episodes = epModels)
                     )
                 }
             }
@@ -182,11 +182,17 @@ object AniyomiBridge {
                 withTimeout(LINKS_TIMEOUT) {
                     val ep = SEpisodeImpl().apply { url = epUrl; name = "" }
                     // Legacy per-episode API first; sources on the newer API expose hosters instead
-                    val legacy = runCatching { src.getVideoList(ep) }.getOrElse { emptyList() }
+                    val legacy = runCatching { src.getVideoList(ep) }
+                        .onFailure { android.util.Log.w("AniyomiBridge", "getVideoList(episode) failed: ${it.message}") }
+                        .getOrElse { emptyList() }
                     legacy.ifEmpty {
                         runCatching {
-                            src.getHosterList(ep).flatMap { h -> runCatching { src.getVideoList(h) }.getOrElse { emptyList() } }
-                        }.getOrElse { emptyList() }
+                            src.getHosterList(ep).flatMap { h ->
+                                runCatching { src.getVideoList(h) }
+                                    .onFailure { logError(Exception("Aniyomi getVideoList(hoster) failed", it)) }
+                                    .getOrElse { emptyList() }
+                            }
+                        }.onFailure { logError(Exception("Aniyomi getHosterList failed", it)) }.getOrElse { emptyList() }
                     }
                 }
             }

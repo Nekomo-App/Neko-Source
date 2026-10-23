@@ -26,7 +26,7 @@ import com.lagradost.shiro.utils.AppUtils.handleIntent
 import com.lagradost.shiro.utils.AppUtils.init
 import com.lagradost.shiro.utils.AppUtils.settingsManager
 import com.lagradost.shiro.utils.InAppUpdater.runAutoUpdate
-import com.lagradost.shiro.utils.ShiroApi.Companion.initShiroApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.initShiroApi
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 

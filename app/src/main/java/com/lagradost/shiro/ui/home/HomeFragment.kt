@@ -36,14 +36,14 @@ import com.lagradost.shiro.utils.AppUtils.loadPlayer
 import com.lagradost.shiro.utils.AppUtils.observe
 import com.lagradost.shiro.utils.AppUtils.settingsManager
 import com.lagradost.shiro.utils.PositionedCropTransformation
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.cachedHome
-import com.lagradost.shiro.utils.ShiroApi.Companion.getAnimePageNew
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFullUrlCdn
-import com.lagradost.shiro.utils.ShiroApi.Companion.getRandom
-import com.lagradost.shiro.utils.ShiroApi.Companion.hasThrownError
-import com.lagradost.shiro.utils.ShiroApi.Companion.initShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.requestHome
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.cachedHome
+import com.lagradost.shiro.utils.NekomoApi.Companion.getAnimePageNew
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFullUrlCdn
+import com.lagradost.shiro.utils.NekomoApi.Companion.getRandom
+import com.lagradost.shiro.utils.NekomoApi.Companion.hasThrownError
+import com.lagradost.shiro.utils.NekomoApi.Companion.initShiroApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.requestHome
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import kotlin.concurrent.thread
@@ -68,7 +68,7 @@ class HomeFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_home, container, false)
     }
 
-    private fun homeLoaded(data: ShiroApi.ShiroHomePageNew?) {
+    private fun homeLoaded(data: NekomoApi.ShiroHomePageNew?) {
         activity?.runOnUiThread {
             try {
             /*fv<androidx.recyclerview.widget.RecyclerView>(R.id.trending_anime_scroll_view).removeAllViews()
@@ -109,7 +109,7 @@ class HomeFragment : Fragment() {
             // TODO MAKE THIS LIKE MASTERCARDADAPTER
             if (data != null) {
                 activity?.displayCardData(data.trending?.data?.map {
-                    ShiroApi.CommonAnimePageData(
+                    NekomoApi.CommonAnimePageData(
                         it.title,
                         it.poster,
                         it.slug,
@@ -118,7 +118,7 @@ class HomeFragment : Fragment() {
                 }, fv<androidx.recyclerview.widget.RecyclerView>(R.id.trending_anime_scroll_view), fv<android.widget.TextView>(R.id.trending_text))
                 activity?.displayCardData(
                     data.recents?.map {
-                        ShiroApi.CommonAnimePageData(
+                        NekomoApi.CommonAnimePageData(
                             it.anime.title,
                             it.anime.poster,
                             it.anime.slug,
@@ -167,9 +167,9 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun generateRandom(randomPage: ShiroApi.Companion.Random? = null) {
+    private fun generateRandom(randomPage: NekomoApi.Companion.Random? = null) {
         thread {
-            val random: ShiroApi.Companion.Random? = randomPage ?: getRandom()
+            val random: NekomoApi.Companion.Random? = randomPage ?: getRandom()
             cachedHome?.random = random
             val randomData = random?.data
             // Hack, assuming all dubbed shows have a normal equivalent
@@ -354,14 +354,14 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroy() {
-        ShiroApi.onHomeError -= ::onHomeErrorCatch
+        NekomoApi.onHomeError -= ::onHomeErrorCatch
         super.onDestroy()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         fv<com.nirhart.parallaxscroll.views.ParallaxScrollView>(R.id.main_scroll)?.alpha = 0f
-        ShiroApi.onHomeError += ::onHomeErrorCatch
+        NekomoApi.onHomeError += ::onHomeErrorCatch
         if (hasThrownError != -1) {
             onHomeErrorCatch(hasThrownError == 1)
         }

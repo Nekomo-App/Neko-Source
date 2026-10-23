@@ -38,8 +38,8 @@ import com.lagradost.shiro.utils.AppUtils.getCurrentActivity
 import com.lagradost.shiro.utils.AppUtils.guaranteedContext
 import com.lagradost.shiro.utils.AppUtils.observe
 import com.lagradost.shiro.utils.AppUtils.settingsManager
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.getSearchMethods
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.getSearchMethods
 import kotlin.concurrent.thread
 
 class SearchFragment : Fragment() {
@@ -166,7 +166,7 @@ class SearchFragment : Fragment() {
                 fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar).visibility = View.VISIBLE
 
                 thread {
-                    val data = ShiroApi.searchNew("", it, hideChinese)
+                    val data = NekomoApi.searchNew("", it, hideChinese)
                     activity?.runOnUiThread {
                         if (data == null) {
                             //Toast.makeText(activity, "Server error", Toast.LENGTH_LONG).show()
@@ -174,7 +174,7 @@ class SearchFragment : Fragment() {
                         } else {
                             val filteredData =
                                 filterCardList(data.map {
-                                    ShiroApi.CommonAnimePageData(
+                                    NekomoApi.CommonAnimePageData(
                                         it.title,
                                         it.poster,
                                         it.slug,
@@ -184,7 +184,7 @@ class SearchFragment : Fragment() {
                             fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar)?.visibility =
                                 GONE // GONE for remove space, INVISIBLE for just alpha = 0
                             (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter?)?.cardList =
-                                filteredData as ArrayList<ShiroApi.CommonAnimePage>
+                                filteredData as ArrayList<NekomoApi.CommonAnimePage>
                             (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter?)?.notifyDataSetChanged()
                         }
                     }
@@ -198,7 +198,7 @@ class SearchFragment : Fragment() {
                 fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar).visibility = View.VISIBLE
                 (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter).cardList.clear()
                 thread {
-                    val data = ShiroApi.searchNew(
+                    val data = NekomoApi.searchNew(
                         query,
                         genres = (searchViewModel?.selectedGenres?.value ?: listOf()),
                         hideChinese
@@ -210,7 +210,7 @@ class SearchFragment : Fragment() {
                         } else {
                             val filteredData =
                                 filterCardList(data.map {
-                                    ShiroApi.CommonAnimePageData(
+                                    NekomoApi.CommonAnimePageData(
                                         it.title,
                                         it.poster,
                                         it.slug,
@@ -220,7 +220,7 @@ class SearchFragment : Fragment() {
                             fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar)?.visibility =
                                 View.GONE // GONE for remove space, INVISIBLE for just alpha = 0
                             (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter?)?.cardList =
-                                filteredData as ArrayList<ShiroApi.CommonAnimePage>
+                                filteredData as ArrayList<NekomoApi.CommonAnimePage>
                             (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter?)?.notifyDataSetChanged()
                         }
                     }
@@ -236,7 +236,7 @@ class SearchFragment : Fragment() {
                     fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar).visibility = View.VISIBLE
                     thread {
                         val data =
-                            ShiroApi.searchNew(
+                            NekomoApi.searchNew(
                                 newText,
                                 genres = (searchViewModel?.selectedGenres?.value ?: listOf()),
                                 hideChinese
@@ -251,7 +251,7 @@ class SearchFragment : Fragment() {
                                     GONE // GONE for remove space, INVISIBLE for just alpha = 0
                                 val filteredData =
                                     filterCardList(data.map {
-                                        ShiroApi.CommonAnimePageData(
+                                        NekomoApi.CommonAnimePageData(
                                             it.title,
                                             it.poster,
                                             it.slug,

@@ -21,7 +21,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="CloudStream extension repositories. Paste a repository URL or cs.repo code. Nothing is added by default."
+                android:text="CloudStream extension repositories. Paste the URL of a repository you trust. Nekomo includes no repositories, directory or search for extensions: you find and add them yourself."
                 android:textSize="13sp"/>
 
         <LinearLayout
@@ -42,7 +42,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Repository URL or shortcode"
+                    android:hint="Repository URL (https://…)"
                     android:inputType="textUri"
                     android:maxLines="1"/>
 
@@ -152,7 +152,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="Add a Mihon extension repository (its index.min.json URL), then install the manga extensions you want. They are read from Settings → Manga. Nothing is installed by default."
+                android:text="Add a Mihon extension repository (its index.min.json or index.pb URL), then install the manga extensions you want. They are read from Settings → Manga. Nothing is installed by default."
                 android:textSize="13sp"/>
 
         <LinearLayout

@@ -25,8 +25,7 @@ import com.lagradost.shiro.utils.AppUtils.getCurrentActivity
 import com.lagradost.shiro.utils.AppUtils.openBrowser
 import com.lagradost.shiro.utils.AppUtils.splitQuery
 import com.lagradost.shiro.utils.AppUtils.unixTime
-import com.lagradost.shiro.utils.ShiroApi.Companion.getMalIDFromTitle
-import com.lagradost.shiro.utils.ShiroApi.Companion.maxStale
+import com.lagradost.shiro.utils.NekomoApi.Companion.maxStale
 import com.lagradost.shiro.utils.mvvm.logError
 import java.net.URL
 import java.util.concurrent.TimeUnit
@@ -227,7 +226,7 @@ class AniListApi {
                 Regex(""" (${blackList.joinToString(separator = "|").replace("(", "\\(").replace(")", "\\)")})""")
             //println("NAME $name NEW NAME ${name.replace(blackListRegex, "")}")
             val shows = searchShows(name.replace(blackListRegex, ""))
-            val malIdFixed = malId ?: getMalIDFromTitle(name.replace(blackListRegex, ""))
+            val malIdFixed = malId
 
             shows?.data?.Page?.media?.find {
                 malIdFixed ?: "NONE" == it.idMal.toString()

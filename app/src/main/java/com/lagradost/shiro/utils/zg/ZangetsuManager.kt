@@ -58,6 +58,7 @@ object ZangetsuManager {
         @JsonProperty("repoUrl") val repoUrl: String?,
         @JsonProperty("filePath") val filePath: String,
         @JsonProperty("fileUrl") val fileUrl: String?,
+        @JsonProperty("nsfw") val nsfw: Boolean = false,
     )
 
     // ---------- repos ----------
@@ -102,7 +103,7 @@ object ZangetsuManager {
             val file = File(dir, "$safe.js")
             file.writeText(res.text)
             val inst = ZgInstalled(
-                src.id, src.name, src.version, src.type, src.lang, repoUrl, file.absolutePath, fileUrl
+                src.id, src.name, src.version, src.type, src.lang, repoUrl, file.absolutePath, fileUrl, src.nsfw
             )
             save(context, getInstalled(context).filter { it.id != src.id } + inst)
             ZangetsuEngine.forget(src.id)
@@ -151,8 +152,12 @@ object ZangetsuManager {
         context.setKey(DISABLED_KEY, disabled.toList())
     }
 
+    fun visible(context: Context, src: ZgInstalled) =
+        (com.lagradost.shiro.utils.ContentPrefs.nsfw(context) || !src.nsfw) &&
+                (com.lagradost.shiro.utils.ContentPrefs.nonAnime(context) || src.type != "movie")
+
     fun enabledSources(context: Context): List<ZgInstalled> =
-        getInstalled(context).filter { isEnabled(context, it.id) }
+        getInstalled(context).filter { isEnabled(context, it.id) && visible(context, it) }
 
     // ---------- calling providers ----------
 

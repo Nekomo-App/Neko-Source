@@ -29,9 +29,9 @@ import com.lagradost.shiro.ui.tv.TvActivity.Companion.tvActivity
 import com.lagradost.shiro.utils.AppUtils.loadPage
 import com.lagradost.shiro.utils.AppUtils.loadPlayer
 import com.lagradost.shiro.utils.AppUtils.onLongCardClick
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFullUrlCdn
-import com.lagradost.shiro.utils.ShiroApi.Companion.requestHome
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFullUrlCdn
+import com.lagradost.shiro.utils.NekomoApi.Companion.requestHome
 
 
 class CardContinueAdapter(
@@ -153,7 +153,7 @@ class CardContinueAdapter(
                             itemView.scaleX = 0.9f
                             itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(300).start()
                             activity.onLongCardClick(
-                                ShiroApi.CommonAnimePageData(
+                                NekomoApi.CommonAnimePageData(
                                     card.anime.title,
                                     card.anime.poster,
                                     card.anime.slug,

@@ -22,7 +22,7 @@ import com.lagradost.shiro.ui.MainActivity.Companion.statusHeight
 import com.lagradost.shiro.ui.search.ResAdapter
 import com.lagradost.shiro.utils.AppUtils.filterCardList
 import com.lagradost.shiro.utils.AppUtils.settingsManager
-import com.lagradost.shiro.utils.ShiroApi
+import com.lagradost.shiro.utils.NekomoApi
 
 const val CARD_LIST = "card_list"
 const val TITLE = "title"
@@ -31,7 +31,7 @@ const val TITLE = "title"
 const val EXPANDED_HOME_FRAGMENT_TAG = "EXPANDED_HOME_FRAGMENT_TAG"
 
 class ExpandedHomeFragment : Fragment() {
-    private var cardList: List<ShiroApi.CommonAnimePageData>? = null
+    private var cardList: List<NekomoApi.CommonAnimePageData>? = null
     private var title: String? = null
     private val mapper = JsonMapper.builder().addModule(KotlinModule.Builder().build())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()

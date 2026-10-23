@@ -96,6 +96,7 @@ object CsPluginManager {
         @JsonProperty("sourceUrl") val sourceUrl: String?,
         @JsonProperty("repoUrl") val repoUrl: String?,
         @JsonProperty("fileHash") val fileHash: String? = null,
+        @JsonProperty("nsfw") val nsfw: Boolean = false,
     )
 
     data class LoadedPlugin(
@@ -181,14 +182,31 @@ object CsPluginManager {
             .filter { it.installed.internalName !in disabledPluginNames }
             .map { it.installed.filePath }
             .toSet()
+        val ctx = com.lagradost.shiro.AcraApplication.context
+        val nsfwOk = com.lagradost.shiro.utils.ContentPrefs.nsfw(ctx)
+        val nonAnimeOk = com.lagradost.shiro.utils.ContentPrefs.nonAnime(ctx)
+        val nsfwFiles = loadedPlugins.values.filter { it.installed.nsfw }.map { it.installed.filePath }.toSet()
+        val animeTypes = setOf("Anime", "AnimeMovie", "OVA")
         return try {
-            APIHolder.allProviders.filter {
-                it.sourcePlugin in enabledFiles && it.name !in disabledProviderNames
+            APIHolder.allProviders.filter { api ->
+                val types = try { api.supportedTypes.map { it.name }.toSet() } catch (t: Throwable) { emptySet() }
+                api.sourcePlugin in enabledFiles && api.name !in disabledProviderNames &&
+                        (nsfwOk || (api.sourcePlugin !in nsfwFiles && "NSFW" !in types)) &&
+                        (nonAnimeOk || types.any { it in animeTypes })
             }
         } catch (t: Throwable) {
             logError(t)
             emptyList()
         }
+    }
+
+    /** Whether a repository entry passes the user's 18+ / movies-and-shows content filters. */
+    fun allowed(context: Context, p: CsSitePlugin): Boolean {
+        val types = p.tvTypes.orEmpty().map { it.lowercase() }
+        val nsfwOk = com.lagradost.shiro.utils.ContentPrefs.nsfw(context) || "nsfw" !in types
+        val animeOk = com.lagradost.shiro.utils.ContentPrefs.nonAnime(context) || types.isEmpty() ||
+                types.any { it == "anime" || it == "animemovie" || it == "ova" }
+        return nsfwOk && animeOk
     }
 
     fun findProvider(apiName: String): MainAPI? {
@@ -321,47 +339,15 @@ object CsPluginManager {
     }
 
     /**
-     * Accepts a raw https url, a cloudstreamrepo:// / cs.repo wrapped url,
-     * or a cutt.ly / "!"-prefixed py.md shortcode like upstream's parseRepoUrl.
+     * Accepts a repository URL the user pasted: a raw http(s) url or a cloudstreamrepo:// / cs.repo wrapped url.
+     * Shortcodes (which would need a lookup against a third-party directory) are intentionally not supported.
      */
     fun parseRepoUrl(input: String): String? {
         val fixed = input.trim()
+        val wrapper = Regex("""^(cloudstreamrepo://)|(https://cs\.repo/\??)""")
         return when {
             fixed.contains(Regex("^https?://")) -> fixed
-            fixed.contains(Regex("^(cloudstreamrepo://)|(https://cs\\.repo/\\??)")) -> {
-                val stripped = fixed.replace(
-                    Regex("^(cloudstreamrepo://)|(https://cs\\.repo/\\??)"), ""
-                )
-                if (stripped.contains(Regex("^https?://"))) stripped else "https://$stripped"
-            }
-            fixed.matches(Regex("^[a-zA-Z0-9!_-]+$")) -> {
-                try {
-                    if (fixed.startsWith("!")) {
-                        val res = khttp.get(
-                            "https://py.md/${fixed.removePrefix("!")}", allowRedirects = false
-                        )
-                        val loc = res.headers.entries.firstOrNull {
-                            it.key.equals("location", true)
-                        }?.value
-                        loc?.takeIf {
-                            !it.startsWith("https://py.md/404") &&
-                                    it.removeSuffix("/") != "https://py.md"
-                        }
-                    } else {
-                        val res = khttp.get("https://cutt.ly/$fixed", allowRedirects = false)
-                        val loc = res.headers.entries.firstOrNull {
-                            it.key.equals("location", true)
-                        }?.value
-                        loc?.takeIf {
-                            !it.startsWith("https://cutt.ly/404") &&
-                                    it.removeSuffix("/") != "https://cutt.ly"
-                        }
-                    }
-                } catch (t: Throwable) {
-                    logError(t)
-                    null
-                }
-            }
+            fixed.contains(wrapper) -> fixed.replace(wrapper, "").let { if (it.contains(Regex("^https?://"))) it else "https://$it" }
             else -> null
         }
     }
@@ -475,6 +461,7 @@ object CsPluginManager {
                 sourceUrl = plugin.url,
                 repoUrl = repoUrl,
                 fileHash = plugin.fileHash,
+                nsfw = plugin.tvTypes?.any { it.equals("NSFW", true) } == true,
             )
 
             val ok = loadPlugin(context, target, installed)

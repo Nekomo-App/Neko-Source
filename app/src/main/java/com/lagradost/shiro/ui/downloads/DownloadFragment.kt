@@ -143,7 +143,7 @@ class DownloadFragment : Fragment() {
                                 }
                             } else {
                                 val glideUrlMain =
-                                    ShiroApi.getFullUrlCdn(parent.coverImagePath)
+                                    NekomoApi.getFullUrlCdn(parent.coverImagePath)
                                 context?.let {
                                     GlideApp.with(it)
                                         .load(glideUrlMain)

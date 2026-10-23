@@ -16,7 +16,7 @@ const val DNS_PROVIDER_KEY = "dns_provider"
  * DNS-over-HTTPS provider list for Settings -> General -> "DNS over HTTPS", mirroring the
  * option CloudStream/Aniyomi expose. This bypasses ISP/local DNS blocking or interception
  * for the app's own network requests - see [khttp.KHttp] which every provider/API client
- * in the app (ShiroApi, LiveApi, MALApi, AniListApi, extractors, ...) goes through.
+ * in the app (NekomoApi, LiveApi, MALApi, AniListApi, extractors, ...) goes through.
  */
 object DohProvider {
     private data class Provider(val url: String, val bootstrap: List<String>)

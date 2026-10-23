@@ -17,7 +17,7 @@ import eu.kanade.tachiyomi.source.SourceFactory
 import java.io.File
 
 /**
- * Mihon manga extension support. Extensions are APKs listed in a repository index (index.min.json);
+ * Mihon manga extension support. Extensions are APKs listed in a repository index (index.min.json, or the newer gzip'd protobuf index.pb);
  * the user adds a repository, installs the extensions they want, and Nekomo loads them with a
  * DexClassLoader against the vendored extension API (Apache-2.0, from the Aniyomi project).
  * Nothing is bundled and nothing is installed by default.
@@ -59,6 +59,7 @@ object MihonManager {
         @JsonProperty("version") val version: String = "",
         @JsonProperty("nsfw") val nsfw: Int = 0,
         @JsonProperty("sources") val sources: List<MhIndexSource> = emptyList(),
+        @JsonProperty("apkUrl") val apkUrl: String? = null,
     )
 
     data class MhInstalled(
@@ -88,17 +89,87 @@ object MihonManager {
     fun normaliseRepoUrl(input: String): String {
         val u = input.trim()
         return when {
-            u.endsWith(".json") -> u
+            u.endsWith(".json") || u.endsWith(".pb") -> u
             else -> u.trimEnd('/') + "/index.min.json"
         }
     }
 
     fun fetchIndex(repoUrl: String): List<MhIndexEntry>? = try {
         val res = khttp.get(repoUrl, timeout = 30.0)
-        if (res.statusCode != 200) null else mapper.readValue<List<MhIndexEntry>>(res.text)
+        when {
+            res.statusCode != 200 -> null
+            repoUrl.substringBefore('?').endsWith(".pb") -> parseProtoIndex(res.content)
+            else -> mapper.readValue<List<MhIndexEntry>>(res.text)
+        }
     } catch (t: Throwable) {
         logError(t)
         null
+    }
+
+    // ---------- protobuf index (index.pb: gzip'd protobuf with full APK urls) ----------
+
+    private class PbField(val number: Int, val varint: Long, val bytes: ByteArray?)
+
+    private fun pbParse(b: ByteArray): List<PbField> {
+        var i = 0
+        fun varint(): Long {
+            var r = 0L
+            var shift = 0
+            while (true) {
+                val x = b[i++].toInt()
+                r = r or ((x and 0x7f).toLong() shl shift)
+                shift += 7
+                if (x and 0x80 == 0) return r
+            }
+        }
+        val out = ArrayList<PbField>()
+        while (i < b.size) {
+            val key = varint()
+            val number = (key shr 3).toInt()
+            when ((key and 7).toInt()) {
+                0 -> out.add(PbField(number, varint(), null))
+                1 -> { out.add(PbField(number, 0, b.copyOfRange(i, i + 8))); i += 8 }
+                2 -> { val l = varint().toInt(); out.add(PbField(number, 0, b.copyOfRange(i, i + l))); i += l }
+                5 -> { out.add(PbField(number, 0, b.copyOfRange(i, i + 4))); i += 4 }
+                else -> error("Unsupported protobuf wire type")
+            }
+        }
+        return out
+    }
+
+    private fun PbField.str() = bytes?.toString(Charsets.UTF_8).orEmpty()
+
+    /** Field 101 holds the extension list; each extension: 1 name, 2 pkg, 3 {1 apk url}, 5 code, 6 version, 7 rating (3 = 18+), 8 sources. */
+    private fun parseProtoIndex(raw: ByteArray): List<MhIndexEntry> {
+        val data = if (raw.size > 2 && raw[0] == 0x1f.toByte() && raw[1] == 0x8b.toByte())
+            java.util.zip.GZIPInputStream(raw.inputStream()).use { it.readBytes() } else raw
+        return pbParse(data).filter { it.number == 101 }.flatMap { pbParse(it.bytes ?: ByteArray(0)) }
+            .filter { it.number == 1 }.mapNotNull { wrapper ->
+                val f = pbParse(wrapper.bytes ?: return@mapNotNull null)
+                val name = f.firstOrNull { it.number == 1 }?.str() ?: return@mapNotNull null
+                val pkg = f.firstOrNull { it.number == 2 }?.str() ?: return@mapNotNull null
+                val apkUrl = f.firstOrNull { it.number == 3 }?.bytes?.let { pbParse(it).firstOrNull { x -> x.number == 1 }?.str() }
+                    ?.takeIf { it.startsWith("https://") } ?: return@mapNotNull null
+                val sources = f.filter { it.number == 8 }.map { sf ->
+                    val s = pbParse(sf.bytes ?: ByteArray(0))
+                    MhIndexSource(
+                        name = s.firstOrNull { it.number == 2 }?.str(),
+                        lang = s.firstOrNull { it.number == 3 }?.str(),
+                        id = s.firstOrNull { it.number == 1 }?.varint?.toULong()?.toString()
+                    )
+                }
+                MhIndexEntry(
+                    name = name,
+                    pkg = pkg,
+                    apk = apkUrl.substringAfterLast('/'),
+                    lang = sources.mapNotNull { it.lang }.distinct().singleOrNull() ?: "all",
+                    code = f.firstOrNull { it.number == 5 }?.varint ?: 0,
+                    version = f.firstOrNull { it.number == 6 }?.str().orEmpty(),
+                    nsfw = if (f.firstOrNull { it.number == 7 }?.varint == 3L) 1 else 0,
+                    sources = sources,
+                    apkUrl = apkUrl
+                )
+            }
     }
 
     // ---------- install ----------
@@ -109,7 +180,7 @@ object MihonManager {
     private fun save(context: Context, list: List<MhInstalled>) = context.setKey(INSTALLED_KEY, list)
 
     fun install(context: Context, repoUrl: String, entry: MhIndexEntry): Pair<Boolean, String> = try {
-        val apkUrl = repoUrl.substringBeforeLast('/') + "/apk/" + entry.apk
+        val apkUrl = entry.apkUrl ?: (repoUrl.substringBeforeLast('/') + "/apk/" + entry.apk)
         val res = khttp.get(apkUrl, timeout = 90.0)
         if (res.statusCode != 200 || res.content.size < 1024) {
             false to "Download failed (${res.statusCode})"
@@ -207,7 +278,9 @@ object MihonManager {
     @Synchronized
     fun sources(context: Context): List<Source> {
         ensureLoaded(context)
-        return loaded.values.filter { isEnabled(context, it.pkg) }.flatMap { it.sources }
+        val nsfwOk = com.lagradost.shiro.utils.ContentPrefs.nsfw(context)
+        val nsfwPkgs = if (nsfwOk) emptySet() else getInstalled(context).filter { it.nsfw }.map { it.pkg }.toSet()
+        return loaded.values.filter { isEnabled(context, it.pkg) && it.pkg !in nsfwPkgs }.flatMap { it.sources }
     }
 
     fun sourceById(context: Context, id: Long): Source? = sources(context).firstOrNull { it.id == id }

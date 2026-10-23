@@ -15,8 +15,8 @@ import com.lagradost.shiro.ui.tv.TvActivity.Companion.isInSearch
 import com.lagradost.shiro.utils.AppUtils.displayCardData
 import com.lagradost.shiro.utils.AppUtils.filterCardList
 import com.lagradost.shiro.utils.Coroutines.main
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.searchNew
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.searchNew
 import kotlin.concurrent.thread
 
 class SearchFragmentTv : Fragment() {
@@ -57,7 +57,7 @@ class SearchFragmentTv : Fragment() {
                     data?.let { data ->
                         val filteredData =
                             filterCardList(data.map {
-                                ShiroApi.CommonAnimePageData(
+                                NekomoApi.CommonAnimePageData(
                                     it.title,
                                     it.poster,
                                     it.slug,
@@ -78,7 +78,7 @@ class SearchFragmentTv : Fragment() {
                     data?.let { data ->
                         val filteredData =
                             filterCardList(data.map {
-                                ShiroApi.CommonAnimePageData(
+                                NekomoApi.CommonAnimePageData(
                                     it.title,
                                     it.poster,
                                     it.slug,

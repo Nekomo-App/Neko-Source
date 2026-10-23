@@ -207,7 +207,9 @@ object AniyomiManager {
     @Synchronized
     fun sources(context: Context): List<AnimeSource> {
         ensureLoaded(context)
-        return loaded.values.filter { isEnabled(context, it.pkg) }.flatMap { it.sources }
+        val nsfwOk = com.lagradost.shiro.utils.ContentPrefs.nsfw(context)
+        val nsfwPkgs = if (nsfwOk) emptySet() else getInstalled(context).filter { it.nsfw }.map { it.pkg }.toSet()
+        return loaded.values.filter { isEnabled(context, it.pkg) && it.pkg !in nsfwPkgs }.flatMap { it.sources }
     }
 
     fun sourceById(context: Context, id: Long): AnimeSource? = sources(context).firstOrNull { it.id == id }

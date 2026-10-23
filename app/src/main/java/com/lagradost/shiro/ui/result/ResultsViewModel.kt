@@ -26,8 +26,8 @@ import com.lagradost.shiro.utils.AppUtils.guaranteedContext
 import com.lagradost.shiro.utils.MALApi.Companion.getDataAboutMalId
 import com.lagradost.shiro.utils.MALApi.Companion.malStatusAsString
 import com.lagradost.shiro.utils.MALApi.Companion.setScoreRequest
-import com.lagradost.shiro.utils.ShiroApi.Companion.getAnimePageNew
-import com.lagradost.shiro.utils.ShiroApi.Companion.getAnimePageNewMal
+import com.lagradost.shiro.utils.NekomoApi.Companion.getAnimePageNew
+import com.lagradost.shiro.utils.NekomoApi.Companion.getAnimePageNewMal
 import kotlin.concurrent.thread
 
 data class SyncData(
@@ -51,10 +51,10 @@ class ResultsViewModel : ViewModel() {
     private var lastMalId: Int? = null
     private var lastAnilistId: Int? = null
 
-    private val dataSubbed = MutableLiveData<ShiroApi.Companion.AnimePageNewData?>()
-    private val dataDubbed = MutableLiveData<ShiroApi.Companion.AnimePageNewData?>()
-    private val _data = MutableLiveData<ShiroApi.Companion.AnimePageNewData?>()
-    val data: LiveData<ShiroApi.Companion.AnimePageNewData?> = _data
+    private val dataSubbed = MutableLiveData<NekomoApi.Companion.AnimePageNewData?>()
+    private val dataDubbed = MutableLiveData<NekomoApi.Companion.AnimePageNewData?>()
+    private val _data = MutableLiveData<NekomoApi.Companion.AnimePageNewData?>()
+    val data: LiveData<NekomoApi.Companion.AnimePageNewData?> = _data
     val recommendations = MutableLiveData<List<AniListApi.Recommendation>?>(null)
     val related = MutableLiveData<List<AniListApi.Recommendation>?>(null)
 
@@ -201,7 +201,7 @@ class ResultsViewModel : ViewModel() {
         }
     }
 
-    private fun Context.assignData(data: ShiroApi.Companion.AnimePageNewData?) {
+    private fun Context.assignData(data: NekomoApi.Companion.AnimePageNewData?) {
         if (data == null) {
             _hasFailed.postValue(true)
             return

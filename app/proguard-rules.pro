@@ -156,3 +156,24 @@
 -dontwarn org.mozilla.javascript.**
 -dontwarn javax.script.**
 -dontwarn org.mozilla.classfile.**
+
+# Aniyomi/Mihon extension APKs are loaded at runtime and link against the vendored extension API and these
+# libraries by name, so R8 must not rename/remove anything they could call.
+-keep class eu.kanade.** { *; }
+-keep interface eu.kanade.** { *; }
+-keep class tachiyomi.** { *; }
+-keep class uy.kohesive.injekt.** { *; }
+-keep class rx.** { *; }
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+-keep class okio.** { *; }
+-keep class org.jsoup.** { *; }
+-keep class kotlinx.serialization.** { *; }
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn rx.**
+-keep class kotlin.** { *; }
+-keep class kotlin.comparisons.** { *; }
+-dontwarn kotlin.**
+-keep class androidx.preference.** { *; }

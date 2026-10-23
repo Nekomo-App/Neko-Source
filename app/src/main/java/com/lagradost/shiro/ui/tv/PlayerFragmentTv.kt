@@ -101,9 +101,9 @@ import com.lagradost.shiro.utils.Coroutines.main
 import com.lagradost.shiro.utils.MALApi.Companion.getDataAboutMalId
 import com.lagradost.shiro.utils.MALApi.Companion.malStatusAsString
 import com.lagradost.shiro.utils.MALApi.Companion.setScoreRequest
-import com.lagradost.shiro.utils.ShiroApi.Companion.USER_AGENT
-import com.lagradost.shiro.utils.ShiroApi.Companion.fmod
-import com.lagradost.shiro.utils.ShiroApi.Companion.loadLinks
+import com.lagradost.shiro.utils.NekomoApi.Companion.USER_AGENT
+import com.lagradost.shiro.utils.NekomoApi.Companion.fmod
+import com.lagradost.shiro.utils.NekomoApi.Companion.loadLinks
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import java.io.File
@@ -831,7 +831,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
         isLoadingNextEpisode = false
     }
 
-    private fun getCurrentEpisode(): ShiroApi.Companion.AnimePageNewEpisodes? {
+    private fun getCurrentEpisode(): NekomoApi.Companion.AnimePageNewEpisodes? {
         val episodeIndex = data?.episodeIndex ?: return null
         return data?.card?.episodes?.getOrNull(episodeIndex)//data?.card!!.cdnData.seasons.getOrNull(data?.seasonIndex!!)?.episodes?.get(data?.episodeIndex!!)
     }
@@ -841,7 +841,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
         thread {
             if (!(sources.first == data?.episodeIndex && data?.episodeIndex != null)) {
                 val episodes = getCurrentEpisode()?.sources?.let {
-                    mapper.readValue<List<ShiroApi.Companion.EpisodeObject?>?>(it)
+                    mapper.readValue<List<NekomoApi.Companion.EpisodeObject?>?>(it)
                 }
                 val videoId = episodes?.firstOrNull { it?.slug == "gogostream" }
                 videoId?.source?.let {
@@ -890,7 +890,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
         super.onCreate(savedInstanceState)
         getCurrentContext()?.theme?.applyStyle(R.style.normalText, true)
         //playbackPosition = activity?.intent?.getSerializableExtra(DetailsActivityTV.PLAYERPOS) as? Long ?: 0L
-        //data = mapper.readValue<ShiroApi.AnimePageData>(dataString!!)
+        //data = mapper.readValue<NekomoApi.AnimePageData>(dataString!!)
         mediaSession = getCurrentContext()?.let {
             MediaSessionCompat(it, getString(R.string.app_name))
         } ?: MediaSessionCompat(requireContext(), getString(R.string.app_name))

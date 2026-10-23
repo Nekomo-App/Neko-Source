@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.lagradost.shiro.utils.ExtractorLink
 import com.lagradost.shiro.utils.Qualities
-import com.lagradost.shiro.utils.ShiroApi
+import com.lagradost.shiro.utils.NekomoApi
 import com.lagradost.shiro.AcraApplication
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.subs.SubtitleProviders
@@ -52,9 +52,8 @@ object ZangetsuBridge {
 
     data class Hit(val title: String, val slug: String)
 
-    fun searchOne(source: ZangetsuManager.ZgInstalled, query: String): List<ShiroApi.Companion.Data> {
+    fun searchOne(source: ZangetsuManager.ZgInstalled, query: String): List<NekomoApi.Companion.Data> {
         val json = ZangetsuManager.call(source, "search", "[${JsonMapper.builder().build().writeValueAsString(query)},1,{}]", 30_000)
-        android.util.Log.d("ZangetsuBridge", "search ${source.id} '$query' -> ${json?.length} ${json?.take(160)}")
         if (json == null) return emptyList()
         return try {
             val arr = mapper.readTree(json)
@@ -70,7 +69,7 @@ object ZangetsuBridge {
     }
 
     /** Queries every enabled Zangetsu source for [query]; sources are run one after another on the JS thread. */
-    fun search(query: String): List<ShiroApi.Companion.Data> {
+    fun search(query: String): List<NekomoApi.Companion.Data> {
         val c = ctx() ?: return emptyList()
         return ZangetsuManager.enabledSources(c).flatMap { searchOne(it, query) }
     }
@@ -81,7 +80,7 @@ object ZangetsuBridge {
     }
 
     private fun toData(src: ZangetsuManager.ZgInstalled, slug: String, title: String, cover: String) =
-        ShiroApi.Companion.Data(
+        NekomoApi.Companion.Data(
             id = "", slug = slug, title = title, title_english = src.name, native_title = "",
             poster = cover, banner = "", ids = "{}", type = src.type, format = "", episodes = "",
             episode_duration = "", synopsis = "", language = "", synonyms = "", season = "",
@@ -91,7 +90,7 @@ object ZangetsuBridge {
 
     // ---------- details / episodes ----------
 
-    fun getAnimePage(slug: String): ShiroApi.Companion.AnimePageNewRoot? {
+    fun getAnimePage(slug: String): NekomoApi.Companion.AnimePageNewRoot? {
         val (sourceId, url) = parseSlug(slug) ?: return null
         val src = sourceOf(sourceId) ?: return null
         val json = ZangetsuManager.call(src, "getDetail", "[${mapper.writeValueAsString(url)},{}]", 40_000) ?: return null
@@ -100,7 +99,7 @@ object ZangetsuBridge {
             val eps = d.path("episodes").mapIndexed { i, e ->
                 val epUrl = e.s("url").ifEmpty { e.s("id") }
                 val num = e.path("number").let { if (it.isNumber) it.asInt() else i + 1 }
-                ShiroApi.Companion.AnimePageNewEpisodes(
+                NekomoApi.Companion.AnimePageNewEpisodes(
                     id = "${src.id}-$i", slug = "${src.id}-$i",
                     title = e.s("title").ifEmpty { "Episode $num" },
                     episode = num.toString(),
@@ -111,7 +110,7 @@ object ZangetsuBridge {
                 )
             }
             val cover = d.s("cover")
-            val anime = ShiroApi.Companion.AnimePageNew(
+            val anime = NekomoApi.Companion.AnimePageNew(
                 id = "", slug = slug, title = d.s("title").ifEmpty { "Unknown" },
                 title_english = src.name, native_title = "", poster = cover, banner = cover, ids = "{}",
                 type = src.type, format = "", episodes = eps.size.toString(), episode_duration = "",
@@ -120,8 +119,8 @@ object ZangetsuBridge {
                 genres = d.path("genres").joinToString(",") { it.asText() }, aired = "", status = d.s("status"),
                 trailer = "", total_views = "0", created_at = "", updated_at = ""
             )
-            ShiroApi.Companion.AnimePageNewRoot(
-                "success", "", ShiroApi.Companion.AnimePageNewData(anime = anime, episodes = eps)
+            NekomoApi.Companion.AnimePageNewRoot(
+                "success", "", NekomoApi.Companion.AnimePageNewData(anime = anime, episodes = eps)
             )
         } catch (t: Throwable) {
             logError(t)

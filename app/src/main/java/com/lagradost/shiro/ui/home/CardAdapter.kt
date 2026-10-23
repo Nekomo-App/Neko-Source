@@ -22,13 +22,13 @@ import com.lagradost.shiro.ui.tv.TvActivity.Companion.tvActivity
 import com.lagradost.shiro.utils.AppUtils.fixCardTitle
 import com.lagradost.shiro.utils.AppUtils.loadPage
 import com.lagradost.shiro.utils.AppUtils.onLongCardClick
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFullUrlCdn
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFullUrlCdn
 
 
 class CardAdapter(
     context: FragmentActivity,
-    animeList: ArrayList<ShiroApi.CommonAnimePage?>,
+    animeList: ArrayList<NekomoApi.CommonAnimePage?>,
     private val isOnTop: Boolean = false
 ) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -84,7 +84,7 @@ class CardAdapter(
         val context = _context
         val card: View = itemView
 
-        fun bind(cardInfo: ShiroApi.CommonAnimePage?) {
+        fun bind(cardInfo: NekomoApi.CommonAnimePage?) {
             val param = card.layoutParams as ViewGroup.MarginLayoutParams
 
             if (tvActivity != null) {

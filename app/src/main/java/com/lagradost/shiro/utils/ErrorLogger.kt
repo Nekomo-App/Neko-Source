@@ -32,18 +32,36 @@ object ErrorLogger {
         if (appContext != null) return
         appContext = context.applicationContext ?: context
 
+        installHandler()
+    }
+
+    private var handler: Thread.UncaughtExceptionHandler? = null
+    private var lastLogged: Throwable? = null
+
+    /**
+     * Wraps the current default handler. Call again after ACRA is initialised: ACRA installs its own handler that
+     * ends the process after reporting, so ours must be the outermost one for worker-thread failures to be survivable.
+     */
+    @Synchronized
+    fun installHandler() {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            // A failure on a worker thread (network/API/login callbacks) must not take the whole
+        if (previousHandler != null && previousHandler === handler) return
+        val h = Thread.UncaughtExceptionHandler { thread, throwable ->
+            // A failure on a worker thread (network/API/login/extension callbacks) must not take the whole
             // app down: log it and let the thread die. Main-thread crashes and OOM stay fatal.
             val recoverable = thread !== Looper.getMainLooper().thread && throwable !is OutOfMemoryError
             try {
-                log(throwable, fatal = !recoverable)
+                if (lastLogged !== throwable) {
+                    lastLogged = throwable
+                    log(throwable, fatal = !recoverable)
+                }
             } catch (_: Throwable) {
                 // Never let the logger itself interfere with the crash handling chain.
             }
             if (!recoverable) previousHandler?.uncaughtException(thread, throwable)
         }
+        handler = h
+        Thread.setDefaultUncaughtExceptionHandler(h)
     }
 
     private fun logFile(): File? {

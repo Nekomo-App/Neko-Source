@@ -19,11 +19,11 @@ import com.lagradost.shiro.ui.downloads.DownloadClickEvent
 import com.lagradost.shiro.utils.AppUtils.dubbify
 import com.lagradost.shiro.utils.AppUtils.getColorFromAttr
 import com.lagradost.shiro.utils.AppUtils.getViewKey
-import com.lagradost.shiro.utils.ShiroApi
+import com.lagradost.shiro.utils.NekomoApi
 
 class MasterEpisodeAdapter(
     val context: Context,
-    var data: ShiroApi.Companion.AnimePageNewData,
+    var data: NekomoApi.Companion.AnimePageNewData,
     var isFiller: HashMap<Int, Boolean>? = null,
     private val clickCallback: (EpisodeClickEvent) -> Unit,
     private val downloadClickCallback: (DownloadClickEvent) -> Unit,
@@ -82,7 +82,7 @@ class MasterEpisodeAdapter(
         fun bind(
             item: MasterEpisode,
             position: Int,
-            data: ShiroApi.Companion.AnimePageNewData,
+            data: NekomoApi.Companion.AnimePageNewData,
         ) {
             val episodeOffset = if (data.episodes.filter { it.episode == "0" }.isNullOrEmpty()) 0 else -1
 
@@ -177,7 +177,7 @@ class MasterEpisodeAdapter(
 }
 
 fun Context.generateItems(
-    episodes: List<ShiroApi.Companion.AnimePageNewEpisodes>,
+    episodes: List<NekomoApi.Companion.AnimePageNewEpisodes>,
     slug: String
 ): MutableList<MasterEpisodeAdapter.MasterEpisode> {
     val stepSize = 20 //settingsManager!!.getInt("episode_group_size", 50)

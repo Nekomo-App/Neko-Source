@@ -41,7 +41,7 @@ import kotlin.concurrent.thread
 const val SHIRO_TIMEOUT_TIME = 60.0
 const val MAIN_URL = "********"
 
-class ShiroApi {
+class NekomoApi {
 
     data class Token(
         @JsonProperty("headers") val headers: Map<String, String>,
@@ -198,54 +198,7 @@ class ShiroApi {
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
         // NULL IF ERROR
-        fun getToken(): Token? {
-            try {
-                val headers = mapOf("User-Agent" to USER_AGENT)
-                val shiro = khttp.get("********", headers = headers, timeout = SHIRO_TIMEOUT_TIME)
-                val jsMatch = Regex("""src="(/static/js/main.*?)"""").find(shiro.text)
-                val (destructed) = jsMatch!!.destructured
-                val jsLocation = "********$destructed"
-                val js = khttp.get(jsLocation, headers = headers)
-                val tokenMatch = Regex("""token:"(.*?)"""").find(js.text)
-                val (token) = tokenMatch!!.destructured
-                val tokenHeaders = mapOf(
-                    "User-Agent" to USER_AGENT
-                )
-                return Token(
-                    tokenHeaders,
-                    shiro.cookies,
-                    token
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
-                return null
-            }
-        }
 
-        @SuppressLint("HardwareIds")
-        fun getDonorStatus(): String {
-            val url = "https://raw.githubusercontent.com/Blatzar/donors/master/donors.json"
-            try {
-                val androidId: String =
-                    Settings.Secure.getString(activity?.contentResolver, Settings.Secure.ANDROID_ID)
-                // Change cache with this
-                // , headers = mapOf("Cache-Control" to "max-age=60")
-                val response = khttp.get(url).text
-                val users = mapper.readValue<List<Donor>>(response)
-                users.forEach {
-                    try {
-                        if (androidId.md5() == it.id || it.id == "all") {
-                            return androidId.md5()
-                        }
-                    } catch (e: Exception) {
-                        return@forEach
-                    }
-                }
-                return ""
-            } catch (e: Exception) {
-                return ""
-            }
-        }
 
 
         fun getVideoLink(id: String, isCasting: Boolean = false): List<ExtractorLink>? {
@@ -262,18 +215,6 @@ class ShiroApi {
             }
         }
 
-        fun getRandomAnimePage(usedToken: Token? = currentToken): AnimePage? {
-            return try {
-                val url = "********${usedToken?.token}"
-                val response = khttp.get(url, timeout = SHIRO_TIMEOUT_TIME)
-                val mapped = response.let { mapper.readValue<AnimePage>(it.text) }
-                if (mapped.status == "Found")
-                    mapped
-                else null
-            } catch (e: Exception) {
-                null
-            }
-        }
 
         fun getSearchMethods(): List<String>? {
             return try {
@@ -445,6 +386,10 @@ class ShiroApi {
             @JsonProperty("episodes") val episodes: List<AnimePageNewEpisodes>
         )
 
+        /** Resolves a MyAnimeList id to an AniList catalogue page (used by myanimelist.net links). */
+        fun getSlugFromMalId(malId: String, title: String?): String? =
+            getAnimePageNewMal(malId)?.data?.anime?.slug
+
         fun getAnimePageNewMal(malId: String): AnimePageNewRoot? {
             println("Loading mal page $malId")
             return try {
@@ -470,113 +415,11 @@ class ShiroApi {
             }
         }
 
-        fun getMalIDFromTitle(title: String): String? {
-            try {
-                val oneDayStale = 60 * 60 * 24
-                val headers = mapOf("Cache-Control" to "max-stale=$oneDayStale")
-                val res =
-                    khttp.get("https://raw.githubusercontent.com/Blatzar/shiro-db/master/anime.json", headers = headers)
-                val json = mapper.readValue<List<AllAnimeJson>>(res.text)
-                return json.find { it.title == title }?.mal_id
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            return null
-        }
 
-        @Deprecated("", ReplaceWith(""), DeprecationLevel.WARNING)
-        fun getMalIDFromSlug(slug: String): String? {
-            try {
-                val oneDayStale = 60 * 60 * 24
-                val headers = mapOf("Cache-Control" to "max-stale=$oneDayStale")
-                val res =
-                    khttp.get("https://raw.githubusercontent.com/Blatzar/shiro-db/master/anime.json", headers = headers)
-                val json = mapper.readValue<List<AllAnimeJson>>(res.text)
-                return json.find { it.slug == slug }?.mal_id
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            return null
-        }
 
-        @Deprecated("", ReplaceWith(""), DeprecationLevel.WARNING)
-        fun getFirstSearchResultSlug(title: String?): String? {
-            // Fallback on search
-            val searchResults = title?.let { searchNew(it) }
-            val first = searchResults?.getOrNull(0)?.slug
-            // Prioritizes sub if sub isn't hidden
-            return if (settingsManager!!.getString("hide_behavior", "None") != "Hide subbed") {
-                searchResults?.find { it.slug == first?.removeSuffix("-dub") }?.slug ?: first
-            } else {
-                searchResults?.find { it.slug == "$first-dub" }?.slug ?: first
-            }
-        }
 
-        @Deprecated("", ReplaceWith(""), DeprecationLevel.WARNING)
-        fun getSlugFromMalId(malId: String, title: String?): String? {
-            try {
-                val oneDayStale = 60 * 60 * 24
-                val headers = mapOf("Cache-Control" to "max-stale=$oneDayStale")
-                val res =
-                    khttp.get("https://raw.githubusercontent.com/Blatzar/shiro-db/master/anime.json", headers = headers)
-                val json = mapper.readValue<List<AllAnimeJson>>(res.text)
-                return json.find { it.mal_id == malId }?.slug
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            return null
-        }
 
-        @Deprecated("", ReplaceWith(""), DeprecationLevel.WARNING)
-        fun quickSearch(query: String, usedToken: Token? = currentToken): List<ShiroSearchResponseShow>? {
-            try {
-                // Tags and years can be added
-                val url = "********/${
-                    URLEncoder.encode(
-                        query,
-                        "UTF-8"
-                    )
-                }?token=${usedToken?.token}".replace("+", "%20")
-                // Security headers
-                val headers = usedToken?.headers
-                val response = headers?.let { khttp.get(url, timeout = SHIRO_TIMEOUT_TIME) }
-                val mapped = response?.let { mapper.readValue<ShiroSearchResponse>(it.text) }
 
-                return if (mapped?.status == "Found")
-                    mapped.data
-                else null
-            } catch (e: Exception) {
-                return null
-            }
-            //return response?.text?.let { mapper.readValue(it) }
-        }
-
-        @Deprecated("", ReplaceWith(""), DeprecationLevel.WARNING)
-        fun search(
-            query: String,
-            usedToken: Token? = currentToken,
-            genresInput: List<Genre>? = null
-        ): List<ShiroSearchResponseShow>? {
-            try {
-                val genres = genresInput?.joinToString(separator = "%2C") { it.slug } ?: ""
-                val genresString = if (genres != "") "&genres=$genres" else ""
-
-                val url = "********${
-                    URLEncoder.encode(
-                        query,
-                        "UTF-8"
-                    )
-                }$genresString&token=${usedToken?.token}".replace("+", "%20")
-                val headers = usedToken?.headers
-                val response = headers?.let { khttp.get(url, timeout = SHIRO_TIMEOUT_TIME) }
-                val mapped = response?.let { mapper.readValue<ShiroFullSearchResponse>(it.text) }
-                return if (mapped?.status == "Found")
-                    mapped.data.nav.currentPage.items
-                else null
-            } catch (e: Exception) {
-                return null
-            }
-        }
 
 
         data class SearchNew(
@@ -621,21 +464,6 @@ class ShiroApi {
             // New backend serves absolute image urls (anilistcdn/allanime)
             return url.removePrefix("/").replace("-dubbed", "-dub")
         }
-
-        /*val lastCards = hashMapOf<String, Card>()
-        fun getCardById(id: String, canBeCached: Boolean = true): EpisodeResponse? {
-            if (canBeCached && lastCards.containsKey(id)) {
-                return EpisodeResponse(lastCards[id]!!, 0)
-            }
-            val url =
-                "https://fastani.net/api/data/anime/$id" //?season=$season&episode=$episode" // SPECIFYING EPISODE AND SEASON WILL ONLY GIVE 1 EPISODE
-            val response = currentToken?.headers?.let { khttp.get(url, headers = it, cookies = currentToken?.cookies) }
-            val resp: EpisodeResponse? = response?.text?.let { mapper.readValue(it) }
-            if (resp != null) {
-                lastCards[id] = resp.anime
-            }
-            return resp
-        }*/
 
         var cachedHome: ShiroHomePageNew? = null
 
@@ -856,16 +684,6 @@ class ShiroApi {
             return getHome(canBeCached)
         }
 
-        fun getHomeOnly(usedToken: Token? = currentToken): ShiroHomePage? {
-            return try {
-                val url = "********${usedToken!!.token}"
-                val response = khttp.get(url, timeout = SHIRO_TIMEOUT_TIME)
-                response.text.let { mapper.readValue(it) }
-            } catch (e: Exception) {
-                logError(e)
-                null
-            }
-        }
 
         private fun Context.getHome(canBeCached: Boolean, usedToken: Token? = currentToken): ShiroHomePageNew? {
             var res: ShiroHomePageNew? = null

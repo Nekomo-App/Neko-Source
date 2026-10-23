@@ -96,12 +96,12 @@ import com.lagradost.shiro.utils.AniListApi.Companion.authenticateLogin
 import com.lagradost.shiro.utils.AniListApi.Companion.initGetUser
 import com.lagradost.shiro.utils.Coroutines.main
 import com.lagradost.shiro.utils.MALApi.Companion.authenticateMalLogin
-import com.lagradost.shiro.utils.ShiroApi.Companion.getAnimePageNew
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFav
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFullUrlCdn
-import com.lagradost.shiro.utils.ShiroApi.Companion.getSlugFromMalId
-import com.lagradost.shiro.utils.ShiroApi.Companion.getSubbed
-import com.lagradost.shiro.utils.ShiroApi.Companion.requestHome
+import com.lagradost.shiro.utils.NekomoApi.Companion.getAnimePageNew
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFav
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFullUrlCdn
+import com.lagradost.shiro.utils.NekomoApi.Companion.getSlugFromMalId
+import com.lagradost.shiro.utils.NekomoApi.Companion.getSubbed
+import com.lagradost.shiro.utils.NekomoApi.Companion.requestHome
 import com.lagradost.shiro.utils.extractors.Vidstream
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
@@ -304,7 +304,7 @@ object AppUtils {
         return size
     }
 
-    fun Context.castEpisode(links: List<ExtractorLink>, data: ShiroApi.CommonAnimePageData, episodeIndex: Int) {
+    fun Context.castEpisode(links: List<ExtractorLink>, data: NekomoApi.CommonAnimePageData, episodeIndex: Int) {
         val castContext = CastContext.getSharedInstance(this)
         castContext.castOptions
         val key = getViewKey(data.slug, episodeIndex)
@@ -351,7 +351,7 @@ object AppUtils {
     }
 
     // Guarantee slug is dubbed or not
-    fun ShiroApi.Companion.AnimePageNewData.dubbify(turnDubbed: Boolean): ShiroApi.Companion.AnimePageNewData {
+    fun NekomoApi.Companion.AnimePageNewData.dubbify(turnDubbed: Boolean): NekomoApi.Companion.AnimePageNewData {
         return this.copy(
             anime = this.anime.dubbify(turnDubbed)
         )
@@ -410,7 +410,7 @@ object AppUtils {
     }
 
     // Guarantee slug is dubbed or not
-    fun ShiroApi.Companion.AnimePageNew.dubbify(turnDubbed: Boolean): ShiroApi.Companion.AnimePageNew {
+    fun NekomoApi.Companion.AnimePageNew.dubbify(turnDubbed: Boolean): NekomoApi.Companion.AnimePageNew {
         return copy(
             slug = if (turnDubbed) {
                 slug.removeSuffix("-dub") + "-dub"
@@ -650,7 +650,7 @@ object AppUtils {
         return !isBookmarked
     }
 
-    fun Context.onLongCardClick(card: ShiroApi.CommonAnimePage): Boolean {
+    fun Context.onLongCardClick(card: NekomoApi.CommonAnimePage): Boolean {
         var isBookmarked: Boolean? = null
         val selected =
             if (tvActivity != null && settingsManager?.getBoolean("hold_to_favorite", false) == true) "Toggle Favorite"
@@ -672,7 +672,7 @@ object AppUtils {
     }
 
     // TODO USE THIS IN RESULT_FRAGMENT
-    private fun Context.subscribeToShow(data: ShiroApi.CommonAnimePage/*, isBookmarked: Boolean? = null*/) {
+    private fun Context.subscribeToShow(data: NekomoApi.CommonAnimePage/*, isBookmarked: Boolean? = null*/) {
         // isBookmarked
         val subbedBookmark = getKey<BookmarkedTitle>(SUBSCRIPTIONS_BOOKMARK_KEY, data.slug, null)
         val isSubbedOld = getKey(SUBSCRIPTIONS_KEY, data.slug, false)!!
@@ -710,7 +710,7 @@ object AppUtils {
         return Color.argb(alpha, red, green, blue)
     }
 
-    fun filterCardList(cards: List<ShiroApi.CommonAnimePage>?): List<ShiroApi.CommonAnimePage>? {
+    fun filterCardList(cards: List<NekomoApi.CommonAnimePage>?): List<NekomoApi.CommonAnimePage>? {
         return when (settingsManager!!.getString("hide_behavior", "None")) {
             "Hide dubbed" ->
                 cards?.filter { it.slug.endsWith("-dub").not() }
@@ -893,7 +893,7 @@ object AppUtils {
         )
     }
 
-    private fun canPlayNextEpisode(card: ShiroApi.Companion.AnimePageNewData, episodeIndex: Int): NextEpisode {
+    private fun canPlayNextEpisode(card: NekomoApi.Companion.AnimePageNewData, episodeIndex: Int): NextEpisode {
         val canNext = card.episodes.size > episodeIndex + 1
 
         return if (canNext) {
@@ -903,7 +903,7 @@ object AppUtils {
         }
     }
 
-    fun Context.getLatestSeenEpisode(data: ShiroApi.Companion.AnimePageNewData): NextEpisode {
+    fun Context.getLatestSeenEpisode(data: NekomoApi.Companion.AnimePageNewData): NextEpisode {
         for (i in (data.episodes.size.minus(1) ?: 0) downTo 0) {
             val firstPos = getViewPosDur(data.anime.slug, i)
             if (firstPos.viewstate) {
@@ -915,7 +915,7 @@ object AppUtils {
 
 
     fun FragmentActivity.displayCardData(
-        data: List<ShiroApi.CommonAnimePage>?,
+        data: List<NekomoApi.CommonAnimePage>?,
         resView: RecyclerView,
         textView: TextView,
         isOnTop: Boolean = false,
@@ -974,7 +974,7 @@ object AppUtils {
     }
 
 
-    fun Context.getNextEpisode(data: ShiroApi.Companion.AnimePageNewData): NextEpisode {
+    fun Context.getNextEpisode(data: NekomoApi.Companion.AnimePageNewData): NextEpisode {
         // HANDLES THE LOGIC FOR NEXT EPISODE
         var episodeIndex = 0
         var seasonIndex = 0
@@ -1166,7 +1166,7 @@ object AppUtils {
     fun FragmentActivity.loadPlayer(
         episodeIndex: Int,
         startAt: Long,
-        card: ShiroApi.Companion.AnimePageNewData,
+        card: NekomoApi.Companion.AnimePageNewData,
         anilistID: Int? = null,
         malID: Int? = null,
         fillerEpisodes: HashMap<Int, Boolean>? = null

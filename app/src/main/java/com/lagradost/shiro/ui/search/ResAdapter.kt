@@ -34,14 +34,14 @@ import com.lagradost.shiro.utils.AppUtils.guaranteedContext
 import com.lagradost.shiro.utils.AppUtils.loadPage
 import com.lagradost.shiro.utils.AppUtils.onLongCardClick
 import com.lagradost.shiro.utils.AppUtils.settingsManager
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFav
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFullUrlCdn
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFav
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFullUrlCdn
 import kotlin.concurrent.thread
 import kotlin.math.roundToInt
 
 class ResAdapter(
-    animeList: ArrayList<ShiroApi.CommonAnimePage>,
+    animeList: ArrayList<NekomoApi.CommonAnimePage>,
     val resView: AutofitRecyclerView,
     val isMalId: Boolean,
     forceDisableCompact: Boolean = false
@@ -83,7 +83,7 @@ class ResAdapter(
         private val coverHeight: Int = if (compactView) 80.toPx else (resView.itemWidth / 0.68).roundToInt()
         val context = guaranteedContext(itemView.context)
 
-        fun bind(card: ShiroApi.CommonAnimePage) {
+        fun bind(card: NekomoApi.CommonAnimePage) {
             if (compactView) {
                 // COPIED -----------------------------------------
                 var isBookmarked = context.containsKey(BOOKMARK_KEY, card.slug)

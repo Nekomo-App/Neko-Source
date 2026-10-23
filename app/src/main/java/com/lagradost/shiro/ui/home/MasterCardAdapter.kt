@@ -12,7 +12,7 @@ import com.lagradost.shiro.R
 import com.lagradost.shiro.ui.LastEpisodeInfo
 import com.lagradost.shiro.ui.home.HomeFragment.Companion.homeViewModel
 import com.lagradost.shiro.utils.AppUtils.displayCardData
-import com.lagradost.shiro.utils.ShiroApi
+import com.lagradost.shiro.utils.NekomoApi
 
 
 class MasterCardAdapter(
@@ -30,7 +30,7 @@ class MasterCardAdapter(
             Pair(data?.recentlySeen, activity?.getString(R.string.continue_watching)),
             Pair(homeViewModel!!.favorites.value, activity?.getString(R.string.favorites)),
             Pair(data?.trending?.data?.map {
-                    ShiroApi.CommonAnimePageData(
+                    NekomoApi.CommonAnimePageData(
                         it.title,
                         it.poster,
                         it.slug,
@@ -38,7 +38,7 @@ class MasterCardAdapter(
                     )
                 }, activity?.getString(R.string.trending_anime)),
             Pair(data?.recents?.map {
-                ShiroApi.CommonAnimePageData(
+                NekomoApi.CommonAnimePageData(
                     it.anime.title,
                     it.anime.poster,
                     it.anime.slug,
@@ -95,9 +95,9 @@ class MasterCardAdapter(
             val isOnTop = position == 0
             val isFavorite = activity.getString(R.string.favorites) == pair.second
             when {
-                pair.first as? List<ShiroApi.CommonAnimePage?> != null && pair.second != activity.getString(R.string.continue_watching) -> {
+                pair.first as? List<NekomoApi.CommonAnimePage?> != null && pair.second != activity.getString(R.string.continue_watching) -> {
                     activity.displayCardData(
-                        pair.first as List<ShiroApi.CommonAnimePage>?,
+                        pair.first as List<NekomoApi.CommonAnimePage>?,
                         card.fv<androidx.leanback.widget.HorizontalGridView>(R.id.horizontalGridView),
                         card.fv<android.widget.TextView>(R.id.expand_text),
                         isOnTop,

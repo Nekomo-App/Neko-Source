@@ -57,13 +57,14 @@ import com.lagradost.shiro.utils.BackupUtils.restorePrompt
 import com.lagradost.shiro.utils.InAppUpdater.runAutoUpdate
 import com.lagradost.shiro.utils.MALApi.Companion.authenticateMAL
 import com.lagradost.shiro.utils.MAL_ACCOUNT_ID
-import com.lagradost.shiro.utils.ShiroApi.Companion.requestHome
+import com.lagradost.shiro.utils.NekomoApi.Companion.requestHome
 import java.io.File
 import kotlin.concurrent.thread
 
 const val XML_KEY = "xml"
 
 val blacklistedTvKeys = listOf(
+    "update_repos",
     "force_landscape",
     "swipe_to_refresh",
     "show_subscribed",
@@ -192,6 +193,7 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 }
 
                 val selectedProvidersPreference = findPreference<MultiSelectListPreference?>("selected_providers")
+                selectedProvidersPreference?.isVisible = false
                 val apiNames = APIS.map { it.name }
 
                 selectedProvidersPreference?.entries = apiNames.toTypedArray()
@@ -504,10 +506,11 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 checkUpdates?.setOnPreferenceClickListener {
                     thread {
                         if (context != null && activity != null) {
+                            activity?.runOnUiThread { Toast.makeText(activity, "Checking for updates...", Toast.LENGTH_SHORT).show() }
                             val updateSuccess = requireActivity().runAutoUpdate(false)
                             if (!updateSuccess) {
                                 activity?.runOnUiThread {
-                                    Toast.makeText(activity, "No updates found :(", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(activity, "You're up to date (${com.lagradost.shiro.utils.InAppUpdater.installedChannel()} channel)", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -518,7 +521,10 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 findPreference<Preference>("subscribe_to_updates")?.isVisible = false
 
                 val versionButton = findPreference("version") as Preference?
-                versionButton?.summary = BuildConfig.VERSION_NAME + " Built on " + BuildConfig.BUILDDATE
+                versionButton?.summary = BuildConfig.VERSION_NAME + " · " +
+                        com.lagradost.shiro.utils.InAppUpdater.installedChannel() + " channel · " +
+                        (if (com.lagradost.shiro.utils.InAppUpdater.isTvBuild()) "TV" else "Phone") +
+                        " · built on " + BuildConfig.BUILDDATE
                 versionButton?.setOnPreferenceClickListener {
                     /*if (easterEggClicks == 7) {
                         if (DataStore.getKey("pink_theme", false) != true) {
@@ -540,6 +546,13 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 /** Info settings */
 
                 setTitle("About")
+                val channel = when (com.lagradost.shiro.BuildConfig.BUILD_TYPE) {
+                    "debug" -> "Debug"
+                    "beta" -> "Beta"
+                    else -> "Stable"
+                }
+                findPreference<Preference>("about_version")?.summary =
+                    "${com.lagradost.shiro.BuildConfig.VERSION_NAME} · $channel channel"
 
                 /** End of Info settings */
 

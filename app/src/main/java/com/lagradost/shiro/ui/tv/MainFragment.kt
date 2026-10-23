@@ -24,15 +24,15 @@ import com.lagradost.shiro.ui.home.MasterCardAdapter
 import com.lagradost.shiro.utils.AppUtils.getColorFromAttr
 import com.lagradost.shiro.utils.AppUtils.getCurrentActivity
 import com.lagradost.shiro.utils.AppUtils.observe
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.initShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.requestHome
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.initShiroApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.requestHome
 import kotlin.concurrent.thread
 
 
 class MainFragment : Fragment() {
 
-    private fun homeLoaded(data: ShiroApi.ShiroHomePageNew?) {
+    private fun homeLoaded(data: NekomoApi.ShiroHomePageNew?) {
         activity?.runOnUiThread {
             fv<android.widget.ProgressBar>(R.id.main_load)?.visibility = GONE
             fv<android.widget.Button>(R.id.main_reload_data_btt)?.visibility = GONE
@@ -63,9 +63,9 @@ class MainFragment : Fragment() {
         activity?.let {
             it.window.setBackgroundDrawable(ColorDrawable(it.getColorFromAttr(R.attr.background)))
         }
-        ShiroApi.onHomeError += ::onHomeErrorCatch
-        if (ShiroApi.hasThrownError != -1) {
-            onHomeErrorCatch(ShiroApi.hasThrownError == 1)
+        NekomoApi.onHomeError += ::onHomeErrorCatch
+        if (NekomoApi.hasThrownError != -1) {
+            onHomeErrorCatch(NekomoApi.hasThrownError == 1)
         }
 
 

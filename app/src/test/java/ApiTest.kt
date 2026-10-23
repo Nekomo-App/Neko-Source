@@ -1,12 +1,12 @@
 
 import com.google.common.truth.Truth.assertThat
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.getHomeOnly
-import com.lagradost.shiro.utils.ShiroApi.Companion.getRandomAnimePage
-import com.lagradost.shiro.utils.ShiroApi.Companion.getToken
-import com.lagradost.shiro.utils.ShiroApi.Companion.getVideoLink
-import com.lagradost.shiro.utils.ShiroApi.Companion.quickSearch
-import com.lagradost.shiro.utils.ShiroApi.Companion.search
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.getHomeOnly
+import com.lagradost.shiro.utils.NekomoApi.Companion.getRandomAnimePage
+import com.lagradost.shiro.utils.NekomoApi.Companion.getToken
+import com.lagradost.shiro.utils.NekomoApi.Companion.getVideoLink
+import com.lagradost.shiro.utils.NekomoApi.Companion.quickSearch
+import com.lagradost.shiro.utils.NekomoApi.Companion.search
 import org.junit.platform.runner.JUnitPlatform
 import org.junit.runner.RunWith
 import org.spekframework.spek2.Spek
@@ -15,8 +15,8 @@ import org.spekframework.spek2.style.specification.describe
 
 @RunWith(JUnitPlatform::class)
 object ApiTest : Spek({
-    var token: ShiroApi.Token? = null
-    var animePage: ShiroApi.AnimePage? = null
+    var token: NekomoApi.Token? = null
+    var animePage: NekomoApi.AnimePage? = null
 
     val title = "Attack on titan"
     val slug = "shingeki-no-kyojin"

@@ -28,8 +28,8 @@ import com.lagradost.shiro.utils.AppUtils.getColorFromAttr
 import com.lagradost.shiro.utils.AppUtils.getLatestSeenEpisode
 import com.lagradost.shiro.utils.AppUtils.getViewKey
 import com.lagradost.shiro.utils.AppUtils.getViewPosDur
-import com.lagradost.shiro.utils.ShiroApi
-import com.lagradost.shiro.utils.ShiroApi.Companion.getFullUrlCdn
+import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.NekomoApi.Companion.getFullUrlCdn
 import com.lagradost.shiro.utils.VideoDownloadManager
 import java.util.*
 
@@ -59,7 +59,7 @@ data class EpisodeClickEvent(
 )
 
 class EpisodeAdapter(
-    val data: ShiroApi.Companion.AnimePageNewData,
+    val data: NekomoApi.Companion.AnimePageNewData,
     private val resView: View,
     private val parentPosition: Int,
     rangeStart: Int? = null,
@@ -165,7 +165,7 @@ class EpisodeAdapter(
     constructor(
         itemView: View,
         private val resView: View,
-        val data: ShiroApi.Companion.AnimePageNewData,
+        val data: NekomoApi.Companion.AnimePageNewData,
         val start: Int,
         private val parentPosition: Int,
         private val isFiller: HashMap<Int, Boolean>?,

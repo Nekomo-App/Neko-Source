@@ -13,7 +13,7 @@ import com.lagradost.shiro.R
 import com.lagradost.shiro.utils.AniListApi.Companion.authenticateLogin
 import com.lagradost.shiro.utils.Event
 import com.lagradost.shiro.utils.MALApi.Companion.authenticateMalLogin
-import com.lagradost.shiro.utils.ShiroApi.Companion.USER_AGENT
+import com.lagradost.shiro.utils.NekomoApi.Companion.USER_AGENT
 
 private const val URL = "URL"
 

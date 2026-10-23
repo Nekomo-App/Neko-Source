@@ -89,6 +89,8 @@ class AcraApplication : Application() {
 
             }
         }
+
+        normalSafeApiCall { ErrorLogger.installHandler() }
     }
 
     override fun onCreate() {

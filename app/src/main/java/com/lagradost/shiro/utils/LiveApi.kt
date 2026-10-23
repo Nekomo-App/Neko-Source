@@ -23,7 +23,7 @@ object LiveApi {
     private val mapper = JsonMapper.builder().addModule(KotlinModule.Builder().build())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
-    private val defaultHeaders get() = mapOf("User-Agent" to ShiroApi.USER_AGENT)
+    private val defaultHeaders get() = mapOf("User-Agent" to NekomoApi.USER_AGENT)
 
     // region ---------- HTTP helpers ----------
 
@@ -122,13 +122,13 @@ object LiveApi {
 
     private fun mediaSlug(media: JsonNode): String = "al${media.path("id").asInt()}"
 
-    private fun mediaToData(media: JsonNode, slugOverride: String? = null): ShiroApi.Companion.Data {
+    private fun mediaToData(media: JsonNode, slugOverride: String? = null): NekomoApi.Companion.Data {
         val mal = media.path("idMal").takeIf { !it.isNull }?.asInt()
         val al = media.path("id").asInt()
         val start = media.path("startDate")
         val aired = if (start.path("year").isMissingNode || start.path("year").isNull) ""
         else "${start.path("year").asInt()}-${start.path("month").asInt()}-${start.path("day").asInt()}"
-        return ShiroApi.Companion.Data(
+        return NekomoApi.Companion.Data(
             id = al.toString(),
             slug = slugOverride ?: mediaSlug(media),
             title = media.txt("title", "romaji").ifEmpty { media.txt("title", "english") },
@@ -167,25 +167,25 @@ object LiveApi {
 
     // region ---------- catalog ----------
 
-    fun getTrending(): ShiroApi.Companion.ShowHolder? {
+    fun getTrending(): NekomoApi.Companion.ShowHolder? {
         val data = anilist(TRENDING_QUERY, emptyMap()) ?: return null
         val list = data.path("Page").path("media").map { mediaToData(it) }
-        return ShiroApi.Companion.ShowHolder("success", "", list)
+        return NekomoApi.Companion.ShowHolder("success", "", list)
     }
 
-    fun getRandom(): ShiroApi.Companion.Random? {
+    fun getRandom(): NekomoApi.Companion.Random? {
         val page = KotlinRandom.nextInt(1, 8)
         val data = anilist(RANDOM_QUERY, mapOf("page" to page)) ?: return null
         val media = data.path("Page").path("media")
         if (media.size() == 0) return null
-        return ShiroApi.Companion.Random(
+        return NekomoApi.Companion.Random(
             "success", "", mediaToData(media[KotlinRandom.nextInt(0, media.size())])
         )
     }
 
-    fun getRecents(): List<ShiroApi.Companion.AnimeHolder>? {
+    fun getRecents(): List<NekomoApi.Companion.AnimeHolder>? {
         val data = anilist(RECENTS_QUERY, emptyMap()) ?: return null
-        val holders = mutableListOf<ShiroApi.Companion.AnimeHolder>()
+        val holders = mutableListOf<NekomoApi.Companion.AnimeHolder>()
         val seen = HashSet<String>()
         data.path("Page").path("airingSchedules").forEach { sched ->
             val media = sched.path("media")
@@ -194,15 +194,15 @@ object LiveApi {
             if (ep <= 0 || !seen.add("$slug-$ep")) return@forEach
             val d = mediaToData(media)
             holders.add(
-                ShiroApi.Companion.AnimeHolder(
-                    anime = ShiroApi.Companion.Anime(
+                NekomoApi.Companion.AnimeHolder(
+                    anime = NekomoApi.Companion.Anime(
                         title = d.title,
                         slug = slug,
                         poster = d.poster,
                         synopsis = d.synopsis,
                         format = d.format
                     ),
-                    episode = ShiroApi.Companion.Episode(
+                    episode = NekomoApi.Companion.Episode(
                         id = "$slug-$ep",
                         slug = slug,
                         title = "",
@@ -230,7 +230,7 @@ object LiveApi {
 
     // region ---------- search ----------
 
-    fun search(query: String, genres: List<String>?): List<ShiroApi.Companion.Data>? {
+    fun search(query: String, genres: List<String>?): List<NekomoApi.Companion.Data>? {
         val data = anilist(SEARCH_QUERY, mapOf("q" to query, "genres" to (genres?.takeIf { it.isNotEmpty() })))
             ?: return null
         return data.path("Page").path("media").map { mediaToData(it) }
@@ -251,7 +251,7 @@ object LiveApi {
      * Metadata-only page for an AniList title. Streams come from sources the user installs, so the episode
      * list is empty here; the page's "Choose source" button finds the title in an installed source.
      */
-    fun getAnimePage(slug: String): ShiroApi.Companion.AnimePageNewRoot? {
+    fun getAnimePage(slug: String): NekomoApi.Companion.AnimePageNewRoot? {
         val bare = slug.removeSuffix("-dub")
 
         // Slugs from user-installed sources are self-contained tokens
@@ -263,9 +263,9 @@ object LiveApi {
             val alId = bare.removePrefix("al").toIntOrNull() ?: return null
             val media = anilistMediaById(alId) ?: return null
             val d = mediaToData(media, slugOverride = slug)
-            ShiroApi.Companion.AnimePageNewRoot(
+            NekomoApi.Companion.AnimePageNewRoot(
                 "success", "",
-                ShiroApi.Companion.AnimePageNewData(anime = dataToAnimePage(d, slug), episodes = emptyList())
+                NekomoApi.Companion.AnimePageNewData(anime = dataToAnimePage(d, slug), episodes = emptyList())
             )
         } catch (e: Exception) {
             logError(e)
@@ -294,14 +294,14 @@ object LiveApi {
         return null
     }
 
-    fun getAnimePageByMal(malId: String): ShiroApi.Companion.AnimePageNewRoot? {
+    fun getAnimePageByMal(malId: String): NekomoApi.Companion.AnimePageNewRoot? {
         val media = malId.toIntOrNull()?.let { anilistMediaByMal(it) } ?: return null
         val alId = media.path("id").asInt()
         return getAnimePage("al$alId")
     }
 
-    private fun dataToAnimePage(d: ShiroApi.Companion.Data, slug: String): ShiroApi.Companion.AnimePageNew {
-        return ShiroApi.Companion.AnimePageNew(
+    private fun dataToAnimePage(d: NekomoApi.Companion.Data, slug: String): NekomoApi.Companion.AnimePageNew {
+        return NekomoApi.Companion.AnimePageNew(
             id = d.id, slug = slug, title = d.title, title_english = d.title_english,
             native_title = d.native_title, poster = d.poster, banner = d.banner,
             ids = d.ids, type = d.type, format = d.format, episodes = d.episodes,

@@ -93,7 +93,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                             setStatus("Could not read an Aniyomi repository at that URL")
                             toast("Not a valid Aniyomi repository")
                         } else {
-                            AniyomiManager.addRepo(this, AniyomiManager.AyRepo(url, url.substringBeforeLast('/').substringAfterLast('/')))
+                            AniyomiManager.addRepo(this, AniyomiManager.AyRepo(url, repoLabel(url)))
                             setStatus("")
                             refreshAniyomi()
                         }
@@ -129,7 +129,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
             val index = AniyomiManager.fetchIndex(repoUrl)
             runOnUiThread {
                 setStatus("")
-                val entries = index.orEmpty().sortedBy { it.name }
+                val entries = index.orEmpty().filter { com.lagradost.shiro.utils.ContentPrefs.nsfw(this) || it.nsfw != 1 }.sortedBy { it.name }
                 if (entries.isEmpty()) {
                     toast("No extensions found (or repository is offline)")
                     return@runOnUiThread
@@ -184,7 +184,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         }
 
         val input = EditText(this).apply {
-            hint = "Mihon repository URL (index.min.json)"
+            hint = "Mihon repository URL (index.min.json or index.pb)"
             inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
             maxLines = 1
         }
@@ -205,7 +205,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                             setStatus("Could not read an Mihon repository at that URL")
                             toast("Not a valid Mihon repository")
                         } else {
-                            MihonManager.addRepo(this, MihonManager.MhRepo(url, url.substringBeforeLast('/').substringAfterLast('/')))
+                            MihonManager.addRepo(this, MihonManager.MhRepo(url, repoLabel(url)))
                             setStatus("")
                             refreshMihon()
                         }
@@ -241,7 +241,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
             val index = MihonManager.fetchIndex(repoUrl)
             runOnUiThread {
                 setStatus("")
-                val entries = index.orEmpty().sortedBy { it.name }
+                val entries = index.orEmpty().filter { com.lagradost.shiro.utils.ContentPrefs.nsfw(this) || it.nsfw != 1 }.sortedBy { it.name }
                 if (entries.isEmpty()) {
                     toast("No extensions found (or repository is offline)")
                     return@runOnUiThread
@@ -362,7 +362,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
             val manifest = ZangetsuManager.fetchManifest(repoUrl)
             runOnUiThread {
                 setStatus("")
-                val sources = manifest?.sources.orEmpty()
+                val sources = manifest?.sources.orEmpty().filter { (com.lagradost.shiro.utils.ContentPrefs.nsfw(this) || !it.nsfw) && (com.lagradost.shiro.utils.ContentPrefs.nonAnime(this) || it.type != "movie") }
                 if (sources.isEmpty()) {
                     toast("No sources found (or repository is offline)")
                     return@runOnUiThread
@@ -437,7 +437,6 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
             val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             row.addView(rowText(repo.name ?: repo.url))
             buttons.addView(rowButton("Browse") { browseRepo(repo.url) })
-            buttons.addView(rowButton("Install all") { confirmRisk { installAll(repo.url) } })
             buttons.addView(rowButton("Remove") {
                 CsPluginManager.removeRepo(this, repo.url)
                 refreshRepos()
@@ -450,11 +449,15 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
     private fun browseRepo(url: String) {
         setStatus("Fetching plugins…")
         thread {
-            val plugins = CsPluginManager.fetchRepoPlugins(url)
+            val all = CsPluginManager.fetchRepoPlugins(url)
+            val plugins = all.filter { CsPluginManager.allowed(this, it) }
             runOnUiThread {
                 setStatus("")
                 if (plugins.isEmpty()) {
-                    toast("No plugins found (or repository is offline)")
+                    toast(
+                        if (all.isEmpty()) "No plugins found (or repository is offline)"
+                        else "${all.size} extension(s) are hidden by your content filters. Enable \"Show movies and TV shows\" / \"Show 18+\" in Settings → General to see them."
+                    )
                     return@runOnUiThread
                 }
                 val installed = CsPluginManager.getInstalled(this)
@@ -473,27 +476,6 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                         confirmRisk { installPlugin(url, plugins[which]) }
                     }
                     .show()
-            }
-        }
-    }
-
-    private fun installAll(repoUrl: String) {
-        setStatus("Fetching plugins…")
-        thread {
-            val plugins = CsPluginManager.fetchRepoPlugins(repoUrl)
-            if (plugins.isEmpty()) {
-                setStatus("")
-                toast("No plugins found (or repository is offline)")
-                return@thread
-            }
-            var ok = 0
-            plugins.forEachIndexed { i, p ->
-                setStatus("Installing ${p.displayName} (${i + 1}/${plugins.size})…")
-                if (CsPluginManager.installPlugin(this, repoUrl, p).success) ok++
-            }
-            runOnUiThread {
-                setStatus("Installed $ok of ${plugins.size} extensions")
-                refreshPlugins()
             }
         }
     }
@@ -607,13 +589,18 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         }
     }
 
+    /** "owner/repo" for GitHub raw URLs, otherwise the host. */
+    private fun repoLabel(url: String): String {
+        Regex("""https?://raw\.githubusercontent\.com/([^/]+)/([^/]+)/""").find(url)?.let { return "${it.groupValues[1]}/${it.groupValues[2]}" }
+        return Regex("""^https?://([^/]+)""").find(url)?.groupValues?.get(1) ?: url
+    }
+
     /** Opens the issue tracker of the repository an extension came from (the author, not Nekomo, maintains it). */
     private fun reportExtension(repoUrl: String?) {
         val url = repoUrl ?: run { toast("No repository recorded for this extension"); return }
         val gh = Regex("""https?://raw\.githubusercontent\.com/([^/]+)/([^/]+)/""").find(url)
-        val target = if (gh != null) "https://github.com/${gh.groupValues[1]}/${gh.groupValues[2]}/issues" else url.substringBefore('/', "").let { _ ->
-            Regex("""^(https?://[^/]+)""").find(url)?.groupValues?.get(1) ?: url
-        }
+        val target = if (gh != null) "https://github.com/${gh.groupValues[1]}/${gh.groupValues[2]}/issues"
+        else Regex("""^(https?://[^/]+)""").find(url)?.groupValues?.get(1) ?: url
         try {
             startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(target)))
         } catch (e: Exception) {
@@ -635,8 +622,13 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         }
 
     private fun rowButton(label: String, onClick: (View) -> Unit): Button =
-        Button(this).apply {
+        androidx.appcompat.widget.AppCompatButton(this).apply {
             text = label
+            // Explicit tint: the theme-derived default of a programmatic Button can render white-on-white
+            val tv = android.util.TypedValue()
+            val primary = if (theme.resolveAttribute(androidx.appcompat.R.attr.colorAccent, tv, true)) tv.data else 0xFFD01010.toInt()
+            backgroundTintList = android.content.res.ColorStateList.valueOf(primary)
+            setTextColor(android.graphics.Color.WHITE)
             setOnClickListener(onClick)
         }
 
