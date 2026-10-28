@@ -146,6 +146,23 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
 
                 setTitle("General settings")
 
+                // 18+ content is allowed but off by default; turning it on needs an explicit confirmation.
+                findPreference<SwitchPreference>("nsfw_enabled")?.setOnPreferenceChangeListener { pref, newValue ->
+                    if (newValue == true) {
+                        AlertDialog.Builder(requireContext(), R.style.AlertDialogCustom)
+                            .setTitle("Show 18+ content?")
+                            .setMessage(
+                                "This shows adult sources and extensions in extension lists, search and the source chooser, " +
+                                        "and lets search include adult titles. Only turn it on if you are 18 or older (or the age of " +
+                                        "majority where you live). You can switch it off again at any time."
+                            )
+                            .setPositiveButton("I'm 18+ — show it") { _, _ -> (pref as SwitchPreference).isChecked = true }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                        false
+                    } else true
+                }
+
                 findPreference<SwitchPreference>("force_landscape")?.setOnPreferenceChangeListener { _, newValue ->
                     if (newValue == true) {
                         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE

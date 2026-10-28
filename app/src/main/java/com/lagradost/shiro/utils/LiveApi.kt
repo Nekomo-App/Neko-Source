@@ -18,6 +18,10 @@ import kotlin.random.Random as KotlinRandom
  * AniList slugs are "al<anilistId>"; a "-dub" suffix is stripped for compatibility with old saved data.
  */
 object LiveApi {
+
+    /** Search hides adult titles unless the user switched on "Show 18+" in Settings -> General. */
+    private fun adultFilter() = if (com.lagradost.shiro.utils.ContentPrefs.nsfw()) "" else ", isAdult: false"
+
     private const val ANILIST_GQL = "https://graphql.anilist.co"
 
     private val mapper = JsonMapper.builder().addModule(KotlinModule.Builder().build())
@@ -97,10 +101,10 @@ object LiveApi {
         query(${"$"}id: Int) { Media(idMal: ${"$"}id, type: ANIME) { $MEDIA_FIELDS } }
     """
 
-    private const val SEARCH_QUERY = """
+    private fun searchQuery() = """
         query(${"$"}q: String, ${"$"}genres: [String]) {
             Page(page: 1, perPage: 40) {
-                media(search: ${"$"}q, type: ANIME, genre_in: ${"$"}genres, isAdult: false) { $MEDIA_FIELDS }
+                media(search: ${"$"}q, type: ANIME, genre_in: ${"$"}genres${adultFilter()}) { $MEDIA_FIELDS }
             }
         }
     """
@@ -231,7 +235,7 @@ object LiveApi {
     // region ---------- search ----------
 
     fun search(query: String, genres: List<String>?): List<NekomoApi.Companion.Data>? {
-        val data = anilist(SEARCH_QUERY, mapOf("q" to query, "genres" to (genres?.takeIf { it.isNotEmpty() })))
+        val data = anilist(searchQuery(), mapOf("q" to query, "genres" to (genres?.takeIf { it.isNotEmpty() })))
             ?: return null
         return data.path("Page").path("media").map { mediaToData(it) }
     }

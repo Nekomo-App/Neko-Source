@@ -15,7 +15,7 @@
             android:icon="@drawable/ic_baseline_filter_list_24"
             app:key="nsfw_enabled"
             android:title="Show 18+ sources and extensions"
-            android:summary="Off by default. Includes adult sources in extension lists, search and the source chooser."
+            android:summary="For ages 18+. Off by default. Includes adult sources and extensions in lists, search and the source chooser."
             app:defaultValue="false"
     />
     <SwitchPreference

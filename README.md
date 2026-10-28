@@ -40,7 +40,7 @@ This repository contains the source code for **Nekomo**, an anime and manga trac
 - 🧩 **Bring your own sources.** Nekomo ships with **no** sources, repositories or extensions. You add a repository URL
   yourself and install what you want. Supported: CloudStream (`.cs3`), Zangetsu (JS), Aniyomi (anime APKs) and
   Mihon (manga APKs, `index.min.json` or `index.pb`)
-- 🔀 Per-title **source chooser**, plus settings to show movies/TV shows and 18+ sources (both off by default)
+- 🔀 Per-title **source chooser**, plus settings to show movies/TV shows and 18+ content (both **off by default**; the 18+ switch asks you to confirm your age)
 - 📖 Built-in manga reader for Mihon sources
 - 📱🖥️ Phone and Android TV flavors from one codebase, with stable / beta / debug channels
 - 🔄 In-app updater that reads GitHub releases (stable or pre-release channel, configurable repositories)
