@@ -9,6 +9,12 @@
             android:icon="@drawable/ic_baseline_code_24"
             android:selectable="false"
     />
+    <Preference
+            android:key="about_licenses"
+            android:title="Open-source licenses"
+            android:icon="@drawable/ic_baseline_code_24"
+            app:summary="Nekomo is distributed under GPL-3.0; libraries and their licenses"
+    />
     <Preference android:title="Terms of Service" android:icon="@drawable/ic_baseline_code_24" app:summary="Rules for using Nekomo">
         <intent android:action="android.intent.action.VIEW" android:data="https://nekomoapp.netlify.app/terms"/>
     </Preference>

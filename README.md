@@ -20,7 +20,7 @@
   ·
   <a href="https://discord.com/invite/E4Ezmgg7Ka">Discord</a>
   ·
-  <a href="https://nekomoapp.neocities.org/">Website</a>
+  <a href="https://nekomoapp.netlify.app">Website</a>
   ·
   <a href="https://github.com/Nekomo-App">GitHub</a>
 </p>
@@ -36,9 +36,14 @@
 
 This repository contains the source code for **Nekomo**, an anime and manga tracking client for Android and Android TV. The application itself does **not** host any anime or manga content.
 
-- 🎌 AniList, MyAnimeList and Kitsu sign-in and sync
-- 🧩 CloudStream (`.cs3`) extension support
-- 📱🖥️ Phone and Android TV flavors from one codebase
+- 🎌 AniList, MyAnimeList and Kitsu sign-in and sync (AniList is also the metadata catalogue)
+- 🧩 **Bring your own sources.** Nekomo ships with **no** sources, repositories or extensions. You add a repository URL
+  yourself and install what you want. Supported: CloudStream (`.cs3`), Zangetsu (JS), Aniyomi (anime APKs) and
+  Mihon (manga APKs, `index.min.json` or `index.pb`)
+- 🔀 Per-title **source chooser**, plus settings to show movies/TV shows and 18+ sources (both off by default)
+- 📖 Built-in manga reader for Mihon sources
+- 📱🖥️ Phone and Android TV flavors from one codebase, with stable / beta / debug channels
+- 🔄 In-app updater that reads GitHub releases (stable or pre-release channel, configurable repositories)
 - 🔒 Optional DNS-over-HTTPS for the app's own API traffic
 - 🪵 Persistent in-app error log with one-tap GitHub issue reporting
 
@@ -46,13 +51,16 @@ This repository contains the source code for **Nekomo**, an anime and manga trac
 
 ## 🛠️ Building
 
-Requires a **JDK 17** and the **Android SDK** (versions per `app/build.gradle`).
+Requires a **JDK 17** and the **Android SDK** (versions per `app/build.gradle`). The app supports **Android 7.0 (API 24) and newer**.
 
 ```bash
 ./gradlew assemblePhoneDebug   # phone build
 ./gradlew assembleTvDebug      # Android TV build
 ./gradlew lint
 ```
+
+Release outputs are named `Nekomo-<phone|tv>-<release|beta|debug>.apk`. Publish them as GitHub release assets with
+`scripts/publish-release.sh <version> [stable|beta]` — the in-app updater matches those names. APKs are not committed to git.
 
 > [!TIP]
 > On Windows/OneDrive, a first build can fail with `AAPT: failed writing to ... R.txt`. It's transient — just re-run the same command, one variant at a time.
@@ -68,6 +76,10 @@ Contributor and architecture notes live in [`AGENTS.md`](AGENTS.md).
 | `app/src/main/java/com/lagradost/shiro/ui` | Screens: player, settings, welcome gate, library |
 | `app/src/main/java/com/lagradost/shiro/utils` | API clients, DoH, error logger, extractors |
 | `app/src/main/java/com/lagradost/shiro/utils/cs3` | CloudStream plugin manager and bridge |
+| `app/src/main/java/com/lagradost/shiro/utils/zg` | Zangetsu (JavaScript) source engine |
+| `app/src/main/java/com/lagradost/shiro/utils/aniyomi`, `utils/mihon` | Aniyomi / Mihon extension loaders and bridges |
+| `app/src/main/java/com/lagradost/shiro/ui/manga` | Manga browse, details and reader screens |
+| `app/src/main/java/eu/kanade`, `tachiyomi` | Vendored Aniyomi/Mihon extension API (Apache-2.0) |
 | `app/src/main/java/khttp` | OkHttp-backed HTTP facade |
 | `app/libs/cs3api.jar` | CloudStream API used by extensions |
 
@@ -82,7 +94,7 @@ Contributor and architecture notes live in [`AGENTS.md`](AGENTS.md).
 | 📦 App releases | [Nekomo-App/Nekomo](https://github.com/Nekomo-App/Nekomo/releases) |
 | 🧑‍💻 Source code | [Nekomo-App/neko-source](https://github.com/Nekomo-App/neko-source) |
 | 🐛 Issues | [Report a bug](https://github.com/Nekomo-App/Nekomo/issues) |
-| 🌍 Website | [nekomoapp.neocities.org](https://nekomoapp.neocities.org/) *(occasionally unavailable)* |
+| 🌍 Website | [nekomoapp.netlify.app](https://nekomoapp.netlify.app) |
 
 <a href="https://discord.com/invite/E4Ezmgg7Ka">
   <img src="https://invidget.switchblade.xyz/E4Ezmgg7Ka" alt="Join the Nekomo Discord server">
@@ -138,6 +150,18 @@ If you believe content accessible through a third-party source infringes your ri
 By downloading, installing, modifying, distributing, contributing to, or using Nekomo, you acknowledge and agree to the terms of this disclaimer.
 
 </details>
+
+---
+
+## 📜 License
+
+- Nekomo began as a fork of Shiro (MIT, see [`LICENSE`](LICENSE)); that notice is preserved.
+- The distributed app also contains GPL-3.0 components (the CloudStream API in `app/libs/cs3api.jar`, NiceHttp,
+  NewPipeExtractor and Zangetsu-derived code), so **the app as a whole is distributed under the GNU GPL v3.0 or later**
+  ([`COPYING`](COPYING)). The complete corresponding source is this repository.
+- Every third-party library and its license: [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) (also in the app under
+  Settings → About → Open-source licenses). Regenerate with `scripts/gen_licenses.py`.
+- Nekomo bundles **no** sources, repositories or extensions. Anything you install yourself keeps its own license.
 
 ---
 

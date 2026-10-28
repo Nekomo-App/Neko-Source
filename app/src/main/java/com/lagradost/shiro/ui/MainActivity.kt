@@ -304,9 +304,11 @@ class MainActivity : CyaneaAppCompatActivity() {
         } else {
             theme.applyStyle(R.style.darkText, true)
         }
-        if (!Cyanea.instance.isThemeModified) {
+        val themePrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+        if (!Cyanea.instance.isThemeModified || !themePrefs.getBoolean("nekomo_theme_v1", false)) {
             normalSafeApiCall {
                 val list: List<CyaneaTheme> = CyaneaTheme.Companion.from(assets, "themes/cyanea_themes.json")
+                themePrefs.edit().putBoolean("nekomo_theme_v1", true).apply()
                 list[0].apply(Cyanea.instance).recreate(this)
             }
         }

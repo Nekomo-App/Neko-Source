@@ -1,6 +1,19 @@
 [
   {
-    "theme_name": "Default",
+    "theme_name": "Nekomo",
+    "base_theme": "DARK",
+    "primary": "#e5395f",
+    "primary_dark": "#8d2249",
+    "primary_light": "#ff5c7a",
+    "accent": "#ff5c7a",
+    "accent_dark": "#e5395f",
+    "accent_light": "#ff7a95",
+    "background": "#0c0508",
+    "background_dark": "#150910",
+    "background_light": "#2a1620"
+  },
+  {
+    "theme_name": "Classic red",
     "base_theme": "DARK",
     "primary": "#d01110",
     "primary_dark": "#b00d0c",

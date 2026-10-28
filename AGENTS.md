@@ -2,9 +2,7 @@
 
 ## Build & verify
 
-This is a Gradle Android project (Kotlin). There is no Android SDK / JDK available in the
-sandboxed environment these notes were written in, so changes made here could **not** be
-compiled or run — review diffs carefully and build locally before releasing:
+This is a Gradle Android project (Kotlin). Build and test locally (JDK 17 + Android SDK; min Android 7.0 / API 24):
 
 ```
 ./gradlew assembleDebug        # or assemblePhoneDebug / assembleTvDebug depending on flavor
@@ -21,7 +19,7 @@ Windows/OneDrive note: the repo lives in OneDrive and a first build of a new var
 
 - Build types: `debug` (`.debug`), `beta` (`.beta`, minified, signed with the release key), `release` (stable).
   Flavors: `phone`, `tv`. `./gradlew assemble<Flavor><Type>`; copy outputs to `apks/Nekomo-<flavor>-<type>.apk`.
-- `coreLibraryDesugaringEnabled true` is required for API 21-23 (`Iterable.forEach` etc.).
+- `coreLibraryDesugaringEnabled true` stays on for newer java.time/collection APIs (minSdk is 24, see "Browsing / installing sources").
 - Release/beta builds OOM'd in lint-vital with a 2 GB heap; heap is now 4 GB. If it recurs, add
   `-x lintVitalAnalyze<Variant> -x lintVitalReport<Variant> -x lintVital<Variant>`.
 - TV manifest declares leanback `required=false` so the TV APK can be installed on phones for testing
@@ -91,7 +89,7 @@ this toggle would just add a switch that does nothing.
   of `fv(id)?.foo()`) — this could not be done blind without a compiler in this environment,
   so it was intentionally left out of this pass. Do this with a working Gradle build so
   compile errors surface immediately.
-- **Aniyomi/Mihon extension compatibility**: not implemented (CloudStream is, see below).
+- **Aniyomi/Mihon/Zangetsu**: implemented (see below). LN Reader plugins are not implemented.
 
 ## CloudStream extensions (.cs3)
 
@@ -117,8 +115,7 @@ this toggle would just add a switch that does nothing.
   OAuth redirects still return through `handleIntent`; the gate polls and advances by itself.
   On TV the in-app WebView sits under the dialog window, so the dialog hides while it is open.
 - Kitsu (`utils/auth/KitsuApi`): OAuth password grant with Kitsu's public client credentials.
-- Placeholder URLs (Discord, Telegram, website, support, ToS, Privacy) live in `res/values/links.xml`
-  and MUST be replaced before release.
+- Official URLs (Discord, Telegram, website, support, ToS, Privacy, DMCA) live in `res/values/links.xml` and `settings_about.xml`.
 - Settings -> Community Rules (`CommunityRulesActivity`) reuses the rules text and `SocialLinks`.
 - `PlayerActivity` (exported for `content://` video intents) is gated: it bounces to the launcher unless signed in
   and rules accepted.
@@ -150,11 +147,10 @@ this toggle would just add a switch that does nothing.
   catalogue plus every loaded extension provider, searches the title there and opens the match.
 - In-player "Source" menu picks a stream link; it now uses `setValue` (was `postValue`, which raced with the
   reload) and `onPlayerError` automatically falls through to the next link.
-- Built-in backend (`LiveApi.resolveStreams`) only returns third-party embed hosts now; direct links come from
-  extractors in `utils/extractors` (new `OkRu`, direct mp4/HLS from ok.ru embeds). Embed pages that no
-  extractor can resolve are only emitted as a last resort. `Mkissa.buildInjectionHtml` used `Regex.replace`
-  with a `$`-heavy replacement ("Illegal group reference") which silently broke every stream lookup.
-- Not yet implemented: Aniyomi/Mihon extension APKs, Zangetsu, LN Reader plugins (see chat for scope).
+- The old built-in streaming backend (AllAnime/mkissa/fastani, WebView scraper, host extractors) was **removed**; AniList
+  is metadata only and streams come exclusively from user-installed sources (`LiveApi.resolveStreams` routes
+  `cs3-` / `zg-` / `ay-` tokens). `Vidstream.kt` only dispatches those tokens.
+- Not implemented: LN Reader plugins (need a cheerio-style JS DOM plus a novel reader).
 
 ## Zangetsu sources (JS providers)
 
@@ -166,8 +162,7 @@ this toggle would just add a switch that does nothing.
 - Verified on device (debug + minified release): add `Spyou/zangetsu-providers` -> install HiAnime -> results show
   in search, anime page loads, and an episode streamed (HLS) in debug. HiAnime itself can answer
   "no playable server" for some episodes; the player now says so instead of spinning forever.
-- Still not implemented: Aniyomi / Mihon extension APKs, LN Reader plugins (Zangetsu's own repo has reference
-  `AniyomiBridge.kt` / `MihonBridge.kt`, GPLv3).
+- Aniyomi/Mihon were ported from Zangetsu's reference bridges (GPLv3); LN Reader plugins are still not implemented.
 
 ## No bundled sources (policy) + Aniyomi / Mihon / filters
 
@@ -183,10 +178,12 @@ this toggle would just add a switch that does nothing.
   download APKs from an `index.min.json` repo, validate and load them with `DexClassLoader`.
 - Settings -> General: "Show movies and TV shows" (`non_anime_enabled`, default off) and "Show 18+ sources and
   extensions" (`nsfw_enabled`, default off); see `utils/ContentPrefs`.
-- Verified on device: Aniyomi repo (yuzono/anime-repo) -> install -> search -> details -> episode list. Streams from
-  that extension could not be played on the test phone because its DNS-filter VPN blocks the extension's backends.
-  Mihon reader screens compile and are registered but could not be tested (Keiyoushi's repo currently serves only an
-  "update your app" stub to non-Mihon clients). LN Reader plugins are not implemented (need a cheerio-compatible JS DOM).
+- Verified on device: Aniyomi (yuzono/anime-repo, Anikoto) -> install -> search -> details -> episode list; stream playback
+  could not be confirmed because the test phone's DNS-filter VPN blocks that extension's backends. Mihon
+  (`keiyoushi/extensions` `index.pb`, MANGA Plus) -> install -> popular -> chapters -> reader works on debug and on the
+  minified release build. Keiyoushi's/Yuzono's `index.min.json` now return only an "update your app" stub; use `index.pb`.
+- Not device-tested: the "Show movies and TV shows" toggle revealing CloudStream plugins, the TV builds, Zangetsu after the
+  OkHttp 5 upgrade. LN Reader plugins are not implemented (need a cheerio-compatible JS DOM).
 
 ## Update channel (in-app updater)
 
@@ -200,3 +197,28 @@ this toggle would just add a switch that does nothing.
 - Publish with `scripts/publish-release.sh <version> [stable|beta] [owner/repo]` (needs `gh`). No releases exist
   yet in either Nekomo-App repo, so the updater currently reports "up to date".
 - `ShiroApi` was renamed `NekomoApi`; the old Shiro token/donor/shiro-db/fastani endpoints were deleted.
+
+## Licensing
+
+- `LICENSE` = original Shiro MIT notice (kept). `COPYING` = GPL-3.0 text: the shipped APK includes GPL-3.0 parts
+  (cs3api.jar, NiceHttp, NewPipeExtractor, Zangetsu-derived), so the combined app is GPL-3.0-or-later.
+- `THIRD_PARTY_LICENSES.md` + `app/src/main/assets/licenses.txt` are generated: run
+  `./gradlew :app:dependencies --configuration phoneReleaseRuntimeClasspath > deps.txt` then
+  `python scripts/gen_licenses.py deps.txt` after changing dependencies (script fails loudly on unknown licenses).
+- fuzzywuzzy (GPL-2.0-only, incompatible with GPL-3) was removed; `utils/FuzzyMatch` replaces it.
+- play-services-cast/gms use Google's proprietary SDK license; keep that in mind for F-Droid style distribution.
+
+## Theme
+
+- Default Cyanea theme (`assets/themes/cyanea_themes.json`[0] "Nekomo") and `values/colors.xml` use the website/icon
+  palette (accent #e5395f, deep #8d2249, bright #ff5c7a, background #0c0508). It is re-applied once per install
+  (`nekomo_theme_v1`). The old red is still available as "Classic red".
+
+## Browsing / installing sources
+
+- No in-app directory/search/one-click install of sources: users paste a repository URL themselves (CloudStream
+  shortcodes via cutt.ly/py.md and the "Install all" button were removed). A repo's own list is shown only after the
+  user adds that repo. Mihon repos accept `index.min.json` or the new gzip'd protobuf `index.pb`.
+- minSdk is 24: current Mihon extensions (extension-lib 1.6) need real interface default methods, which D8 strips at
+  minSdk < 24 (AbstractMethodError). OkHttp is 5.3.2 (extensions use okhttp3.brotli.Brotli / okhttp3.zstd.Zstd).
+  proguard-rules.pro keeps kotlin/okhttp/okio/jsoup/rx/injekt/eu.kanade for the dynamically loaded extension APKs.

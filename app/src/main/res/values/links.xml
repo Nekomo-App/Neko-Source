@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Official community/legal links. /support, /terms, /privacy and /dmca must exist on the website. -->
+<!-- Official community/legal links (verified live). /support, /terms, /privacy and /dmca must exist on the website. -->
 <resources>
     <string name="link_discord" translatable="false">https://discord.com/invite/E4Ezmgg7Ka</string>
     <string name="link_telegram" translatable="false">https://t.me/nekomoapp</string>

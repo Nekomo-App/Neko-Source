@@ -551,6 +551,30 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                     "beta" -> "Beta"
                     else -> "Stable"
                 }
+                findPreference<Preference>("about_licenses")?.setOnPreferenceClickListener {
+                    val ctx = requireContext()
+                    val libs = try { ctx.assets.open("licenses.txt").bufferedReader().use { it.readText() } } catch (e: Exception) { "" }
+                    val text = "Nekomo is free software, distributed under the GNU General Public License v3.0 or later " +
+                            "(it includes GPL-3.0 components such as the CloudStream API). Original Shiro code is MIT. " +
+                            "Source: https://github.com/Nekomo-App/neko-source" + "\n\n" +
+                            "Extensions, repositories and sources are installed by you and keep their own licenses; " +
+                            "Nekomo includes none." + "\n\n" + libs
+                    val tv = android.widget.TextView(ctx).apply {
+                        this.text = text
+                        textSize = 12f
+                        setTextIsSelectable(true)
+                        setPadding(48, 24, 48, 24)
+                    }
+                    AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                        .setTitle("Open-source licenses")
+                        .setView(android.widget.ScrollView(ctx).apply { addView(tv) })
+                        .setPositiveButton("OK", null)
+                        .setNeutralButton("Source code") { _, _ ->
+                            com.lagradost.shiro.ui.welcome.SocialLinks.openUrl(ctx, "https://github.com/Nekomo-App/neko-source")
+                        }
+                        .show()
+                    true
+                }
                 findPreference<Preference>("about_version")?.summary =
                     "${com.lagradost.shiro.BuildConfig.VERSION_NAME} · $channel channel"
 
