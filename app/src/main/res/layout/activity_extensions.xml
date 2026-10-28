@@ -24,6 +24,15 @@
                 android:text="CloudStream extension repositories. Paste the URL of a repository you trust. Nekomo includes no repositories, directory or search for extensions: you find and add them yourself."
                 android:textSize="13sp"/>
 
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:autoLink="web"
+                android:linksClickable="true"
+                android:text="Step-by-step guide: https://nekomoapp.netlify.app/sources"
+                android:textSize="13sp"/>
+
         <LinearLayout
                 android:id="@+id/repo_list"
                 android:layout_width="match_parent"

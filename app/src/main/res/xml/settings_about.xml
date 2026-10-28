@@ -15,6 +15,9 @@
             android:icon="@drawable/ic_baseline_code_24"
             app:summary="Nekomo is distributed under GPL-3.0; libraries and their licenses"
     />
+    <Preference android:title="Sources &amp; extensions guide" android:icon="@drawable/ic_baseline_code_24" app:summary="How to add your own repositories, and the 18+ and movies/TV switches">
+        <intent android:action="android.intent.action.VIEW" android:data="https://nekomoapp.netlify.app/sources"/>
+    </Preference>
     <Preference android:title="Terms of Service" android:icon="@drawable/ic_baseline_code_24" app:summary="Rules for using Nekomo">
         <intent android:action="android.intent.action.VIEW" android:data="https://nekomoapp.netlify.app/terms"/>
     </Preference>
