@@ -60,7 +60,7 @@ Requires a **JDK 17** and the **Android SDK** (versions per `app/build.gradle`).
 ```
 
 Release outputs are named `Nekomo-<phone|tv>-<release|beta|debug>.apk`. Publish them as GitHub release assets with
-`scripts/publish-release.sh <version> [stable|beta]` — the in-app updater matches those names. APKs are not committed to git.
+`scripts/publish-release.sh <version> [stable|beta]` — the in-app updater matches those names. The website's direct-download links point at the `apks/` folder of this repo (fixed file names, overwritten on every build), so rebuilt APKs are committed there.
 
 > [!TIP]
 > On Windows/OneDrive, a first build can fail with `AAPT: failed writing to ... R.txt`. It's transient — just re-run the same command, one variant at a time.

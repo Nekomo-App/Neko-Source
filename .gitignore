@@ -17,5 +17,3 @@
 nekomo-release.jks
 keystore.properties
 
-# Built APKs are published as GitHub release assets, not committed
-/apks/
