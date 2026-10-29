@@ -340,7 +340,10 @@ class PlayerFragment : Fragment() {
         return data?.card?.episodes?.getOrNull(episodeIndex)//data?.card!!.cdnData.seasons.getOrNull(data?.seasonIndex!!)?.episodes?.get(data?.episodeIndex!!)
     }
 
+    private var noStreams = false
+
     private fun loadAndPlay() {
+        noStreams = false
         // Cached, first is index, second is links
         thread {
             if (!(sources.first == data?.episodeIndex && data?.episodeIndex != null)) {
@@ -356,18 +359,21 @@ class PlayerFragment : Fragment() {
                     )
                 }
                 if (extractorLinks.isEmpty() && data?.url == null) {
+                    noStreams = true
                     main {
-                        Toast.makeText(
-                            getCurrentContext() ?: context,
-                            "No playable streams were found for this episode from this source. " +
-                                    "Go back and pick another source with the cloud icon on the anime page.",
-                            LENGTH_LONG
-                        ).show()
+                        val c = getCurrentContext() ?: context
+                        val msg = if (!com.lagradost.shiro.utils.SourceState.hasAny(c))
+                            "No sources installed yet. Add a repository and install a source in Settings > Extensions."
+                        else "No playable streams were found for this episode from this source. " +
+                                "Go back and pick another source with the cloud icon on the anime page."
+                        Toast.makeText(c, msg, LENGTH_LONG).show()
+                        // Don't leave the user on a spinner with nothing to play.
+                        normalSafeApiCall { activity?.onBackPressed() }
                     }
                 }
             }
             main {
-                initPlayerIfPossible()
+                if (!noStreams) initPlayerIfPossible()
             }
         }
     }

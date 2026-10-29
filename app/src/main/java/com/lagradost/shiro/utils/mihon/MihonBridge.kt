@@ -37,7 +37,7 @@ object MihonBridge {
         runBlocking { withTimeout(TIMEOUT) { src.getPopularManga(page) } }.let { items(it.mangas) to it.hasNextPage }
 
     fun search(src: CatalogueSource, query: String, page: Int): Pair<List<MangaItem>, Boolean> =
-        runBlocking { withTimeout(TIMEOUT) { src.getSearchManga(page, query, FilterList()) } }
+        runBlocking { withTimeout(TIMEOUT) { src.getSearchManga(page, query, src.getFilterList()) } }
             .let { items(it.mangas) to it.hasNextPage }
 
     fun details(src: CatalogueSource, url: String, fallbackTitle: String): MangaDetails {

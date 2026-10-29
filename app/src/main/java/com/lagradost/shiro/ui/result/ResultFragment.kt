@@ -288,6 +288,14 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         }
     }
 
+    /** Genres arrive either as a JSON array or as a plain comma-separated string. */
+    private fun parseGenres(raw: String?): List<String> {
+        val t = raw?.trim().orEmpty()
+        if (t.isEmpty()) return emptyList()
+        return if (t.startsWith("[")) runCatching { mapper.readValue<List<String>>(t) }.getOrDefault(emptyList())
+        else t.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
     private fun onDataLoaded(data: NekomoApi.Companion.AnimePageNewData?) {
         episodeOffset = if (data?.episodes?.filter { it.episode == "0" }.isNullOrEmpty()) 0 else -1
 
@@ -317,7 +325,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             if (!hasLoadedAnilist && (hasAniList || hasMAL)) {
                 thread {
                     hasLoadedAnilist = true
-                    val idMal = mapper.readValue<IdObject?>(data.anime.ids)?.mal
+                    val idMal = data.anime.ids?.takeIf { it.isNotBlank() }?.let { runCatching { mapper.readValue<IdObject?>(it) }.getOrNull() }?.mal
 
                     anilistPage =
                         getShowId(idMal, data.anime.title, data.anime.release_year?.toIntOrNull())
@@ -345,7 +353,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                 @JsonProperty("youtube") val youtube: String?,
             )
             normalSafeApiCall {
-                val youtubeId = mapper.readValue<List<TrailerObject?>?>(data.anime.trailer)
+                val youtubeId = data.anime.trailer?.takeIf { it.isNotBlank() }?.let { runCatching { mapper.readValue<List<TrailerObject?>?>(it) }.getOrNull() }
                     ?.firstOrNull { it?.youtube != null }?.youtube
 
                 fv<android.widget.ImageView>(R.id.banner_play_btt)?.isVisible = youtubeId != null
@@ -469,7 +477,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                 fv<android.widget.TextView>(R.id.title_genres)?.text =
                     Html.fromHtml(
                         "<font color=#${textColorGrey}>Genres:</font><font color=#${textColor}> ${
-                            mapper.readValue<List<String>>(data.anime.genres)
+                            parseGenres(data.anime.genres)
                                 .joinToString(prefix = "", postfix = "", separator = " • ")
                         }</font>"/*,
                             FROM_HTML_MODE_COMPACT*/

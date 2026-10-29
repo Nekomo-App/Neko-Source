@@ -72,7 +72,7 @@ object AniyomiBridge {
     )
 
     private suspend fun searchSource(src: AnimeCatalogueSource, query: String): List<SAnime> =
-        withTimeout(SEARCH_TIMEOUT) { src.getSearchAnime(1, query, AnimeFilterList()).animes }
+        withTimeout(SEARCH_TIMEOUT) { src.getSearchAnime(1, query, src.getFilterList()).animes }
 
     /** Queries every enabled Aniyomi source in parallel. */
     fun search(query: String): List<NekomoApi.Companion.Data> {
