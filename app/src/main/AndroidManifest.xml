@@ -120,6 +120,10 @@
                   android:label="Reader"
                   android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
         />
+        <activity android:name=".ui.library.LocalLibraryActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Offline library"
+        />
         <activity android:name=".ui.settings.ExtensionsActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:fitsSystemWindows="true"

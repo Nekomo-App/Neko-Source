@@ -159,6 +159,10 @@ object AppUtils {
 
 
     fun FragmentActivity.handleIntent(intent: Intent?) {
+        intent?.getStringExtra("open_slug")?.let { slug ->
+            intent.removeExtra("open_slug")
+            loadPage(slug, intent.getStringExtra("open_name") ?: slug)
+        }
         val data: Uri? = intent?.data
 
         if (data != null) {

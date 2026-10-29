@@ -222,3 +222,12 @@ this toggle would just add a switch that does nothing.
 - minSdk is 24: current Mihon extensions (extension-lib 1.6) need real interface default methods, which D8 strips at
   minSdk < 24 (AbstractMethodError). OkHttp is 5.3.2 (extensions use okhttp3.brotli.Brotli / okhttp3.zstd.Zstd).
   proguard-rules.pro keeps kotlin/okhttp/okio/jsoup/rx/injekt/eu.kanade for the dynamically loaded extension APKs.
+
+## Offline (local) library
+
+- Not signed in? `utils/LocalLibrary` keeps a per-device library (Watching / Plan to watch / Completed / On hold / Dropped).
+  Add titles from the title page's right-hand sync panel ("Save to offline library"); view/edit/export/import in
+  `ui/library/LocalLibraryActivity` (Library tab -> "Open offline library"). Export is a JSON share; import merges by
+  newest update; "Sync to AniList" pushes entries whose slug is `al<id>` once signed in.
+- Favorites (hearts), continue-watching, downloads and the existing Back up / Restore in Settings -> History also work
+  without an account.

@@ -1205,6 +1205,30 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         fv<com.google.android.material.button.MaterialButton>(R.id.rewatching_btt)?.isVisible = hasAniList
         fv<android.widget.LinearLayout>(R.id.sync_page)?.isVisible = hasAniList || hasMAL
         fv<android.widget.LinearLayout>(R.id.sync_page_failed)?.isVisible = !hasAniList && !hasMAL
+        fv<android.widget.TextView>(R.id.local_library_btt)?.setOnClickListener {
+            val ctx = context ?: return@setOnClickListener
+            val d = resultViewModel?.data?.value?.anime ?: return@setOnClickListener
+            val current = com.lagradost.shiro.utils.LocalLibrary.statusOf(ctx, d.slug)
+            val options = com.lagradost.shiro.utils.LocalLibrary.STATUSES + (if (current != null) listOf("Remove from library") else emptyList())
+            androidx.appcompat.app.AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                .setTitle(if (current != null) "Offline library: $current" else "Add to offline library")
+                .setItems(options.toTypedArray()) { _, which ->
+                    if (which < com.lagradost.shiro.utils.LocalLibrary.STATUSES.size) {
+                        com.lagradost.shiro.utils.LocalLibrary.set(ctx, d.slug, d.title, d.poster, options[which])
+                        fv<android.widget.TextView>(R.id.local_library_btt)?.text = "In offline library: ${options[which]}"
+                    } else {
+                        com.lagradost.shiro.utils.LocalLibrary.remove(ctx, d.slug)
+                        fv<android.widget.TextView>(R.id.local_library_btt)?.text = "Save to offline library"
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+        resultViewModel?.data?.observe(viewLifecycleOwner) { d ->
+            val ctx = context
+            val st = if (d != null && ctx != null) com.lagradost.shiro.utils.LocalLibrary.statusOf(ctx, d.anime.slug) else null
+            fv<android.widget.TextView>(R.id.local_library_btt)?.text = if (st != null) "In offline library: $st" else "Save to offline library"
+        }
 
         observe(resultViewModel!!.syncData) {
             if (it == null) return@observe
