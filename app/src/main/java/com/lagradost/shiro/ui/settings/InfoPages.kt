@@ -198,7 +198,8 @@ class AboutActivity : CyaneaAppCompatActivity() {
         // Credits
         b.root.addView(b.heading("Credits"))
         b.root.addView(b.card(b.text(
-            "Anime and manga information: AniList and MyAnimeList (through the Jikan API).\n" +
+            "Anime and manga information: AniList, with Kitsu and MyAnimeList (Jikan) as backups.\n" +
+                    "TV shows: TVMaze (CC BY-SA). Movies and TV: TMDB when you add a key. This product uses the TMDB API but is not endorsed or certified by TMDB.\n" +
                     "Extension systems you can use: CloudStream, Aniyomi, Mihon and Zangetsu.\n" +
                     "Based on the open-source Shiro app. Thank you to every contributor and translator.",
             13f, dim = true

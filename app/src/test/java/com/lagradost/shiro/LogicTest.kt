@@ -38,3 +38,28 @@ class LogicTest {
         assertThat(SourceHealth.isFailing(key)).isFalse()
     }
 }
+
+class ApiHealthTest {
+    @org.junit.Test
+    fun rateLimitPausesAndResets() {
+        val id = "test-api"
+        com.lagradost.shiro.utils.meta.ApiHealth.reset()
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.ApiHealth.blocked(id)).isFalse()
+        com.lagradost.shiro.utils.meta.ApiHealth.rateLimited(id, 60)
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.ApiHealth.blocked(id)).isTrue()
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.ApiHealth.status(id)).contains("Paused")
+        com.lagradost.shiro.utils.meta.ApiHealth.reset()
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.ApiHealth.status(id)).isEqualTo("Available")
+    }
+
+    @org.junit.Test
+    fun threeFailuresInARowPause() {
+        val id = "test-api-2"
+        com.lagradost.shiro.utils.meta.ApiHealth.reset()
+        repeat(2) { com.lagradost.shiro.utils.meta.ApiHealth.failure(id) }
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.ApiHealth.blocked(id)).isFalse()
+        com.lagradost.shiro.utils.meta.ApiHealth.failure(id)
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.ApiHealth.blocked(id)).isTrue()
+        com.lagradost.shiro.utils.meta.ApiHealth.success(id)
+    }
+}

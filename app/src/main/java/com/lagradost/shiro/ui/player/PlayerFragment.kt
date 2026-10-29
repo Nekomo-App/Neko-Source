@@ -342,6 +342,54 @@ class PlayerFragment : Fragment() {
 
     private var noStreams = false
 
+    /** Pop-out: shrinks the video into a floating picture-in-picture window that stays above other apps. */
+    private fun popOut() {
+        val act = activity ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            !act.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)
+        ) {
+            Toast.makeText(act, "Pop-out needs Android 8 or newer with picture-in-picture support.", LENGTH_LONG).show()
+            return
+        }
+        try {
+            act.enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(android.util.Rational(16, 9)).build())
+        } catch (e: Exception) {
+            logError(e)
+            Toast.makeText(act, "Allow picture-in-picture for Nekomo in your system settings to use pop-out.", LENGTH_LONG).show()
+        }
+    }
+
+    /** Hands the current stream to another installed player (VLC, MX Player, ...). */
+    private fun openExternal(): Boolean {
+        val ctx = context ?: return false
+        val link = playerViewModel?.selectedSource?.value ?: sources.second?.firstOrNull() ?: extractorLinks.firstOrNull()
+        if (link == null) {
+            Toast.makeText(ctx, "There is no stream to open yet.", LENGTH_LONG).show()
+            return false
+        }
+        val pos = if (this::exoPlayer.isInitialized) exoPlayer.currentPosition else 0L
+        val headers = (link.headers.orEmpty() + (if (link.referer.isNotBlank()) mapOf("Referer" to link.referer) else emptyMap()))
+        val intent = Intent(Intent.ACTION_VIEW)
+            .setDataAndType(Uri.parse(link.url), if (link.isM3u8) "application/x-mpegURL" else if (link.isDash) "application/dash+xml" else "video/*")
+            .putExtra("title", data?.title ?: data?.card?.anime?.title ?: "Nekomo")
+            .putExtra("position", pos.toInt())
+            .putExtra("headers", headers.flatMap { listOf(it.key, it.value) }.toTypedArray())
+            .putExtra("secure_uri", true)
+        if (intent.resolveActivity(ctx.packageManager) == null) {
+            Toast.makeText(ctx, "No external video player is installed. Install VLC or MX Player first.", LENGTH_LONG).show()
+            return false
+        }
+        if (this::exoPlayer.isInitialized) exoPlayer.pause()
+        try {
+            startActivity(Intent.createChooser(intent, "Play in external player"))
+        } catch (e: Exception) {
+            logError(e)
+            Toast.makeText(ctx, "Could not open an external player.", LENGTH_LONG).show()
+            return false
+        }
+        return true
+    }
+
     private fun loadAndPlay() {
         noStreams = false
         // Cached, first is index, second is links
@@ -373,7 +421,14 @@ class PlayerFragment : Fragment() {
                 }
             }
             main {
-                if (!noStreams) initPlayerIfPossible()
+                val external = context?.let {
+                    androidx.preference.PreferenceManager.getDefaultSharedPreferences(it).getBoolean("external_player_default", false)
+                } ?: false
+                when {
+                    noStreams -> {}
+                    external && extractorLinks.isNotEmpty() && openExternal() -> normalSafeApiCall { activity?.onBackPressed() }
+                    else -> initPlayerIfPossible()
+                }
             }
         }
     }
@@ -1251,6 +1306,14 @@ class PlayerFragment : Fragment() {
         fv<androidx.cardview.widget.CardView>(R.id.subtitles_btt)?.setOnClickListener {
             updateHideTime()
             showSubtitleDialog()
+        }
+        fv<androidx.cardview.widget.CardView>(R.id.popout_btt)?.setOnClickListener {
+            updateHideTime()
+            popOut()
+        }
+        fv<androidx.cardview.widget.CardView>(R.id.external_btt)?.setOnClickListener {
+            updateHideTime()
+            openExternal()
         }
         fv<android.widget.TextView>(R.id.skip_segment_btt)?.setOnClickListener {
             currentSkipSegment?.let { seg ->

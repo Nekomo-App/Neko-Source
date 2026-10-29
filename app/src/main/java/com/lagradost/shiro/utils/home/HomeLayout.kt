@@ -75,7 +75,10 @@ object HomeLayout {
 
     /** What the home screen actually shows. */
     fun active(ctx: Context): List<Entry> =
-        entries(ctx).filter { it.enabled && sourceEnabled(ctx, it.source) }
+        entries(ctx).filter {
+            it.enabled && sourceEnabled(ctx, it.source) &&
+                    (!it.source.nonAnime || com.lagradost.shiro.utils.ContentPrefs.nonAnime(ctx))
+        }
 
     fun move(ctx: Context, id: String, delta: Int) {
         val list = order(ctx).toMutableList()

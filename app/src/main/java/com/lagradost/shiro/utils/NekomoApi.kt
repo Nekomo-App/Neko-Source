@@ -430,11 +430,25 @@ class NekomoApi {
 
 
         fun searchNew(query: String, genres: List<String>? = null, hideChinese: Boolean = false): List<Data>? {
-            val base = try {
+            val primary = try {
                 LiveApi.search(query, genres)
             } catch (e: Exception) {
                 logError(e)
                 null
+            }
+            // AniList failed or is rate limited: Kitsu / Jikan answer instead (titles keep their MAL ids)
+            val base = primary ?: try {
+                com.lagradost.shiro.utils.meta.MetaHub.fallbackSearch(query).takeIf { it.isNotEmpty() }
+            } catch (e: Exception) {
+                logError(e)
+                null
+            }
+            // Movies and TV shows, only when enabled in Settings -> General
+            val mediaResults = try {
+                com.lagradost.shiro.utils.meta.MetaHub.searchMedia(query)
+            } catch (e: Exception) {
+                logError(e)
+                emptyList()
             }
             // Loaded CloudStream extension providers also answer search
             val extensionResults = try {
@@ -455,7 +469,7 @@ class NekomoApi {
                 logError(e)
                 emptyList()
             }
-            val extra = extensionResults + zangetsuResults + aniyomiResults
+            val extra = mediaResults + extensionResults + zangetsuResults + aniyomiResults
             return if (base == null && extra.isEmpty()) null
             else base.orEmpty() + extra
         }

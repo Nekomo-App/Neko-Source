@@ -263,3 +263,21 @@ this toggle would just add a switch that does nothing.
 - `SourceHealth` marks sources that fail twice in a row (shown in the source chooser).
 - Unit tests: `./gradlew testPhoneDebugUnitTest` (pure logic only). CI: `.github/workflows/build.yml`.
 
+## Metadata hub, multi-media and tracker mode
+
+- `utils/meta/MetaHub` is the metadata layer next to `LiveApi` (AniList, primary). `ApiHealth` pauses a provider on HTTP 429
+  (Retry-After) or after 3 failures; callers then use the next one: AniList -> Kitsu -> Jikan (MAL). `MetaCache` keeps the
+  last good page of every title so it opens even when every API is down. Test it from Settings -> Home page -> "Test backups".
+- Slugs: `al<id>` AniList, `mal<id>` MyAnimeList (AniList first, then Jikan, then Kitsu via mappings), `kt<id>` Kitsu,
+  `tvm<id>` TVMaze (TV, no key), `tmm<id>` / `tmt<id>` TMDB movie / TV (needs the user's own key, Settings -> General).
+  Non-anime search/rows only appear with "Show movies and TV shows".
+- Episode lists for metadata-only pages come from Jikan/Kitsu/TVMaze/TMDB (episodes with `ext == "meta"`; numbered
+  placeholders when only the count is known). They are tracker episodes: tapping one opens a menu (play through a source,
+  mark watched, mark all up to here) handled in `ResultFragment.showMetaEpisodeMenu` -> `utils/Tracker` (same watched flags the
+  player uses; mirrors into `LocalLibrary`, pushes to AniList when signed in, disabled by incognito). `loadPlayer` refuses
+  meta episodes and sends the user to the title page instead.
+- Title page: Sources dropdown (`source_row`/`source_spinner`, preferred source = `PreferredSource`, also in Settings ->
+  General), globe button = language switch + "open on AniList/MAL/Kitsu/TVMaze/TMDB", cast button shows when a Cast device is found.
+- Player: Pop-out (picture-in-picture) and External player buttons; Settings -> Player -> "Open videos in an external player".
+- Attribution to keep visible: TMDB ("This product uses the TMDB API but is not endorsed or certified by TMDB"), TVMaze (CC BY-SA).
+

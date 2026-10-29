@@ -32,6 +32,7 @@ object LiveApi {
     // region ---------- HTTP helpers ----------
 
     private fun gql(url: String, query: String, variables: Map<String, Any?>): JsonNode? {
+        if (com.lagradost.shiro.utils.meta.ApiHealth.blocked("anilist")) return null
         return try {
             // Plain JDK map: Jackson + kotlin-reflect fails on kotlin.collections.EmptyMap after R8
             val body = mapper.writeValueAsString(
@@ -39,10 +40,20 @@ object LiveApi {
             )
             val headers =
                 defaultHeaders
-            val res = khttp.post(url, headers = headers, json = body, timeout = 30.0)
-            if (res.statusCode != 200) return null
+            val res = khttp.post(url, headers = headers, json = body, timeout = 20.0)
+            if (res.statusCode == 429) {
+                val retry = res.headers.entries.firstOrNull { it.key.equals("Retry-After", true) }?.value?.toIntOrNull() ?: 60
+                com.lagradost.shiro.utils.meta.ApiHealth.rateLimited("anilist", retry)
+                return null
+            }
+            if (res.statusCode != 200) {
+                com.lagradost.shiro.utils.meta.ApiHealth.failure("anilist")
+                return null
+            }
+            com.lagradost.shiro.utils.meta.ApiHealth.success("anilist")
             mapper.readTree(res.text)
         } catch (e: Exception) {
+            com.lagradost.shiro.utils.meta.ApiHealth.failure("anilist")
             logError(e)
             null
         }
@@ -188,15 +199,22 @@ object LiveApi {
     // region ---------- catalog ----------
 
     fun getTrending(): NekomoApi.Companion.ShowHolder? {
-        val data = anilist(TRENDING_QUERY, emptyMap()) ?: return null
-        val list = data.path("Page").path("media").map { mediaToData(it) }
+        val data = anilist(TRENDING_QUERY, emptyMap())
+        val list = (if (data != null) data.path("Page").path("media").map { mediaToData(it) }
+        else com.lagradost.shiro.utils.meta.MetaHub.browse("sort=-userCount")) // AniList down: Kitsu
             .filter { !com.lagradost.shiro.utils.home.HomeFilters.isBlocked(it.title, it.title_english, it.native_title) }
+        if (list.isEmpty()) return null
         return NekomoApi.Companion.ShowHolder("success", "", list)
     }
 
     fun getRandom(): NekomoApi.Companion.Random? {
         val page = KotlinRandom.nextInt(1, 8)
-        val data = anilist(RANDOM_QUERY, mapOf("page" to page)) ?: return null
+        val data = anilist(RANDOM_QUERY, mapOf("page" to page))
+        if (data == null) {
+            val d = com.lagradost.shiro.utils.meta.MetaHub.browse("sort=-userCount")
+                .filter { it.banner.isNotBlank() || it.poster.isNotBlank() }.takeIf { it.isNotEmpty() } ?: return null
+            return NekomoApi.Companion.Random("success", "", d[KotlinRandom.nextInt(0, d.size)])
+        }
         val media = data.path("Page").path("media")
         if (media.size() == 0) return null
         return NekomoApi.Companion.Random(
@@ -205,7 +223,7 @@ object LiveApi {
     }
 
     fun getRecents(): List<NekomoApi.Companion.AnimeHolder>? {
-        val data = anilist(RECENTS_QUERY, emptyMap()) ?: return null
+        val data = anilist(RECENTS_QUERY, emptyMap()) ?: return recentsFromBackup()
         val holders = mutableListOf<NekomoApi.Companion.AnimeHolder>()
         val seen = HashSet<String>()
         data.path("Page").path("airingSchedules").forEach { sched ->
@@ -242,6 +260,20 @@ object LiveApi {
         }
         return holders
     }
+
+    /** "Recently updated" while AniList is unavailable: what Kitsu says is airing now. */
+    private fun recentsFromBackup(): List<NekomoApi.Companion.AnimeHolder>? =
+        com.lagradost.shiro.utils.meta.MetaHub.browse("filter%5Bstatus%5D=current&sort=-userCount")
+            .filter { !com.lagradost.shiro.utils.home.HomeFilters.isBlocked(it.title, it.title_english, it.native_title) }
+            .map { d ->
+                NekomoApi.Companion.AnimeHolder(
+                    anime = NekomoApi.Companion.Anime(title = d.title, slug = d.slug, poster = d.poster, synopsis = d.synopsis, format = d.format),
+                    episode = NekomoApi.Companion.Episode(
+                        id = "${d.slug}-1", slug = d.slug, title = "", episode = "1", image = d.poster, insight = null,
+                        sources = "[]", ext = null, views = "0", created_at = "", updated_at = ""
+                    )
+                )
+            }.takeIf { it.isNotEmpty() }
 
     /** Title fields shared by every AniList list query (used by the home sections). */
     val homeMediaFields: String get() = MEDIA_FIELDS
@@ -296,6 +328,7 @@ object LiveApi {
         val bare = slug.removeSuffix("-dub")
 
         if (Regex("""^mal\d+$""").matches(bare)) return getAnimePageByMal(bare.removePrefix("mal"))
+        if (com.lagradost.shiro.utils.meta.MetaHub.isMetaSlug(bare)) return com.lagradost.shiro.utils.meta.MetaHub.getPage(bare)
         // Slugs from user-installed sources are self-contained tokens
         if (CsBridge.isCs3Slug(bare)) return CsBridge.getAnimePage(bare)
         if (com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(bare)) return com.lagradost.shiro.utils.zg.ZangetsuBridge.getAnimePage(bare)
@@ -303,12 +336,19 @@ object LiveApi {
 
         return try {
             val alId = bare.removePrefix("al").toIntOrNull() ?: return null
-            val media = anilistMediaById(alId) ?: return null
+            // AniList down or rate limited: show the last good copy of this page
+            val media = anilistMediaById(alId)?.takeIf { !it.isMissingNode && !it.isNull }
+                ?: return com.lagradost.shiro.utils.meta.MetaCache.get(slug)
             val d = mediaToData(media, slugOverride = slug)
+            val total = media.path("episodes").takeIf { !it.isNull && !it.isMissingNode }?.asInt()
+                ?: media.path("nextAiringEpisode").path("episode").asInt(0).let { if (it > 1) it - 1 else null }
+            val episodes = com.lagradost.shiro.utils.meta.MetaHub.episodesForMal(
+                slug, media.path("idMal").takeIf { !it.isNull && !it.isMissingNode }?.asText(), total
+            )
             NekomoApi.Companion.AnimePageNewRoot(
                 "success", "",
-                NekomoApi.Companion.AnimePageNewData(anime = dataToAnimePage(d, slug), episodes = emptyList())
-            )
+                NekomoApi.Companion.AnimePageNewData(anime = dataToAnimePage(d, slug), episodes = episodes)
+            ).also { com.lagradost.shiro.utils.meta.MetaCache.put(slug, it) }
         } catch (e: Exception) {
             logError(e)
             null
@@ -337,12 +377,13 @@ object LiveApi {
     }
 
     fun getAnimePageByMal(malId: String): NekomoApi.Companion.AnimePageNewRoot? {
-        val media = malId.toIntOrNull()?.let { anilistMediaByMal(it) } ?: return null
+        val media = malId.toIntOrNull()?.let { anilistMediaByMal(it) }?.takeIf { !it.isMissingNode && !it.isNull }
+            ?: return com.lagradost.shiro.utils.meta.MetaHub.getPage("mal$malId")
         val alId = media.path("id").asInt()
         return getAnimePage("al$alId")
     }
 
-    private fun dataToAnimePage(d: NekomoApi.Companion.Data, slug: String): NekomoApi.Companion.AnimePageNew {
+    internal fun dataToAnimePage(d: NekomoApi.Companion.Data, slug: String): NekomoApi.Companion.AnimePageNew {
         return NekomoApi.Companion.AnimePageNew(
             id = d.id, slug = slug, title = d.title, title_english = d.title_english,
             native_title = d.native_title, poster = d.poster, banner = d.banner,

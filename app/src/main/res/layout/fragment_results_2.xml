@@ -300,6 +300,32 @@
                                             android:clickable="true"
                                             android:focusable="true"
                                     />
+                                    <LinearLayout
+                                            android:id="@+id/source_row"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginStart="10dp"
+                                            android:layout_marginEnd="10dp"
+                                            android:layout_marginBottom="10dp"
+                                            android:gravity="center_vertical"
+                                            android:orientation="horizontal"
+                                            android:visibility="gone">
+
+                                        <TextView
+                                                android:layout_width="wrap_content"
+                                                android:layout_height="wrap_content"
+                                                android:text="Source"
+                                                android:textColor="?attr/textColorGrayWhite"
+                                                android:textSize="13sp"
+                                                android:paddingEnd="12dp"/>
+
+                                        <Spinner
+                                                android:id="@+id/source_spinner"
+                                                android:layout_width="0dp"
+                                                android:layout_height="wrap_content"
+                                                android:layout_weight="1"
+                                                android:minHeight="44dp"/>
+                                    </LinearLayout>
                                 </LinearLayout>
 
                             </androidx.cardview.widget.CardView>

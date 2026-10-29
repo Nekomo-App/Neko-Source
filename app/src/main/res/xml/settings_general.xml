@@ -4,6 +4,20 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
 >
     <PreferenceCategory android:title="Content">
+        <ListPreference
+            android:icon="@drawable/ic_baseline_playlist_play_24"
+            app:key="preferred_source"
+            android:title="Preferred source"
+            app:useSimpleSummaryProvider="true"
+            android:defaultValue="none"
+    />
+        <EditTextPreference
+            android:icon="@drawable/ic_baseline_filter_list_24"
+            app:key="tmdb_api_key"
+            android:title="TMDB API key (optional)"
+            android:summary="Adds movie and TV show details, posters and episode lists from TMDB. Get a free key at themoviedb.org/settings/api. It is stored only on this device. TV shows from TVMaze work without a key."
+            android:dialogMessage="Paste your TMDB API key (v3) or read access token (v4)."
+    />
         <SwitchPreference
             android:icon="@drawable/ic_baseline_filter_list_24"
             app:key="non_anime_enabled"

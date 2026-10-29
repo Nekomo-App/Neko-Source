@@ -152,6 +152,27 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
 
                 setTitle("General settings")
 
+                // Preferred source: filled with whatever the user has installed
+                findPreference<androidx.preference.ListPreference>("preferred_source")?.let { lp ->
+                    val ctx = requireContext()
+                    val cs = runCatching { com.lagradost.shiro.utils.cs3.CsPluginManager.providers().map { it.name }.distinct() }.getOrDefault(emptyList())
+                    val zg = runCatching { com.lagradost.shiro.utils.zg.ZangetsuManager.enabledSources(ctx) }.getOrDefault(emptyList())
+                    val ay = runCatching { com.lagradost.shiro.utils.aniyomi.AniyomiBridge.sourceChoices() }.getOrDefault(emptyList())
+                    lp.entries = (listOf("None (ask each time)") + cs + zg.map { "Zangetsu · ${it.name}" } + ay.map { "Aniyomi · ${it.first}" }).toTypedArray()
+                    lp.entryValues = (listOf("none") + cs.map { "cs:$it" } + zg.map { "zg:${it.id}" } + ay.map { "ay:${it.second}" }).toTypedArray()
+                    if (lp.value == null || lp.entryValues.none { it == lp.value }) lp.value = "none"
+                    val none = cs.isEmpty() && zg.isEmpty() && ay.isEmpty()
+                    lp.summaryProvider = androidx.preference.Preference.SummaryProvider<androidx.preference.ListPreference> { p ->
+                        if (none) "No sources installed. Nekomo works as a tracker until you add some in Settings > Extensions."
+                        else p.entry?.toString() ?: "None (ask each time)"
+                    }
+                }
+                findPreference<androidx.preference.EditTextPreference>("tmdb_api_key")?.setOnPreferenceChangeListener { _, _ ->
+                    com.lagradost.shiro.utils.home.HomeFeed.clear()
+                    com.lagradost.shiro.utils.meta.ApiHealth.reset()
+                    true
+                }
+
                 // 18+ content is allowed but off by default; turning it on needs an explicit confirmation.
                 findPreference<SwitchPreference>("nsfw_enabled")?.setOnPreferenceChangeListener { pref, newValue ->
                     if (newValue == true) {

@@ -113,7 +113,7 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
             })
             val text = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(8), 0) }
             text.addView(TextView(this).apply { this.text = e.title; textSize = 16f; maxLines = 2 })
-            text.addView(TextView(this).apply { this.text = e.status; textSize = 13f; alpha = 0.7f })
+            text.addView(TextView(this).apply { this.text = e.status + (if (e.progress > 0) " · episode ${e.progress}" else ""); textSize = 13f; alpha = 0.7f })
             row.addView(text, LinearLayout.LayoutParams(0, -2, 1f))
             row.addView(Button(this).apply {
                 this.text = "Edit"

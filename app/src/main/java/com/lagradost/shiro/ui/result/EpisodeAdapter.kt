@@ -272,7 +272,7 @@ class EpisodeAdapter(
                         data
                     )
 
-                card.fv<android.widget.ImageView>(R.id.cdi).isVisible = tvActivity == null
+                card.fv<android.widget.ImageView>(R.id.cdi).isVisible = tvActivity == null && data.episodes.getOrNull(episodePos)?.ext != "meta"
                 card.setOnClickListener {
                     clickCallback.invoke(
                         EpisodeClickEvent(

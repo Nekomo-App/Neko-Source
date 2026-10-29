@@ -56,6 +56,38 @@ class HomeSettingsActivity : CyaneaAppCompatActivity() {
         root.removeAllViews()
         root.addView(body("Pick where your home page comes from. AniList is on by default; everything else is optional."))
 
+        root.addView(heading("Metadata services"))
+        root.addView(body("If a service is down or rate limited, Nekomo switches to a backup automatically (AniList, then Kitsu and MyAnimeList)."))
+        listOf(
+            "anilist" to "AniList (main)", "kitsu" to "Kitsu (backup)", "jikan" to "MyAnimeList via Jikan (backup)",
+            "tvmaze" to "TVMaze (TV shows)", "tmdb" to "TMDB (movies and TV, needs your key)"
+        ).forEach { (id, name) ->
+            root.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, dp(4), 0, dp(4))
+                addView(TextView(this@HomeSettingsActivity).apply { text = name; textSize = 14f }, LinearLayout.LayoutParams(0, -2, 1f))
+                addView(TextView(this@HomeSettingsActivity).apply {
+                    text = com.lagradost.shiro.utils.meta.ApiHealth.status(id)
+                    textSize = 12f
+                    alpha = 0.75f
+                })
+            })
+        }
+        root.addView(Button(this).apply {
+            text = "Test backups: pretend AniList is down for 5 min"
+            isAllCaps = false
+            setOnClickListener {
+                com.lagradost.shiro.utils.meta.ApiHealth.simulateOutage("anilist", 5)
+                com.lagradost.shiro.utils.home.HomeFeed.clear()
+                render()
+            }
+        })
+        root.addView(Button(this).apply {
+            text = "Reset service status"
+            isAllCaps = false
+            setOnClickListener { com.lagradost.shiro.utils.meta.ApiHealth.reset(); render() }
+        })
+
         root.addView(heading("Sources"))
         for (src in HomeRegistry.sources.filter { it.kind != SourceKind.LOCAL }) {
             val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(8)) }

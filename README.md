@@ -48,6 +48,10 @@ This repository contains the source code for **Nekomo**, an anime and manga trac
   (AniList by default; optional MyAnimeList via Jikan and Kitsu; official-service link-outs such as Crunchyroll and
   HIDIVE; rows from your own CloudStream providers), switch rows on or off and reorder them
 - 🔎 Search history, plus a rich title page (rating, status, genres, format, season, studio, release date, synopsis)
+- 🛟 **Backup metadata APIs**: if AniList fails or rate-limits, Kitsu and MyAnimeList (Jikan) take over automatically
+- 🎬 Movies and TV shows (TVMaze, plus TMDB with your own free key) when you turn them on, with episode lists for everything
+- 🔽 **Sources dropdown** on every title page (your preferred source first), **tracker-only mode** with episode progress when no sources are installed
+- 🪟 Pop-out (picture-in-picture) player and external player support
 - 📚 **Offline library** that works without an account (export, import, or sync to AniList later)
 - 🕶️ Incognito mode and an optional device-lock for the 18+ switch
 - 📄 In-app About, DMCA notice and Rules pages that link to the full text on the website

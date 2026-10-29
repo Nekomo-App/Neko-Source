@@ -1199,6 +1199,14 @@ fun loadPlayer(title: String?, url: String, startAt: Long?) {
 }*/
 
     fun FragmentActivity.loadPlayer(data: PlayerData) {
+        // Metadata-only episodes (no stream behind them): send the user to the title page to pick a source
+        if (data.card?.episodes?.getOrNull(data.episodeIndex ?: -1)?.ext == "meta") {
+            runOnUiThread {
+                Toast.makeText(this, "Pick a source for this title first.", Toast.LENGTH_LONG).show()
+                loadPage(data.slug, data.card.anime.title)
+            }
+            return
+        }
         runOnUiThread {
             masterViewModel?.playerData?.value = data
             val destination =

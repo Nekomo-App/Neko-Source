@@ -67,6 +67,7 @@ import com.lagradost.shiro.utils.*
 import com.lagradost.shiro.utils.AniListApi.Companion.authenticateAniList
 import com.lagradost.shiro.utils.AniListApi.Companion.fromIntToAnimeStatus
 import com.lagradost.shiro.utils.AniListApi.Companion.getShowId
+import com.lagradost.shiro.utils.AniListApi.Companion.postDataAboutId
 import com.lagradost.shiro.utils.AniListApi.Companion.secondsToReadable
 import com.lagradost.shiro.utils.AppUtils.castEpisode
 import com.lagradost.shiro.utils.AppUtils.dubbify
@@ -241,6 +242,130 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         }
     }
 
+    private fun metaTitle(): String? {
+        val anime = resultViewModel?.data?.value?.anime
+        return (anime?.title_english?.takeIf { it.isNotBlank() && !com.lagradost.shiro.utils.isExtensionSlug(anime.slug) } ?: anime?.title)
+    }
+
+    private fun currentSourceKey(slug: String): String? =
+        com.lagradost.shiro.utils.cs3.CsBridge.parseSlug(slug)?.first?.let { "cs:$it" }
+            ?: com.lagradost.shiro.utils.zg.ZangetsuBridge.parseSlug(slug)?.first?.let { "zg:$it" }
+            ?: com.lagradost.shiro.utils.aniyomi.AniyomiBridge.parseSlug(slug)?.first?.let { "ay:$it" }
+
+    /**
+     * Sources dropdown: the user's preferred source (default) and every other installed source or extension.
+     * Picking one makes it the new default and opens this title in it. Hidden when nothing is installed.
+     */
+    private fun setupSourceDropdown(data: NekomoApi.Companion.AnimePageNewData) {
+        val ctx = context ?: return
+        val row = fv<View>(R.id.source_row)
+        val spinner = fv<android.widget.Spinner>(R.id.source_spinner)
+        val slug = data.anime.slug
+        thread {
+            val cs = try { com.lagradost.shiro.utils.cs3.CsPluginManager.providers().map { it.name }.distinct() } catch (e: Exception) { emptyList() }
+            val zg = try { com.lagradost.shiro.utils.zg.ZangetsuManager.enabledSources(ctx) } catch (e: Exception) { emptyList() }
+            val ay = try { com.lagradost.shiro.utils.aniyomi.AniyomiBridge.sourceChoices() } catch (e: Exception) { emptyList() }
+            main {
+                val entries: List<Pair<String, String?>> = listOf("Info only (no streams)" to null) +
+                        cs.map { it to "cs:$it" } + zg.map { "Zangetsu · ${it.name}" to "zg:${it.id}" } + ay.map { "Aniyomi · ${it.first}" to "ay:${it.second}" }
+                if (entries.size == 1) {
+                    row.visibility = GONE
+                    return@main
+                }
+                val pref = com.lagradost.shiro.utils.PreferredSource.get(ctx)
+                val current = currentSourceKey(slug)
+                val labels = entries.map { (l, k) ->
+                    val tagged = l + if (k != null && k == pref) "  ★ default" else ""
+                    com.lagradost.shiro.utils.SourceHealth.label(tagged, k ?: "")
+                }
+                spinner.adapter = android.widget.ArrayAdapter(ctx, android.R.layout.simple_spinner_dropdown_item, labels)
+                val selected = entries.indexOfFirst { it.second != null && it.second == current }.takeIf { it >= 0 }
+                    ?: entries.indexOfFirst { it.second != null && it.second == pref }.takeIf { it >= 0 } ?: 0
+                spinner.setSelection(selected, false)
+                row.visibility = VISIBLE
+                spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                    override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                    override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                        val (label, key) = entries[position]
+                        if (key == null || position == selected) return
+                        com.lagradost.shiro.utils.PreferredSource.set(ctx, key)
+                        if (key != current) metaTitle()?.let { searchSource(key, label, it) }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Tapping a metadata-only episode: play it through a source, or just track it. */
+    private fun showMetaEpisodeMenu(data: NekomoApi.Companion.AnimePageNewData, index: Int) {
+        val ctx = context ?: return
+        val slug = data.anime.slug
+        val total = data.episodes.size
+        val watched = com.lagradost.shiro.utils.Tracker.isWatched(ctx, slug, index)
+        val epTitle = data.episodes.getOrNull(index)?.title ?: "Episode ${index + 1}"
+        val pref = com.lagradost.shiro.utils.PreferredSource.get(ctx)
+        val options = ArrayList<Pair<String, () -> Unit>>()
+
+        if (com.lagradost.shiro.utils.SourceState.hasAny(ctx)) {
+            if (pref != null) options.add("Play with your default source" to { metaTitle()?.let { searchSource(pref, pref.substringAfter(':'), it) } })
+            options.add("Choose a source to play…" to { showSourceChooser() })
+        }
+
+        fun mark(from: Int, to: Int, value: Boolean) {
+            val ok = com.lagradost.shiro.utils.Tracker.mark(ctx, slug, data.anime.title, data.anime.poster, total, from, to, value)
+            if (!ok) {
+                Toast.makeText(ctx, "Incognito mode is on, so progress is not saved.", Toast.LENGTH_LONG).show()
+                return
+            }
+            (fv<RecyclerView>(R.id.episodes_res_view)?.adapter as? MasterEpisodeAdapter)?.notifyDataSetChanged()
+            val alId = Regex("^al(\\d+)$").find(slug)?.groupValues?.get(1)?.toIntOrNull()
+            val progress = com.lagradost.shiro.utils.Tracker.progress(ctx, slug, total)
+            if (alId != null && hasAniList) thread {
+                val status = if (total > 0 && progress >= total) AniListApi.Companion.AniListStatusType.Completed else AniListApi.Companion.AniListStatusType.Watching
+                ctx.postDataAboutId(alId, status, 0, progress)
+            }
+            Toast.makeText(ctx, if (value) "Marked as watched" else "Marked as unwatched", Toast.LENGTH_SHORT).show()
+        }
+
+        options.add((if (watched) "Mark as unwatched" else "Mark as watched") to { mark(index, index, !watched) })
+        if (index > 0) options.add("Mark all up to here as watched" to { mark(0, index, true) })
+
+        AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+            .setTitle(epTitle)
+            .setItems(options.map { it.first }.toTypedArray()) { _, which -> options[which].second() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /** Globe button: switch sub/dub when both exist, and open this title on the web (AniList, MyAnimeList, ...). */
+    private fun showGlobeMenu() {
+        val ctx = context ?: return
+        val data = resultViewModel?.data?.value ?: return
+        val slug = data.anime.slug
+        val options = ArrayList<Pair<String, () -> Unit>>()
+        if (resultViewModel?.hasLoadedOther?.value == true) options.add("Switch between sub and dub" to { resultViewModel?.swapData() })
+
+        val al = Regex("^al(\\d+)$").find(slug)?.groupValues?.get(1) ?: resultViewModel?.totalAniListId?.value?.toString()
+        val mal = Regex("^mal(\\d+)$").find(slug)?.groupValues?.get(1)
+            ?: runCatching { mapper.readTree(data.anime.ids).path("mal").asText(null)?.takeIf { it != "null" } }.getOrNull()
+            ?: resultViewModel?.totalMalId?.value?.toString()
+        if (al != null) options.add("Open on AniList" to { activity?.openBrowser("https://anilist.co/anime/$al") })
+        if (mal != null) options.add("Open on MyAnimeList" to { activity?.openBrowser("https://myanimelist.net/anime/$mal") })
+        Regex("^kt(\\d+)$").find(slug)?.groupValues?.get(1)?.let { id -> options.add("Open on Kitsu" to { activity?.openBrowser("https://kitsu.app/anime/$id") }) }
+        Regex("^tvm(\\d+)$").find(slug)?.groupValues?.get(1)?.let { id -> options.add("Open on TVMaze" to { activity?.openBrowser("https://www.tvmaze.com/shows/$id") }) }
+        Regex("^tmm(\\d+)$").find(slug)?.groupValues?.get(1)?.let { id -> options.add("Open on TMDB" to { activity?.openBrowser("https://www.themoviedb.org/movie/$id") }) }
+        Regex("^tmt(\\d+)$").find(slug)?.groupValues?.get(1)?.let { id -> options.add("Open on TMDB" to { activity?.openBrowser("https://www.themoviedb.org/tv/$id") }) }
+        if (options.isEmpty()) {
+            Toast.makeText(ctx, "No web page is available for this title.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+            .setTitle("Language and web")
+            .setItems(options.map { it.first }.toTypedArray()) { _, which -> options[which].second() }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun searchSource(key: String?, label: String, title: String) {
         val ctx = context ?: return
         val providerName = if (key == null) null else label
@@ -315,9 +440,17 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             loadSeason()
             // Nekomo bundles no streaming source: an AniList title has no episodes until the user
             // picks one of the sources they installed themselves.
-            val needsSource = data.episodes.isEmpty() && !com.lagradost.shiro.utils.isExtensionSlug(data.anime.slug)
+            val needsSource = data.episodes.none { it.ext != "meta" } && !com.lagradost.shiro.utils.isExtensionSlug(data.anime.slug)
+            setupSourceDropdown(data)
             fv<android.widget.TextView>(R.id.source_hint)?.apply {
                 visibility = if (needsSource) VISIBLE else GONE
+                val hasEpisodes = data.episodes.isNotEmpty()
+                val hasSources = com.lagradost.shiro.utils.SourceState.hasAny(context)
+                text = when {
+                    hasEpisodes && hasSources -> "Tap an episode to play it or mark it watched. To stream, pick a source in the dropdown or tap here."
+                    hasEpisodes -> "Tracker mode: tap an episode to mark it watched. Add a source in Settings > Extensions if you also want to stream."
+                    else -> "No episodes yet. Tap here (or the cloud icon) to find this title in the sources you installed."
+                }
                 setOnClickListener { showSourceChooser() }
             }
 
@@ -682,6 +815,10 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
     private fun handleAction(episodeClick: EpisodeClickEvent): Job = main {
         val index = episodeClick.data.episode
         val clickData = episodeClick.data.data ?: return@main
+        if (clickData.episodes.getOrNull(index)?.ext == "meta") {
+            showMetaEpisodeMenu(clickData, index)
+            return@main
+        }
         var currentLinks: List<ExtractorLink>? = null
         currentLoadingCount++
 
@@ -1049,16 +1186,14 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             }
         }
 
-        fv<android.widget.ImageView>(R.id.language_btt)?.setOnClickListener {
-            resultViewModel?.swapData()
-        }
+        fv<android.widget.ImageView>(R.id.language_btt)?.setOnClickListener { showGlobeMenu() }
 
         fv<android.widget.ImageView>(R.id.source_btt)?.setOnClickListener { showSourceChooser() }
 
         observe(resultViewModel!!.hasLoadedOther) {
             val transition: Transition = ChangeBounds()
             transition.duration = 100
-            fv<android.widget.ImageView>(R.id.language_btt)?.isVisible = it
+            fv<android.widget.ImageView>(R.id.language_btt)?.isVisible = true
             fv<android.widget.HorizontalScrollView>(R.id.fragment_results_toolbar)?.let {
                 TransitionManager.beginDelayedTransition(it, transition)
             }

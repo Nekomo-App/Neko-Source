@@ -4,6 +4,13 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
 >
     <SwitchPreference
+            android:icon="@drawable/ic_baseline_open_in_browser_24"
+            app:key="external_player_default"
+            android:title="Open videos in an external player"
+            android:summary="Streams open in VLC, MX Player or another installed player instead of the built-in player. You can also tap External in the player at any time."
+            app:defaultValue="false"
+    />
+    <SwitchPreference
             android:icon="@drawable/ic_baseline_picture_in_picture_alt_24"
             app:key="pip_enabled"
             android:title="Picture-in-picture"

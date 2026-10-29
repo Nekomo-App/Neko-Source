@@ -43,6 +43,18 @@ object LocalLibrary {
         context.setKey(KEY, cur + Entry(slug, title, poster, status, System.currentTimeMillis(), old?.progress ?: 0))
     }
 
+    /** Called when episodes are marked watched: creates/updates the entry so it shows up in the offline library. */
+    @Synchronized
+    fun setProgress(context: Context, slug: String, title: String, poster: String?, progress: Int, total: Int) {
+        val old = all(context).firstOrNull { it.slug == slug }
+        val status = when {
+            total > 0 && progress >= total -> "Completed"
+            progress > 0 && (old == null || old.status == "Plan to watch") -> "Watching"
+            else -> old?.status ?: (if (progress > 0) "Watching" else return)
+        }
+        context.setKey(KEY, all(context).filter { it.slug != slug } + Entry(slug, old?.title ?: title, old?.poster ?: poster, status, System.currentTimeMillis(), progress))
+    }
+
     @Synchronized
     fun remove(context: Context, slug: String) {
         context.setKey(KEY, all(context).filter { it.slug != slug })

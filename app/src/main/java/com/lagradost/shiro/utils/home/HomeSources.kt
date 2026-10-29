@@ -39,6 +39,9 @@ interface HomeSource {
     val attribution: String
     val termsUrl: String
 
+    /** True for providers of movies / TV shows (their rows need the "Show movies and TV shows" switch). */
+    val nonAnime: Boolean get() = false
+
     fun sections(): List<HomeSectionDef>
 
     /** Blocking; returns null on failure. Called off the main thread. */
@@ -55,7 +58,10 @@ object HomeFilters {
 
 object HomeRegistry {
     val sources: List<HomeSource> by lazy {
-        listOf(LocalHomeSource, AniListHomeSource, JikanHomeSource, KitsuHomeSource, OfficialHomeSource, CloudStreamHomeSource)
+        listOf(
+            LocalHomeSource, AniListHomeSource, JikanHomeSource, KitsuHomeSource, TvMazeHomeSource, TmdbHomeSource,
+            OfficialHomeSource, CloudStreamHomeSource
+        )
     }
 
     fun source(id: String) = sources.firstOrNull { it.id == id }
@@ -137,7 +143,8 @@ object AniListHomeSource : HomeSource {
                 LiveApi.listQuery(page("POPULARITY_DESC", ", genre: \"${section.id.removePrefix("genre:")}\""))
             else -> null
         }
-        return data?.map { it.toCard() }?.distinctBy { it.slug }
+        val cards = data?.map { it.toCard() }?.distinctBy { it.slug }
+        return if (!cards.isNullOrEmpty()) cards else KitsuHomeSource.fallbackFor(section) ?: JikanHomeSource.fallbackFor(section)
     }
 
     /** Seeded by what the user already likes (favorites + offline library); falls back to top rated. */
@@ -180,6 +187,15 @@ object JikanHomeSource : HomeSource {
         "jikan:popular" -> "https://api.jikan.moe/v4/top/anime?filter=bypopularity&sfw=true&limit=25"
         "jikan:upcoming" -> "https://api.jikan.moe/v4/top/anime?filter=upcoming&sfw=true&limit=25"
         else -> null
+    }
+
+    fun fallbackFor(section: HomeSectionDef): List<NekomoApi.CommonAnimePageData>? {
+        val target = when (section.id) {
+            "top_rated", "recommended" -> "jikan:top"
+            "season", "recent" -> "jikan:airing"
+            else -> "jikan:popular"
+        }
+        return fetch(com.lagradost.shiro.AcraApplication.context ?: return null, HomeSectionDef(target, "", id))
     }
 
     override fun fetch(context: Context, section: HomeSectionDef): List<NekomoApi.CommonAnimePageData>? {
@@ -236,8 +252,22 @@ object KitsuHomeSource : HomeSource {
         else -> null
     }
 
-    override fun fetch(context: Context, section: HomeSectionDef): List<NekomoApi.CommonAnimePageData>? {
-        val q = query(section) ?: return null
+    override fun fetch(context: Context, section: HomeSectionDef): List<NekomoApi.CommonAnimePageData>? =
+        query(section)?.let { fetchQuery(it) }
+
+    /** Stand-in for an AniList row while AniList is unavailable. */
+    fun fallbackFor(section: HomeSectionDef): List<NekomoApi.CommonAnimePageData>? {
+        val id = section.id
+        val q = when {
+            id == "top_rated" || id == "recommended" -> "sort=-averageRating"
+            id == "season" || id == "recent" -> "filter%5Bstatus%5D=current&sort=-userCount"
+            id.startsWith("genre:") -> "filter%5Bcategories%5D=" + id.removePrefix("genre:").lowercase().replace(" ", "-") + "&sort=-userCount"
+            else -> "sort=-userCount"
+        }
+        return fetchQuery(q)
+    }
+
+    private fun fetchQuery(q: String): List<NekomoApi.CommonAnimePageData>? {
         val url = "https://kitsu.io/api/edge/anime?$q&page%5Blimit%5D=20&include=mappings" +
                 "&fields%5Bmappings%5D=externalSite,externalId&fields%5Banime%5D=canonicalTitle,titles,posterImage,mappings,ageRating"
         return try {
@@ -262,6 +292,51 @@ object KitsuHomeSource : HomeSource {
             null
         }
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+
+/** TV shows from TVMaze (free, no key). Shown only with "Show movies and TV shows". */
+object TvMazeHomeSource : HomeSource {
+    override val id = "tvmaze"
+    override val name = "TVMaze"
+    override val kind = SourceKind.METADATA
+    override val defaultEnabled = true
+    override val nonAnime = true
+    override val attribution = "TV show data from TVMaze (tvmaze.com), licensed CC BY-SA."
+    override val termsUrl = "https://www.tvmaze.com/api"
+
+    override fun sections() = listOf(HomeSectionDef("tvmaze:today", "TV shows airing today", id))
+
+    override fun fetch(context: Context, section: HomeSectionDef) = com.lagradost.shiro.utils.meta.MetaHub.tvmazeAiringToday()
+}
+
+/** Movies and TV shows from TMDB. Needs your own free API key (Settings -> General). */
+object TmdbHomeSource : HomeSource {
+    override val id = "tmdb"
+    override val name = "TMDB"
+    override val kind = SourceKind.METADATA
+    override val defaultEnabled = true
+    override val nonAnime = true
+    override val attribution = "This product uses the TMDB API but is not endorsed or certified by TMDB. Add your free API key in Settings -> General."
+    override val termsUrl = "https://www.themoviedb.org/api-terms-of-use"
+
+    override fun sections() = listOf(
+        HomeSectionDef("tmdb:trending", "Trending movies and shows", id),
+        HomeSectionDef("tmdb:movies", "Popular movies", id),
+        HomeSectionDef("tmdb:tv", "Popular TV shows", id),
+        HomeSectionDef("tmdb:toptv", "Top rated TV shows", id, defaultEnabled = false),
+    )
+
+    override fun fetch(context: Context, section: HomeSectionDef): List<NekomoApi.CommonAnimePageData>? = com.lagradost.shiro.utils.meta.MetaHub.tmdbList(
+        when (section.id) {
+            "tmdb:trending" -> "trending/all/week"
+            "tmdb:movies" -> "movie/popular"
+            "tmdb:tv" -> "tv/popular"
+            "tmdb:toptv" -> "tv/top_rated"
+            else -> return null
+        }
+    )
 }
 
 // ---------------------------------------------------------------------------------------------------------------

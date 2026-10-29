@@ -207,6 +207,8 @@ class SearchFragment : Fragment() {
                         hideChinese
                     )
                     activity?.runOnUiThread {
+                        // A newer search has started: ignore this older answer
+                        if (fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.query?.toString()?.trim() != query.trim()) return@runOnUiThread
                         if (data == null) {
                             //Toast.makeText(activity, "Server error", Toast.LENGTH_LONG).show()
                             fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar)?.visibility = View.GONE
@@ -243,6 +245,9 @@ class SearchFragment : Fragment() {
                 if (newText != "") {
                     fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar).visibility = View.VISIBLE
                     thread {
+                        // Wait for the user to pause typing so each keystroke does not hit the APIs
+                        Thread.sleep(450)
+                        if (searchViewModel?.searchQuery?.value != newText) return@thread
                         val data =
                             NekomoApi.searchNew(
                                 newText,
@@ -250,6 +255,8 @@ class SearchFragment : Fragment() {
                                 hideChinese
                             )
                         activity?.runOnUiThread {
+                            // A newer search has started: ignore this older answer
+                            if (fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.query?.toString() != newText) return@runOnUiThread
                             // Nullable since takes time to get data
                             if (data == null) {
                                 //Toast.makeText(activity, "Server error", Toast.LENGTH_LONG).show()
