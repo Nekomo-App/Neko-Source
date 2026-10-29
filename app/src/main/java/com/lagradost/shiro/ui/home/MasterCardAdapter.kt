@@ -13,6 +13,10 @@ import com.lagradost.shiro.ui.LastEpisodeInfo
 import com.lagradost.shiro.ui.home.HomeFragment.Companion.homeViewModel
 import com.lagradost.shiro.utils.AppUtils.displayCardData
 import com.lagradost.shiro.utils.NekomoApi
+import com.lagradost.shiro.utils.home.HomeFeed
+import com.lagradost.shiro.utils.home.HomeLayout
+import com.lagradost.shiro.utils.home.SourceKind
+import kotlin.concurrent.thread
 
 
 class MasterCardAdapter(
@@ -22,6 +26,26 @@ class MasterCardAdapter(
 
     var activity: FragmentActivity? = context
     private var filtered: List<Pair<List<Any?>?, String?>> = generateFiltered()
+
+    // Sections the user enabled in Settings -> Home page, beyond the two fixed rows (trending / recently updated).
+    private fun extraSections() = activity?.let { act ->
+        HomeLayout.active(act).filter {
+            it.source.kind != SourceKind.LOCAL && it.source.kind != SourceKind.OFFICIAL &&
+                    it.def.id != "trending" && it.def.id != "recent"
+        }
+    } ?: emptyList()
+
+    init {
+        val act = activity
+        val pending = extraSections().filter { HomeFeed.cached(it.def.id) == null }
+        if (act != null && pending.isNotEmpty()) thread {
+            pending.forEach { HomeFeed.load(act, it) }
+            act.runOnUiThread {
+                filtered = generateFiltered()
+                notifyDataSetChanged()
+            }
+        }
+    }
 
     private fun generateFiltered(): List<Pair<List<Any?>?, String?>> {
         val data = homeViewModel!!.apiData.value
@@ -46,7 +70,7 @@ class MasterCardAdapter(
             }?.distinctBy { it.slug }, activity?.getString(R.string.home_recently_updated)),
 //            Pair(data?.data?.ongoing_animes, activity?.getString(R.string.home_ongoing)),
 //            Pair(data?.data?.latest_animes, activity?.getString(R.string.latest_anime))
-        ).filter {
+        ).plus(extraSections().map { Pair(HomeFeed.cached(it.def.id), it.def.title) }).filter {
             it.first != null && it.first?.isNotEmpty() == true
         }
     }

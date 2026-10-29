@@ -46,6 +46,10 @@ import com.lagradost.shiro.utils.NekomoApi.Companion.initShiroApi
 import com.lagradost.shiro.utils.NekomoApi.Companion.requestHome
 import com.lagradost.shiro.utils.mvvm.logError
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
+import com.lagradost.shiro.utils.home.HomeFeed
+import com.lagradost.shiro.utils.home.HomeLayout
+import com.lagradost.shiro.utils.home.LocalHomeSource
+import com.lagradost.shiro.utils.home.SourceKind
 import kotlin.concurrent.thread
 
 //const val MAXIMUM_FADE = 0.3f
@@ -97,6 +101,8 @@ class HomeFragment : Fragment() {
                 fv<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.home_swipe_refresh)?.isEnabled = true
                 fv<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.home_swipe_refresh).setOnRefreshListener {
                     generateRandom()
+                    HomeFeed.clear()
+                    renderSections(true)
                     fv<androidx.swiperefreshlayout.widget.SwipeRefreshLayout>(R.id.home_swipe_refresh).isRefreshing = false
                 }
             } else {
@@ -133,6 +139,7 @@ class HomeFragment : Fragment() {
             //displayCardData(data?.recentlyAddedData, recentScrollView)
             displayFav()
             displaySubbed()
+            renderSections()
 
             /*
             if (data?.schedule?.isNotEmpty() == true) {
@@ -279,6 +286,121 @@ class HomeFragment : Fragment() {
 
     }
 
+    private var renderedSignature = ""
+    private val specialViews = HashMap<String, View>()
+
+    /**
+     * Builds the customizable part of the home page from [HomeLayout]: native rows (continue watching, subscribed,
+     * favorites) are re-ordered, and every other enabled section becomes a lazily loaded poster row.
+     */
+    private fun renderSections(force: Boolean = false) {
+        val ctx = context ?: return
+        val container = fv<android.widget.LinearLayout>(R.id.home_sections) ?: return
+        val active = HomeLayout.active(ctx)
+        val signature = active.joinToString(",") { it.def.id }
+        if (!force && signature == renderedSignature) return
+        renderedSignature = signature
+
+        // The old fixed trending / recently-updated blocks are replaced by the dynamic rows below
+        listOf(R.id.trending_text, R.id.recently_updated_text).forEach { fv<View>(it)?.visibility = GONE }
+        listOf(R.id.trending_anime_scroll_view, R.id.recently_updated_scroll_view).forEach {
+            (fv<View>(it)?.parent as? View)?.visibility = GONE
+        }
+        if (specialViews.isEmpty()) {
+            specialViews[LocalHomeSource.CONTINUE] = fv<View>(R.id.recentlySeenRoot) ?: return
+            specialViews[LocalHomeSource.SUBSCRIBED] = fv<View>(R.id.subscribedRoot) ?: return
+            specialViews[LocalHomeSource.FAVORITES] = fv<View>(R.id.favouriteRoot) ?: return
+        }
+        specialViews.values.forEach { (it.parent as? android.view.ViewGroup)?.removeView(it) }
+        container.removeAllViews()
+
+        for (entry in active) {
+            val special = specialViews[entry.def.id]
+            if (special != null) {
+                container.addView(special)
+                continue
+            }
+            val row = layoutInflater.inflate(R.layout.home_section_row, container, false)
+            row.alpha = 0f
+            row.visibility = GONE
+            container.addView(row)
+            loadSection(entry, row)
+        }
+
+        container.addView(android.widget.TextView(ctx).apply {
+            text = "Customize home page"
+            gravity = android.view.Gravity.CENTER
+            textSize = 14f
+            alpha = 0.75f
+            setPadding(0, 24.toPx, 0, 40.toPx)
+            setOnClickListener {
+                startActivity(android.content.Intent(ctx, com.lagradost.shiro.ui.settings.HomeSettingsActivity::class.java))
+            }
+        })
+    }
+
+    private fun loadSection(entry: HomeLayout.Entry, row: View) {
+        val ctx = context ?: return
+        val title = row.findViewById<android.widget.TextView>(R.id.section_title)
+        val list = row.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.section_list)
+        val progress = row.findViewById<View>(R.id.section_progress)
+        title.text = entry.def.title
+
+        fun show(items: List<NekomoApi.CommonAnimePageData>?) {
+            val act = activity ?: return
+            if (items.isNullOrEmpty()) {
+                row.visibility = GONE
+                return
+            }
+            progress.visibility = GONE
+            if (entry.source.kind == SourceKind.OFFICIAL) {
+                title.compoundDrawables.forEach { it?.alpha = 0 }
+                list.adapter = OfficialLinksAdapter(items)
+            } else {
+                act.displayCardData(items, list, title)
+            }
+            row.visibility = VISIBLE
+            row.animate().alpha(1f).setDuration(250).start()
+        }
+
+        HomeFeed.cached(entry.def.id)?.let { show(it); return }
+        row.visibility = VISIBLE
+        row.alpha = 1f
+        thread {
+            val items = HomeFeed.load(ctx, entry)
+            activity?.runOnUiThread { normalSafeApiCall { show(items) } }
+        }
+    }
+
+    /** Link-out cards for official services: they open the service's own site or app. */
+    private class OfficialLinksAdapter(private val items: List<NekomoApi.CommonAnimePageData>) :
+        androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+            val b = com.google.android.material.button.MaterialButton(parent.context).apply {
+                layoutParams = androidx.recyclerview.widget.RecyclerView.LayoutParams(150.toPx, 90.toPx).apply { setMargins(8.toPx, 8.toPx, 8.toPx, 8.toPx) }
+                isAllCaps = false
+                cornerRadius = 12.toPx
+            }
+            return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(b) {}
+        }
+
+        override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+            val item = items[position]
+            (holder.itemView as com.google.android.material.button.MaterialButton).apply {
+                text = item.name
+                setOnClickListener { com.lagradost.shiro.ui.welcome.SocialLinks.openUrl(context, item.slug) }
+            }
+        }
+
+        override fun getItemCount() = items.size
+    }
+
+    override fun onDestroyView() {
+        specialViews.clear()
+        renderedSignature = ""
+        super.onDestroyView()
+    }
+
     private fun onHomeErrorCatch(fullRe: Boolean) {
         activity?.runOnUiThread {
             if (fv<android.widget.Button>(R.id.main_reload_data_btt) != null) {
@@ -343,6 +465,7 @@ class HomeFragment : Fragment() {
 
 
     override fun onResume() {
+        normalSafeApiCall { renderSections() }
         observe(homeViewModel!!.subscribed) {
             displaySubbed()
         }
@@ -386,18 +509,6 @@ class HomeFragment : Fragment() {
         }
 
 
-
-        if (guaranteedContext(context).getKey("DMCA_MESSAGE", false) == false) {
-            guaranteedContext(context).setKey("DMCA_MESSAGE", true)
-            AlertDialog.Builder(guaranteedContext(context), R.style.AlertDialogCustom)
-                .setCancelable(false)
-                .setTitle("DMCA DISCLAIMER")
-                .setPositiveButton("I understand") { dialogInterface, _ ->
-                    dialogInterface.dismiss()
-                }
-                .setMessage("Nekomo is only a front-end for content provided by third-party sources. It does not host nor control the videos accessible in the app. The legality of the content shown in the app is therefore the responsibility of the video hosts. It's also the users responsibility to make sure that their usage of this app is legal in their country. Use this app at your own risk!\n\nIn case of copyright infringement contact the offending video hosting provider!\n\nThis app is only for personal and educational use.\n")
-                .show()
-        }
 
         // CAUSES CRASH ON 6.0.0
         /*fv<com.nirhart.parallaxscroll.views.ParallaxScrollView>(R.id.main_scroll).setOnScrollChangeListener { v, scrollX, scrollY, oldScrollX, oldScrollY ->

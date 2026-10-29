@@ -48,7 +48,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
     private var statusView: TextView? = null
     private var hiddenForBrowser = false
 
-    private enum class Step { SIGN_IN, RULES }
+    private enum class Step { SIGN_IN, DMCA, RULES }
 
     private val bg = Cyanea.instance.backgroundColor
     private val fg = if (Cyanea.instance.isDark) Color.WHITE else Color.BLACK
@@ -94,6 +94,10 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
             }
         })
 
+        // Returning users who already signed in / skipped only need the steps they have not seen yet
+        if (AuthManager.isSignedIn(ctx) || AuthManager.hasSkippedSignIn(ctx)) {
+            step = if (!AuthManager.hasSeenDmca(ctx)) Step.DMCA else Step.RULES
+        }
         render()
         dialog.show()
         poll()
@@ -107,11 +111,8 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
             try {
                 val signedIn = AuthManager.isSignedIn(ctx)
                 if (signedIn && step == Step.SIGN_IN) {
-                    if (AuthManager.hasAcceptedRules(ctx)) {
-                        dialog.dismiss(); return@postDelayed
-                    }
-                    step = Step.RULES
-                    restore(); render()
+                    restore()
+                    advance(Step.SIGN_IN)
                 } else if (!signedIn && hiddenForBrowser &&
                     activity.supportFragmentManager.findFragmentByTag("WEB_VIEW") == null
                 ) {
@@ -136,7 +137,11 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
 
     private fun render() {
         root.removeAllViews()
-        if (step == Step.SIGN_IN) renderSignIn() else renderRules()
+        when (step) {
+            Step.SIGN_IN -> renderSignIn()
+            Step.DMCA -> renderDmca()
+            Step.RULES -> renderRules()
+        }
         root.post { root.findFocus() ?: root.getChildAt(0)?.requestFocus() }
     }
 
@@ -200,13 +205,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
 
         root.addView(button("Skip for now", 0xFF616161.toInt()) {
             AuthManager.setSignInSkipped(ctx)
-            if (AuthManager.hasAcceptedRules(ctx)) {
-                handler.removeCallbacksAndMessages(null)
-                dialog.dismiss()
-            } else {
-                step = Step.RULES
-                render()
-            }
+            advance(Step.SIGN_IN)
         })
         root.addView(linkText("Create an account") { showCreateAccount() })
 
@@ -230,6 +229,43 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
         root.addView(social, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
     }
 
+    /** Moves to the next step that still has to be shown, or closes the gate when everything is done. */
+    private fun advance(from: Step) {
+        val next = when {
+            from == Step.SIGN_IN && !AuthManager.hasSeenDmca(ctx) -> Step.DMCA
+            from != Step.RULES && !AuthManager.hasAcceptedRules(ctx) -> Step.RULES
+            else -> null
+        }
+        if (next == null) {
+            handler.removeCallbacksAndMessages(null)
+            dialog.dismiss()
+        } else {
+            step = next
+            render()
+        }
+    }
+
+    private fun renderDmca() {
+        val pad = SocialLinks.dp(ctx, 12)
+        root.addView(text("Copyright & DMCA notice", 24f, bold = true).apply {
+            setPadding(0, SocialLinks.dp(ctx, 24), 0, pad)
+        })
+        root.addView(text("Please read before continuing", 16f, bold = true).apply { setPadding(0, 0, 0, pad) })
+        val points = listOf(
+            "Nekomo does not host, store, upload or distribute any videos, manga or other media.",
+            "Anime information and artwork come from public metadata providers such as AniList. Nekomo is not affiliated with or endorsed by them or by any streaming service.",
+            "Nekomo includes no sources, repositories or extensions. Anything you add is your own choice and responsibility, and it is provided by third parties that Nekomo does not control.",
+            "You are responsible for following the copyright laws and the terms of service that apply to you. Please support official releases where you can.",
+            "Rights holders: Nekomo cannot remove content it does not host. Please contact the website or service hosting the material. The full DMCA policy explains how to reach us."
+        )
+        points.forEach { p -> root.addView(text("•  $p", 15f, alpha = true).apply { setPadding(0, 0, 0, pad) }) }
+        root.addView(linkText("Read the full DMCA policy") { SocialLinks.openUrl(ctx, ctx.getString(R.string.link_dmca)) })
+        root.addView(button("I understand", 0xFF43A047.toInt()) {
+            AuthManager.setDmcaSeen(ctx)
+            advance(Step.DMCA)
+        })
+    }
+
     private fun renderRules() {
         val (title, body) = rulesBody(activity)
         root.addView(text("Community Rules", 24f, bold = true).apply {
@@ -241,8 +277,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
         })
         root.addView(button(ctx.getString(R.string.rules_button), 0xFF43A047.toInt()) {
             AuthManager.setRulesAccepted(ctx)
-            handler.removeCallbacksAndMessages(null)
-            dialog.dismiss()
+            advance(Step.RULES)
         })
     }
 

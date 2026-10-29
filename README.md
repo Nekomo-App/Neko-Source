@@ -44,6 +44,13 @@ This repository contains the source code for **Nekomo**, an anime and manga trac
 - 📖 Built-in manga reader for Mihon sources
 - 📱🖥️ Phone and Android TV flavors from one codebase, with stable / beta / debug channels
 - 🔄 In-app updater that reads GitHub releases (stable or pre-release channel, configurable repositories)
+- 🏠 **Customizable home page**: trending, popular, recently updated, recommended and genre rows. Choose your sources
+  (AniList by default; optional MyAnimeList via Jikan and Kitsu; official-service link-outs such as Crunchyroll and
+  HIDIVE; rows from your own CloudStream providers), switch rows on or off and reorder them
+- 🔎 Search history, plus a rich title page (rating, status, genres, format, season, studio, release date, synopsis)
+- 📚 **Offline library** that works without an account (export, import, or sync to AniList later)
+- 🕶️ Incognito mode and an optional device-lock for the 18+ switch
+- 📄 In-app About, DMCA notice and Rules pages that link to the full text on the website
 - 🔒 Optional DNS-over-HTTPS for the app's own API traffic
 - 🪵 Persistent in-app error log with one-tap GitHub issue reporting
 

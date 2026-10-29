@@ -20,6 +20,7 @@ const val KITSU_USER_KEY = "kitsu_user"
 const val KITSU_ACCOUNT_ID = "0"
 private const val RULES_ACCEPTED_KEY = "community_rules_accepted"
 private const val SIGN_IN_SKIPPED_KEY = "sign_in_skipped"
+private const val DMCA_SEEN_KEY = "dmca_notice_seen_v1"
 
 /**
  * Sign-in gate state. A user counts as signed in only when a token AND a fetched
@@ -57,7 +58,16 @@ object AuthManager {
 
     /** Signed in or explicitly skipped; the community rules still have to be accepted. */
     fun canEnter(context: Context): Boolean =
-        (isSignedIn(context) || hasSkippedSignIn(context)) && hasAcceptedRules(context)
+        (isSignedIn(context) || hasSkippedSignIn(context)) && hasSeenDmca(context) && hasAcceptedRules(context)
+
+    /** The DMCA notice is shown once, right after signing in or skipping, before the home screen. */
+    fun hasSeenDmca(context: Context): Boolean = try {
+        context.getKey<Boolean>(DMCA_SEEN_KEY, false) ?: false
+    } catch (e: Exception) {
+        false
+    }
+
+    fun setDmcaSeen(context: Context) = context.setKey(DMCA_SEEN_KEY, true)
 
     fun hasAcceptedRules(context: Context): Boolean = try {
         context.getKey<Boolean>(RULES_ACCEPTED_KEY, false) ?: false

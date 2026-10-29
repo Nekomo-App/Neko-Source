@@ -62,6 +62,7 @@ object LiveApi {
         bannerImage
         description(asHtml: false)
         genres format seasonYear status averageScore episodes duration
+        season studios(isMain: true) { nodes { name } }
         startDate { year month day }
         nextAiringEpisode { episode }
     """
@@ -124,6 +125,21 @@ object LiveApi {
     private fun normTitle(s: String?): String =
         (s ?: "").lowercase().replace(Regex("[^a-z0-9]"), "")
 
+    private fun prettyStatus(s: String) = when (s) {
+        "FINISHED" -> "Finished airing"
+        "RELEASING" -> "Currently airing"
+        "NOT_YET_RELEASED" -> "Not yet released"
+        "CANCELLED" -> "Cancelled"
+        "HIATUS" -> "On hiatus"
+        else -> s
+    }
+
+    private fun prettyFormat(s: String) = when (s) {
+        "TV_SHORT" -> "TV short"
+        "MOVIE", "SPECIAL", "MUSIC" -> s.lowercase().replaceFirstChar { it.uppercase() }
+        else -> s
+    }
+
     private fun mediaSlug(media: JsonNode): String = "al${media.path("id").asInt()}"
 
     private fun mediaToData(media: JsonNode, slugOverride: String? = null): NekomoApi.Companion.Data {
@@ -144,7 +160,7 @@ object LiveApi {
                 mapOf("mal" to mal?.toString(), "anilist" to al.toString())
             ),
             type = "anime",
-            format = media.txt("format"),
+            format = prettyFormat(media.txt("format")),
             episodes = media.txt("episodes"),
             episode_duration = media.txt("duration"),
             synopsis = media.txt("description")
@@ -152,14 +168,14 @@ object LiveApi {
                 .replace(Regex("<[^>]*>"), ""),
             language = "sub",
             synonyms = "",
-            season = "",
+            season = media.txt("season").lowercase().replaceFirstChar { it.uppercase() },
             release_year = media.txt("seasonYear").ifEmpty { null },
             score = media.txt("averageScore"),
             rating = "",
-            studios = "",
+            studios = media.path("studios").path("nodes").mapNotNull { it.path("name").asText(null) }.joinToString(", "),
             genres = media.path("genres").mapNotNull { it.asText(null) }.joinToString(","),
             aired = aired,
-            status = media.txt("status"),
+            status = prettyStatus(media.txt("status")),
             trailer = "",
             total_views = "0",
             created_at = "",
@@ -174,6 +190,7 @@ object LiveApi {
     fun getTrending(): NekomoApi.Companion.ShowHolder? {
         val data = anilist(TRENDING_QUERY, emptyMap()) ?: return null
         val list = data.path("Page").path("media").map { mediaToData(it) }
+            .filter { !com.lagradost.shiro.utils.home.HomeFilters.isBlocked(it.title, it.title_english, it.native_title) }
         return NekomoApi.Companion.ShowHolder("success", "", list)
     }
 
@@ -197,6 +214,7 @@ object LiveApi {
             val slug = mediaSlug(media)
             if (ep <= 0 || !seen.add("$slug-$ep")) return@forEach
             val d = mediaToData(media)
+            if (com.lagradost.shiro.utils.home.HomeFilters.isBlocked(d.title, d.title_english, d.native_title)) return@forEach
             holders.add(
                 NekomoApi.Companion.AnimeHolder(
                     anime = NekomoApi.Companion.Anime(
@@ -223,6 +241,25 @@ object LiveApi {
             )
         }
         return holders
+    }
+
+    /** Title fields shared by every AniList list query (used by the home sections). */
+    val homeMediaFields: String get() = MEDIA_FIELDS
+
+    /** Runs an AniList `Page { <listPath> { ... } }` query and maps the media (titles on the home blocklist are dropped). */
+    fun listQuery(query: String, vars: Map<String, Any?> = emptyMap(), listPath: String = "media"): List<NekomoApi.Companion.Data>? {
+        val data = anilist(query, vars) ?: return null
+        return data.path("Page").path(listPath).map { mediaToData(it) }
+            .filter { !com.lagradost.shiro.utils.home.HomeFilters.isBlocked(it.title, it.title_english, it.native_title) }
+    }
+
+    /** AniList "recommendations" for a title the user already likes (seeded from favorites / offline library). */
+    fun recommendationsFor(alId: Int): List<NekomoApi.Companion.Data> {
+        val q = "query(${"$"}id: Int) { Media(id: ${"$"}id, type: ANIME) { recommendations(sort: RATING_DESC, perPage: 12) { nodes { mediaRecommendation { $MEDIA_FIELDS } } } } }"
+        val nodes = anilist(q, mapOf("id" to alId))?.path("Media")?.path("recommendations")?.path("nodes") ?: return emptyList()
+        return nodes.mapNotNull { it.path("mediaRecommendation").takeIf { m -> !m.isMissingNode && !m.isNull } }
+            .map { mediaToData(it) }
+            .filter { !com.lagradost.shiro.utils.home.HomeFilters.isBlocked(it.title, it.title_english, it.native_title) }
     }
 
     fun getGenres(): List<String>? {
@@ -258,6 +295,7 @@ object LiveApi {
     fun getAnimePage(slug: String): NekomoApi.Companion.AnimePageNewRoot? {
         val bare = slug.removeSuffix("-dub")
 
+        if (Regex("""^mal\d+$""").matches(bare)) return getAnimePageByMal(bare.removePrefix("mal"))
         // Slugs from user-installed sources are self-contained tokens
         if (CsBridge.isCs3Slug(bare)) return CsBridge.getAnimePage(bare)
         if (com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(bare)) return com.lagradost.shiro.utils.zg.ZangetsuBridge.getAnimePage(bare)

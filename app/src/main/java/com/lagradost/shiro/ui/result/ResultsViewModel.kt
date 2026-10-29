@@ -225,12 +225,13 @@ class ResultsViewModel : ViewModel() {
             val fixedAnilistId = anilistPage?.id ?: -1
             val fixedMalId = idMal?.toIntOrNull() ?: anilistPage?.idMal ?: -1
 
-            val localRecommendations = anilistPage?.recommendations?.nodes?.map {
+            val localRecommendations = anilistPage?.recommendations?.nodes?.mapNotNull { node ->
+                val rec = node.mediaRecommendation ?: return@mapNotNull null
                 AniListApi.Recommendation(
-                    it.mediaRecommendation.title.english ?: it.mediaRecommendation.title.romaji ?: "",
-                    it.mediaRecommendation.idMal ?: -1,
-                    it.mediaRecommendation.coverImage.large ?: it.mediaRecommendation.coverImage.medium,
-                    it.mediaRecommendation.averageScore
+                    rec.title.english ?: rec.title.romaji ?: "",
+                    rec.idMal ?: -1,
+                    rec.coverImage.large ?: rec.coverImage.medium,
+                    rec.averageScore
                 )
             } ?: listOf()
 

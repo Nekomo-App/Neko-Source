@@ -90,10 +90,17 @@
         >
 
         </activity>
-        <activity android:name=".ui.settings.CommunityRulesActivity"
+        <activity android:name=".ui.settings.AboutActivity"
                   android:theme="@style/preferenceActivityTheme"
-                  android:fitsSystemWindows="true"
-                  android:label="Community Rules"
+                  android:label="About"
+        />
+        <activity android:name=".ui.settings.LegalPageActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Legal"
+        />
+        <activity android:name=".ui.settings.HomeSettingsActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Home page"
         />
         <activity android:name=".ui.settings.IntegrationsActivity"
                   android:theme="@style/preferenceActivityTheme"

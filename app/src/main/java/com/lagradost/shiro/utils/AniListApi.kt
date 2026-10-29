@@ -791,7 +791,7 @@ class AniListApi {
 
     data class Nodes(
         @JsonProperty("id") val id: Int,
-        @JsonProperty("mediaRecommendation") val mediaRecommendation: MediaRecommendation
+        @JsonProperty("mediaRecommendation") val mediaRecommendation: MediaRecommendation? = null
     )
 
     data class GetDataMedia(

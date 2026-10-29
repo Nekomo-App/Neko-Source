@@ -1008,6 +1008,7 @@ object AppUtils {
 
 
     fun Context.setViewPosDur(data: PlayerData, pos: Long, dur: Long) {
+        if (com.lagradost.shiro.utils.Privacy.incognito(this)) return
         val key = getViewKey(data)
 
         if (settingsManager?.getBoolean("save_history", true) == true) {

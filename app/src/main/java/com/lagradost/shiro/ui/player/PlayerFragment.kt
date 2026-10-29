@@ -1726,6 +1726,7 @@ class PlayerFragment : Fragment() {
 
 
     private fun Context.updateProgress() {
+        if (com.lagradost.shiro.utils.Privacy.incognito(this)) return
         val episodeIndex = data?.episodeIndex ?: return
         val currentEpisodeProgress = episodeIndex + 1 + episodeOffset
 

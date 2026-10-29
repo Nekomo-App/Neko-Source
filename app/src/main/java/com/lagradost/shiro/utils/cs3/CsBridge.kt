@@ -76,8 +76,11 @@ object CsBridge {
                 apis.map { api ->
                     async(Dispatchers.IO) {
                         api to try {
-                            withTimeout(SEARCH_TIMEOUT_MS) { searchProvider(api, query) }
+                            withTimeout(SEARCH_TIMEOUT_MS) { searchProvider(api, query) }.also {
+                                com.lagradost.shiro.utils.SourceHealth.ok("cs:${api.name}")
+                            }
                         } catch (t: Throwable) {
+                            com.lagradost.shiro.utils.SourceHealth.fail("cs:${api.name}")
                             logError(t); null
                         }
                     }
@@ -106,6 +109,40 @@ object CsBridge {
         } catch (e: NotImplementedError) {
             api.search(query)
         }
+
+    data class HomeSectionRef(val apiName: String, val index: Int, val title: String)
+
+    /** Home-page rows exposed by the user's installed providers (CloudStream "mainPage"). */
+    fun homeSections(): List<HomeSectionRef> = try {
+        CsPluginManager.providers().flatMap { api ->
+            try {
+                if (!api.hasMainPage) emptyList()
+                else api.mainPage.mapIndexed { i, m -> HomeSectionRef(api.name, i, "${api.name} · ${m.name}") }
+            } catch (t: Throwable) {
+                emptyList()
+            }
+        }
+    } catch (t: Throwable) {
+        emptyList()
+    }
+
+    fun homeItems(apiName: String, index: Int): List<NekomoApi.CommonAnimePageData>? {
+        val api = CsPluginManager.findProvider(apiName) ?: return null
+        return try {
+            val page = api.mainPage.getOrNull(index) ?: return null
+            val res = runBlocking {
+                withTimeout(SEARCH_TIMEOUT_MS) {
+                    api.getMainPage(1, com.lagradost.cloudstream3.MainPageRequest(page.name, page.data, page.horizontalImages))
+                }
+            }
+            res?.items?.flatMap { it.list }?.map {
+                NekomoApi.CommonAnimePageData(it.name, it.posterUrl ?: "", makeSlug(api.name, it.url), api.name)
+            }
+        } catch (t: Throwable) {
+            logError(t)
+            null
+        }
+    }
 
     data class ProviderHit(val title: String, val slug: String)
 

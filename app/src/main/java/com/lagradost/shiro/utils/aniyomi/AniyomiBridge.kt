@@ -83,8 +83,9 @@ object AniyomiBridge {
                 list.map { src ->
                     async(Dispatchers.IO) {
                         src to try {
-                            searchSource(src, query)
+                            searchSource(src, query).also { com.lagradost.shiro.utils.SourceHealth.ok("ay:${src.id}") }
                         } catch (t: Throwable) {
+                            com.lagradost.shiro.utils.SourceHealth.fail("ay:${src.id}")
                             logError(t); emptyList()
                         }
                     }

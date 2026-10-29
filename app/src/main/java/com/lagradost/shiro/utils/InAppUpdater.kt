@@ -89,10 +89,10 @@ object InAppUpdater {
             .filter { repoRegex.matches(it) }.distinct().ifEmpty { DEFAULT_REPOS.split(',') }
     }
 
-    private fun parseVersion(s: String?): List<Int>? =
+    internal fun parseVersion(s: String?): List<Int>? =
         s?.let { versionRegex.find(it) }?.value?.split('.')?.mapNotNull { it.toIntOrNull() }?.takeIf { it.isNotEmpty() }
 
-    private fun compareVersions(a: List<Int>, b: List<Int>): Int {
+    internal fun compareVersions(a: List<Int>, b: List<Int>): Int {
         for (i in 0 until maxOf(a.size, b.size)) {
             val d = a.getOrElse(i) { 0 }.compareTo(b.getOrElse(i) { 0 })
             if (d != 0) return d

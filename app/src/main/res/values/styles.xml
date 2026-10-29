@@ -137,6 +137,21 @@
         <item name="textAllCaps">false</item>
     </style>
 
+    <style name="SettingsHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">20dp</item>
+        <item name="android:paddingEnd">20dp</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">6dp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
     <style name="SettingsItem">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">50sp</item>
@@ -316,6 +331,7 @@
     </style>
 
     <style name="preferenceActivityTheme">
+        <item name="android:fontFamily">@font/poppins_regular</item>
         <item name="android:textColor">?attr/textColor</item>
         <item name="android:tint">?attr/colorAccent</item>
     </style>

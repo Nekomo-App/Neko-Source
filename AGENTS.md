@@ -231,3 +231,35 @@ this toggle would just add a switch that does nothing.
   newest update; "Sync to AniList" pushes entries whose slug is `al<id>` once signed in.
 - Favorites (hearts), continue-watching, downloads and the existing Back up / Restore in Settings -> History also work
   without an account.
+
+## Home page, source kinds and adding new APIs
+
+- The phone home (`ui/home/HomeFragment.renderSections`) and TV home (`MasterCardAdapter`) are built from
+  `utils/home/HomeLayout` (user order, per-section and per-source switches; Settings -> Home page,
+  `ui/settings/HomeSettingsActivity`). `HomeFeed` caches section contents for 20 minutes.
+- Every provider implements `HomeSource` (`utils/home/HomeSources.kt`) and is listed in `HomeRegistry`. Each declares a
+  `SourceKind` so the UI always labels it: `OFFICIAL` (link-outs only, e.g. Crunchyroll/HIDIVE - no public streaming
+  API, so Nekomo only opens their site/app), `METADATA` (AniList, Jikan/MyAnimeList: titles/art/recommendations only),
+  `THIRD_PARTY` (rows published by the user's own CloudStream providers) and `LOCAL` (continue watching, subscribed,
+  favorites).
+- To add an API: implement `HomeSource` (sections + blocking `fetch`), register it in `HomeRegistry`, and set
+  `attribution` / `termsUrl`. Respect the provider's terms: AniList and Jikan are rate limited (Jikan calls are spaced
+  450 ms apart in `JikanHomeSource`), cache results via `HomeFeed`, keep attribution visible in home settings, and never
+  bundle a streaming source. Slugs: `al<id>` AniList, `mal<id>` MAL (opens through AniList), `http...` link-out.
+- `HomeFilters` is the home blocklist (Sazae-san and similar endless weeklies); AniList results go through it.
+- Defaults: AniList on (trending, recently updated, popular, recommended, Action/Romance/Comedy/Fantasy), Official
+  links on, everything else off.
+
+## Privacy, offline library and onboarding
+
+- Incognito (`utils/Privacy`, Settings -> History and privacy): no watch progress (`setViewPosDur`), no AniList/MAL
+  progress sync (`PlayerFragment.updateProgress`), no search history (`utils/SearchHistory`). Optional 18+ device lock
+  (`adult_lock`) uses the system PIN/pattern prompt before the 18+ switch can be turned on.
+- Search history lives in `SearchHistory` (15 items, chips above results in both search layouts).
+- Offline library: see `utils/LocalLibrary` (works without an account; export/import/sync to AniList).
+- Welcome gate order: sign in or skip -> DMCA notice (`AuthManager.hasSeenDmca`) -> community rules -> home.
+- Settings pages: `About`, `DMCA notice`, `Rules` are `ui/settings/InfoPages.kt` (short overview + link to the full
+  text on the website). Keep the website paths `/dmca`, `/rules`, `/terms`, `/privacy`, `/support`, `/sources` stable.
+- `SourceHealth` marks sources that fail twice in a row (shown in the source chooser).
+- Unit tests: `./gradlew testPhoneDebugUnitTest` (pure logic only). CI: `.github/workflows/build.yml`.
+

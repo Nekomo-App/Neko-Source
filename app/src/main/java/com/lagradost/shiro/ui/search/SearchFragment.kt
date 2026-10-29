@@ -40,6 +40,7 @@ import com.lagradost.shiro.utils.AppUtils.observe
 import com.lagradost.shiro.utils.AppUtils.settingsManager
 import com.lagradost.shiro.utils.NekomoApi
 import com.lagradost.shiro.utils.NekomoApi.Companion.getSearchMethods
+import com.lagradost.shiro.utils.SearchHistory
 import kotlin.concurrent.thread
 
 class SearchFragment : Fragment() {
@@ -195,6 +196,8 @@ class SearchFragment : Fragment() {
         fv<androidx.appcompat.widget.SearchView>(R.id.main_search).setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 if (query == null) return false
+                context?.let { SearchHistory.add(it, query) }
+                refreshHistory()
                 fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar).visibility = View.VISIBLE
                 (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter).cardList.clear()
                 thread {
@@ -232,6 +235,11 @@ class SearchFragment : Fragment() {
                 if (newText == null) return false
                 (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter).cardList.clear()
                 searchViewModel?.searchQuery?.postValue(newText)
+                fv<View>(R.id.search_history_panel)?.visibility = if (newText.isEmpty() && SearchHistory.all(requireContext()).isNotEmpty()) View.VISIBLE else GONE
+                historyHandler.removeCallbacksAndMessages(null)
+                if (newText.length >= 2) historyHandler.postDelayed({
+                    context?.let { SearchHistory.add(it, newText) }
+                }, 1800)
                 if (newText != "") {
                     fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar).visibility = View.VISIBLE
                     thread {
@@ -315,12 +323,35 @@ class SearchFragment : Fragment() {
         }
 //        if (!isInResults && !isInPlayer) {
         fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.onActionViewExpanded()
+        refreshHistory()
         searchViewModel?.searchQuery?.value?.let {
             fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.setQuery(it, false)
         }
 //        }
 
         //fv<androidx.appcompat.widget.SearchView>(R.id.main_search).findViewById<EditText>(R.id.search_src_text).requestFocus()
+    }
+
+    private val historyHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** Rebuilds the "Recent searches" chips; the panel only shows while the search box is empty. */
+    private fun refreshHistory() {
+        val ctx = context ?: return
+        val panel = fv<View>(R.id.search_history_panel) ?: return
+        val chips = fv<com.google.android.material.chip.ChipGroup>(R.id.search_history_chips) ?: return
+        val items = SearchHistory.all(ctx)
+        chips.removeAllViews()
+        items.forEach { q ->
+            chips.addView(com.google.android.material.chip.Chip(ctx).apply {
+                text = q
+                isCloseIconVisible = true
+                setOnClickListener { fv<SearchView>(R.id.main_search)?.setQuery(q, true) }
+                setOnCloseIconClickListener { SearchHistory.remove(ctx, q); refreshHistory() }
+            })
+        }
+        fv<View>(R.id.search_history_clear)?.setOnClickListener { SearchHistory.clear(ctx); refreshHistory() }
+        val empty = fv<SearchView>(R.id.main_search)?.query?.isEmpty() ?: true
+        panel.visibility = if (items.isNotEmpty() && empty) View.VISIBLE else GONE
     }
 
     override fun onCreateView(

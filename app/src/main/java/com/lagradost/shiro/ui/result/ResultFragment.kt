@@ -217,10 +217,11 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             }
             main {
                 // (label, key): key null = default, "cs:<name>" = CloudStream provider, "zg:<id>" = Zangetsu source
+                val health = com.lagradost.shiro.utils.SourceHealth
                 val entries: List<Pair<String, String?>> = listOf("AniList info (no streams)" to null) +
-                        providers.map { it to "cs:$it" } +
-                        zgSources.map { "Zangetsu · ${it.name}" to "zg:${it.id}" } +
-                        ayChoices.map { "Aniyomi · ${it.first}" to "ay:${it.second}" }
+                        providers.map { health.label(it, "cs:$it") to "cs:$it" } +
+                        zgSources.map { health.label("Zangetsu · ${it.name}", "zg:${it.id}") to "zg:${it.id}" } +
+                        ayChoices.map { health.label("Aniyomi · ${it.first}", "ay:${it.second}") to "ay:${it.second}" }
                 val currentKey = com.lagradost.shiro.utils.cs3.CsBridge.parseSlug(currentSlug)?.first?.let { "cs:$it" }
                     ?: com.lagradost.shiro.utils.zg.ZangetsuBridge.parseSlug(currentSlug)?.first?.let { "zg:$it" }
                     ?: com.lagradost.shiro.utils.aniyomi.AniyomiBridge.parseSlug(currentSlug)?.first?.let { "ay:$it" }
@@ -314,8 +315,10 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             loadSeason()
             // Nekomo bundles no streaming source: an AniList title has no episodes until the user
             // picks one of the sources they installed themselves.
-            if (data.episodes.isEmpty() && !com.lagradost.shiro.utils.isExtensionSlug(data.anime.slug)) {
-                showSourceChooser()
+            val needsSource = data.episodes.isEmpty() && !com.lagradost.shiro.utils.isExtensionSlug(data.anime.slug)
+            fv<android.widget.TextView>(R.id.source_hint)?.apply {
+                visibility = if (needsSource) VISIBLE else GONE
+                setOnClickListener { showSourceChooser() }
             }
 
             data class IdObject(
@@ -459,7 +462,10 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             toggleHeartVisual(isBookmarked)
             fv<android.widget.TextView>(R.id.title_episodes)?.text =
                 Html.fromHtml(
-                    "<font color=#${textColorGrey}>Episodes:</font><font color=#${textColor}> ${data.episodes.size}</font>"/*,
+                    "<font color=#${textColorGrey}>Episodes:</font><font color=#${textColor}> ${
+                        if (data.episodes.isNotEmpty()) data.episodes.size.toString()
+                        else data.anime.episodes.takeIf { it.isNotBlank() && it != "0" } ?: "?"
+                    }</font>"/*,
                         FROM_HTML_MODE_COMPACT*/
                 )
 
@@ -473,6 +479,27 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                 fv<android.widget.TextView>(R.id.title_year)?.visibility = GONE
             }
 
+            normalSafeApiCall {
+                val a = data.anime
+                val score = a.score.toDoubleOrNull()?.takeIf { it > 0 }?.let { if (it > 10) it / 10 else it }
+                fv<android.widget.TextView>(R.id.title_rating)?.apply {
+                    visibility = if (score == null) GONE else VISIBLE
+                    text = score?.let { "★ %.1f / 10".format(it) } ?: ""
+                }
+                val rows = listOf(
+                    "Format" to a.format,
+                    "Duration" to a.episode_duration.takeIf { it.isNotBlank() && it != "0" }?.let { "$it min per episode" },
+                    "Season" to listOf(a.season, a.release_year ?: "").filter { it.isNotBlank() }.joinToString(" "),
+                    "Studio" to a.studios,
+                    "Aired" to a.aired,
+                ).filter { !it.second.isNullOrBlank() }
+                fv<android.widget.TextView>(R.id.title_info)?.apply {
+                    visibility = if (rows.isEmpty()) GONE else VISIBLE
+                    text = Html.fromHtml(rows.joinToString("<br>") {
+                        "<font color=#${textColorGrey}>${it.first}:</font><font color=#${textColor}> ${it.second}</font>"
+                    })
+                }
+            }
             normalSafeApiCall {
                 fv<android.widget.TextView>(R.id.title_genres)?.text =
                     Html.fromHtml(

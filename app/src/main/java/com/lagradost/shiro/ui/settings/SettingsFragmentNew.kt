@@ -74,13 +74,19 @@ class SettingsFragmentNew : Fragment() {
             Pair(fv<android.widget.TextView>(R.id.settings_accounts), R.xml.settings_accounts),
             Pair(fv<android.widget.TextView>(R.id.settings_history), R.xml.settings_history),
             Pair(fv<android.widget.TextView>(R.id.settings_updates), R.xml.settings_update_info),
-            Pair(fv<android.widget.TextView>(R.id.settings_about), R.xml.settings_about),
         )
 
         array.forEach { pair ->
             pair.first?.background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             pair.first?.setOnClickListener {
                 openSettingSubMenu(pair.second)
+            }
+        }
+
+        fv<android.widget.TextView>(R.id.settings_home)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                context?.let { startActivity(Intent(it, HomeSettingsActivity::class.java)) }
             }
         }
 
@@ -107,10 +113,24 @@ class SettingsFragmentNew : Fragment() {
             }
         }
 
+        fv<android.widget.TextView>(R.id.settings_dmca)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                context?.let { LegalPageActivity.open(it, LegalPageActivity.DMCA) }
+            }
+        }
+
+        fv<android.widget.TextView>(R.id.settings_about)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                context?.let { startActivity(Intent(it, AboutActivity::class.java)) }
+            }
+        }
+
         fv<android.widget.TextView>(R.id.settings_community_rules)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {
-                context?.let { startActivity(Intent(it, CommunityRulesActivity::class.java)) }
+                context?.let { LegalPageActivity.open(it, LegalPageActivity.RULES) }
             }
         }
 

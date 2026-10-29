@@ -82,30 +82,9 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                 >
-                    <!-- Decided on manual textViews because the listview was fucking up -->
                     <TextView
-                            android:id="@+id/settings_general"
-                            android:text="General"
-                            style="@style/SettingsItem"
-                    >
-
-                    </TextView>
-                    <View style="@style/Divider"/>
-                    <TextView
-                            android:id="@+id/settings_style"
-                            android:text="Style"
-                            style="@style/SettingsItem"
-                    >
-                    </TextView>
-                    <View style="@style/Divider"/>
-                    <TextView
-                            android:id="@+id/settings_player"
-                            android:text="Player"
-                            style="@style/SettingsItem"
-
-                    >
-                    </TextView>
-                    <View style="@style/Divider"/>
+                            android:text="Account"
+                            style="@style/SettingsHeader"/>
                     <TextView
                             android:id="@+id/settings_accounts"
                             android:text="Accounts"
@@ -114,22 +93,17 @@
                     </TextView>
                     <View style="@style/Divider"/>
                     <TextView
-                            android:id="@+id/settings_history"
-                            android:text="History"
-                            style="@style/SettingsItem"
-                    >
-                    </TextView>
-                    <View style="@style/Divider"/>
-                    <TextView
-                            android:id="@+id/settings_updates"
-                            android:text="Updates"
-                            style="@style/SettingsItem"
-                    >
-                    </TextView>
-                    <View style="@style/Divider"/>
-                    <TextView
                             android:id="@+id/settings_integrations"
                             android:text="Integrations"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <TextView
+                            android:text="Browse and sources"
+                            style="@style/SettingsHeader"/>
+                    <TextView
+                            android:id="@+id/settings_home"
+                            android:text="Home page"
                             style="@style/SettingsItem"
                     >
                     </TextView>
@@ -147,15 +121,64 @@
                             style="@style/SettingsItem"
                     >
                     </TextView>
+                    <TextView
+                            android:text="App"
+                            style="@style/SettingsHeader"/>
+                    <TextView
+                            android:id="@+id/settings_general"
+                            android:text="General"
+                            style="@style/SettingsItem"
+                    >
+
+                    </TextView>
                     <View style="@style/Divider"/>
                     <TextView
-                            android:id="@+id/settings_community_rules"
-                            android:text="Community Rules"
+                            android:id="@+id/settings_style"
+                            android:text="Appearance"
                             style="@style/SettingsItem"
                     >
                     </TextView>
                     <View style="@style/Divider"/>
+                    <TextView
+                            android:id="@+id/settings_player"
+                            android:text="Player"
+                            style="@style/SettingsItem"
 
+                    >
+                    </TextView>
+                    <TextView
+                            android:text="Privacy and data"
+                            style="@style/SettingsHeader"/>
+                    <TextView
+                            android:id="@+id/settings_history"
+                            android:text="History and privacy"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <TextView
+                            android:text="About"
+                            style="@style/SettingsHeader"/>
+                    <TextView
+                            android:id="@+id/settings_updates"
+                            android:text="Updates"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
+                    <TextView
+                            android:id="@+id/settings_community_rules"
+                            android:text="Rules"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
+                    <TextView
+                            android:id="@+id/settings_dmca"
+                            android:text="DMCA notice"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
                     <TextView
                             android:id="@+id/settings_about"
                             android:text="About"

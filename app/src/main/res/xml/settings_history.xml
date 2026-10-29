@@ -4,6 +4,28 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
 >
 
+    <PreferenceCategory android:title="Privacy">
+    <SwitchPreference
+            android:icon="@drawable/ic_baseline_screen_lock_landscape_24"
+            android:key="incognito_mode"
+            android:title="Incognito mode"
+            android:summary="While on, Nekomo does not save watch progress, search history or sync progress to AniList/MAL."
+            app:defaultValue="false"
+    />
+    <SwitchPreference
+            android:icon="@drawable/ic_baseline_screen_lock_landscape_24"
+            android:key="adult_lock"
+            android:title="Lock 18+ content with my device lock"
+            android:summary="Asks for your screen lock (PIN, pattern or fingerprint) before 18+ content can be switched on."
+            app:defaultValue="false"
+    />
+    <Preference
+            android:icon="@drawable/ic_baseline_delete_outline_24"
+            app:key="clear_search_history"
+            android:title="Clear search history"
+    />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Watch history and data">
     <SwitchPreference
             android:icon="@drawable/ic_baseline_history_24"
             android:key="save_history"
@@ -45,4 +67,5 @@
             android:icon="@drawable/ic_baseline_settings_backup_restore_24"
     />
 
+    </PreferenceCategory>
 </PreferenceScreen>

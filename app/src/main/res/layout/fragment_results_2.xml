@@ -197,7 +197,18 @@
                                                     android:textColor="?attr/textColor"
                                                     android:textStyle="bold"
                                                     android:textSize="17sp"
-                                                    android:layout_marginBottom="10dp"
+                                                    android:layout_marginBottom="4dp"
+                                            >
+                                            </TextView>
+                                            <TextView
+                                                    android:id="@+id/title_rating"
+                                                    android:layout_width="match_parent"
+                                                    android:layout_height="wrap_content"
+                                                    android:textColor="?attr/colorAccent"
+                                                    android:textStyle="bold"
+                                                    android:textSize="14sp"
+                                                    android:layout_marginBottom="8dp"
+                                                    android:visibility="gone"
                                             >
                                             </TextView>
                                             <TextView
@@ -249,6 +260,16 @@
                                                     android:textSize="12sp"
                                             >
                                             </TextView>
+                                            <TextView
+                                                    android:id="@+id/title_info"
+                                                    android:layout_width="match_parent"
+                                                    android:layout_height="wrap_content"
+                                                    android:layout_marginTop="10dp"
+                                                    android:textColor="?attr/textColorGrayWhite"
+                                                    android:textSize="12sp"
+                                                    android:lineSpacingExtra="4dp"
+                                            >
+                                            </TextView>
                                         </LinearLayout>
 
                                     </LinearLayout>
@@ -263,6 +284,22 @@
                                     >
 
                                     </com.google.android.material.textview.MaterialTextView>
+                                    <TextView
+                                            android:id="@+id/source_hint"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginStart="10dp"
+                                            android:layout_marginEnd="10dp"
+                                            android:layout_marginBottom="10dp"
+                                            android:padding="12dp"
+                                            android:background="@drawable/outline_background"
+                                            android:text="No episodes yet. Tap here (or the cloud icon) to find this title in the sources you installed."
+                                            android:textColor="?attr/textColor"
+                                            android:textSize="13sp"
+                                            android:visibility="gone"
+                                            android:clickable="true"
+                                            android:focusable="true"
+                                    />
                                 </LinearLayout>
 
                             </androidx.cardview.widget.CardView>

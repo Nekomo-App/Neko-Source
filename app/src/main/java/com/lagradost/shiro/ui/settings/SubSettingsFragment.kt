@@ -101,6 +101,12 @@ val blacklistedTvKeys = listOf(
 )
 
 class SubSettingsFragment : PreferenceFragmentCompat() {
+    private var pendingNsfw: SwitchPreference? = null
+    private val lockLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { r ->
+        if (r.resultCode == android.app.Activity.RESULT_OK) pendingNsfw?.isChecked = true
+        pendingNsfw = null
+    }
+
     private var xmlFile: Int? = null
 
     companion object {
@@ -156,7 +162,20 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                                         "and lets search include adult titles. Only turn it on if you are 18 or older (or the age of " +
                                         "majority where you live). You can switch it off again at any time."
                             )
-                            .setPositiveButton("I'm 18+ — show it") { _, _ -> (pref as SwitchPreference).isChecked = true }
+                            .setPositiveButton("I'm 18+ — show it") { _, _ ->
+                                val ctx = requireContext()
+                                if (!com.lagradost.shiro.utils.Privacy.adultLock(ctx)) {
+                                    (pref as SwitchPreference).isChecked = true
+                                } else {
+                                    val intent = com.lagradost.shiro.utils.Privacy.confirmLockIntent(ctx)
+                                    if (intent == null) {
+                                        Toast.makeText(ctx, "Set a screen lock on your device first, or turn off the 18+ lock.", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        pendingNsfw = pref as SwitchPreference
+                                        lockLauncher.launch(intent)
+                                    }
+                                }
+                            }
                             .setNegativeButton("Cancel", null)
                             .show()
                         false
@@ -353,6 +372,13 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
 
                 setTitle("History settings")
 
+                findPreference<Preference?>("clear_search_history")?.setOnPreferenceClickListener {
+                    context?.let { c ->
+                        com.lagradost.shiro.utils.SearchHistory.clear(c)
+                        Toast.makeText(c, "Search history cleared", Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
                 val clearHistory = findPreference<Preference?>("clear_history")
                 val historyItems = context?.getKeys(VIEW_POS_KEY)?.size?.plus(
                     context?.getKeys(
