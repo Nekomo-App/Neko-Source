@@ -4,6 +4,13 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
 >
     <PreferenceCategory android:title="Content">
+        <SwitchPreference
+            android:icon="@drawable/ic_baseline_filter_list_24"
+            app:key="search_include_sources"
+            android:title="Show source results in search"
+            android:summary="Off (recommended): search shows the built-in catalogue only, and your sources are used to stream. On: also list titles found directly in your installed sources."
+            app:defaultValue="false"
+    />
         <ListPreference
             android:icon="@drawable/ic_baseline_playlist_play_24"
             app:key="preferred_source"

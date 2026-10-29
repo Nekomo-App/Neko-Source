@@ -7,6 +7,7 @@
     <string name="link_support" translatable="false">https://nekomoapp.netlify.app/support</string>
     <string name="link_terms" translatable="false">https://nekomoapp.netlify.app/terms</string>
     <string name="link_rules" translatable="false">https://nekomoapp.netlify.app/rules</string>
+    <string name="link_sources_guide" translatable="false">https://nekomoapp.netlify.app/sources</string>
     <string name="link_dmca" translatable="false">https://nekomoapp.netlify.app/dmca</string>
     <string name="link_privacy" translatable="false">https://nekomoapp.netlify.app/privacy</string>
     <string name="link_signup_anilist" translatable="false">https://anilist.co/signup</string>

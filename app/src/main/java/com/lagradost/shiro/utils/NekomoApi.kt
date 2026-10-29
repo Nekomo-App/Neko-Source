@@ -469,7 +469,11 @@ class NekomoApi {
                 logError(e)
                 emptyList()
             }
-            val extra = mediaResults + extensionResults + zangetsuResults + aniyomiResults
+            // Built-in sources supply the catalogue. Extension results only join the list when the user asks for them.
+            val includeSources = com.lagradost.shiro.AcraApplication.context?.let {
+                PreferenceManager.getDefaultSharedPreferences(it).getBoolean("search_include_sources", false)
+            } ?: false
+            val extra = mediaResults + if (includeSources) extensionResults + zangetsuResults + aniyomiResults else emptyList()
             return if (base == null && extra.isEmpty()) null
             else base.orEmpty() + extra
         }

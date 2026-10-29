@@ -62,6 +62,8 @@ This repository contains the source code for **Nekomo**, an anime and manga trac
 
 ## 🛠️ Building
 
+All builds are collected in [`apks/`](apks/): run `./gradlew assembleAllApks` to build the six variants (phone/TV x stable/beta/debug) and refresh `apks/latest.json`.
+
 Requires a **JDK 17** and the **Android SDK** (versions per `app/build.gradle`). The app supports **Android 7.0 (API 24) and newer**.
 
 ```bash

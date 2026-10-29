@@ -17,3 +17,8 @@
 nekomo-release.jks
 keystore.properties
 
+# Build leftovers (builds belong in /apks)
+/.kotlin/
+/app/build/
+/app/*.apk
+/app/phone/release/

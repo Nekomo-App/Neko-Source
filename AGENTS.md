@@ -281,3 +281,19 @@ this toggle would just add a switch that does nothing.
 - Player: Pop-out (picture-in-picture) and External player buttons; Settings -> Player -> "Open videos in an external player".
 - Attribution to keep visible: TMDB ("This product uses the TMDB API but is not endorsed or certified by TMDB"), TVMaze (CC BY-SA).
 
+## Builds live in /apks; metadata vs streaming
+
+- `apks/` is the main build directory (see `apks/README.md`). `./gradlew assembleAllApks` builds the six variants and runs
+  `collectApks`, which copies them to `apks/Nekomo-<phone|tv>-<release|beta|debug>.apk` and writes `apks/latest.json`
+  (version, size, SHA-256, build time). Do not rename the files: the website `_redirects`, `beta.html` and
+  `scripts/publish-release.sh` depend on them. Older/legacy builds go in `apks/archive/` (never served by the website).
+  `.kotlin/`, `app/build/` and stray APKs under `app/` are ignored. Note each commit of APKs grows `.git` (~100 MB); prefer
+  GitHub Releases for history.
+- Metadata and streaming are separate. The built-in catalogue (AniList, backups Kitsu/Jikan, TVMaze/TMDB) supplies titles, art,
+  descriptions and episode lists. Installed extensions only stream: `utils/SourcePlayback` finds the title in a source,
+  matches the episode number, caches the match (`srcmatch_*`), opens the player and mirrors "watched" back to the tracker
+  (`metalink_*`). A tap on a metadata episode streams through the default source (preferred, or the only installed one); long
+  press opens the full menu. Search shows built-in results only unless "Show source results in search" is on.
+- Failures are explained to the user (not installed / disabled, incompatible or unreachable extension, title not found,
+  no matching episode). Zangetsu logs the provider's answer when it returns no streams.
+

@@ -140,6 +140,7 @@ object ZangetsuBridge {
             val root = mapper.readTree(json)
             // providers return either a list of streams or { sources: [...], subtitles: [...] }
             val list = if (root.isArray) root else root.path("sources").let { if (it.isArray) it else root.path("streams") }
+            if (list.size() == 0) logError(Exception("Zangetsu ${src.id}: no streams for $epUrl. Provider answered: ${json.take(300)}"))
             list.forEach { st ->
                 val url = st.s("url")
                 if (url.isEmpty()) return@forEach

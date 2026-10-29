@@ -1017,6 +1017,10 @@ object AppUtils {
             setKey(VIEWSTATE_KEY, key, System.currentTimeMillis())
         }
 
+        if (dur > 0 && pos * 100 / dur > 90 && data.episodeIndex != null) {
+            com.lagradost.shiro.utils.SourcePlayback.onEpisodeWatched(this, data.slug, data.episodeIndex!!)
+        }
+
         if (data.card == null) return
         if (data.episodeIndex == null || data.seasonIndex == null) return
 

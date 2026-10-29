@@ -215,3 +215,43 @@ dependencies {
     compileOnly "com.google.auto.service:auto-service-annotations:1.1.1"
     kapt "com.google.auto.service:auto-service:1.1.1"
 }
+
+// ---- Builds live in /apks (the main build directory) -----------------------------------------------------------
+// ./gradlew collectApks      copies whatever was built into apks/Nekomo-<phone|tv>-<release|beta|debug>.apk and
+//                            rewrites apks/latest.json (version, size, sha256, build time) which the website reads.
+// ./gradlew assembleAllApks  builds all six variants, then runs collectApks.
+tasks.register('collectApks') {
+    group = 'distribution'
+    description = 'Copies built APKs into /apks and writes apks/latest.json'
+    doLast {
+        def out = rootProject.file('apks')
+        out.mkdirs()
+        def builds = []
+        ['phone', 'tv'].each { flavor ->
+            ['release', 'beta', 'debug'].each { type ->
+                def src = layout.buildDirectory.file("outputs/apk/${flavor}/${type}/app-${flavor}-${type}.apk").get().asFile
+                if (!src.exists()) return
+                def dest = new File(out, "Nekomo-${flavor}-${type}.apk")
+                java.nio.file.Files.copy(src.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                def sha = java.security.MessageDigest.getInstance('SHA-256').digest(dest.bytes).collect { String.format('%02x', it) }.join()
+                builds << [file: dest.name, flavor: flavor, channel: type == 'release' ? 'stable' : type, size: dest.length(), sha256: sha,
+                           builtAt: new Date(src.lastModified()).format("yyyy-MM-dd'T'HH:mm:ssXXX")]
+            }
+        }
+        def meta = [version: android.defaultConfig.versionName, versionCode: android.defaultConfig.versionCode, builds: builds]
+        new File(out, 'latest.json').text = groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(meta)) + "\n"
+        println "Collected ${builds.size()} APK(s) into ${out}"
+    }
+}
+
+tasks.register('assembleAllApks') {
+    group = 'distribution'
+    description = 'Builds all six variants and collects them into /apks'
+    finalizedBy 'collectApks'
+}
+afterEvaluate {
+    tasks.named('assembleAllApks') {
+        dependsOn(['PhoneRelease', 'PhoneBeta', 'PhoneDebug', 'TvRelease', 'TvBeta', 'TvDebug'].collect { "assemble${it}" })
+    }
+    tasks.named('collectApks') { mustRunAfter(tasks.matching { it.name.startsWith('assemble') && it.name != 'assembleAllApks' }) }
+}

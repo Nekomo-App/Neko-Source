@@ -297,8 +297,82 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
     }
 
     /** Tapping a metadata-only episode: play it through a source, or just track it. */
-    private fun showMetaEpisodeMenu(data: NekomoApi.Companion.AnimePageNewData, index: Int) {
+    private fun showPlaySourcePicker(data: NekomoApi.Companion.AnimePageNewData, index: Int) {
         val ctx = context ?: return
+        val all = com.lagradost.shiro.utils.SourcePlayback.installed(ctx)
+        if (all.isEmpty()) {
+            Toast.makeText(ctx, "No sources installed. Add one in Settings > Extensions.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val def = com.lagradost.shiro.utils.PreferredSource.get(ctx)
+        AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+            .setTitle("Stream episode ${index + 1} with")
+            .setItems(all.map { com.lagradost.shiro.utils.SourceHealth.label(it.label + if (it.key == def) "  ★ default" else "", it.key) }.toTypedArray()) { _, which ->
+                playViaSource(data, index, all[which].key)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /**
+     * Metadata episode -> installed source: finds the title in the source, matches the episode number and opens the
+     * player on it. Every failure is explained (missing source, incompatible extension, nothing found, no such episode).
+     */
+    private fun playViaSource(data: NekomoApi.Companion.AnimePageNewData, index: Int, key: String, chosenExtSlug: String? = null) {
+        val ctx = context ?: return
+        val anime = data.anime
+        val label = com.lagradost.shiro.utils.SourcePlayback.label(ctx, key)
+        val titles = listOfNotNull(anime.title_english, anime.title, anime.native_title.takeIf { it.isNotBlank() })
+        val epNumber = data.episodes.getOrNull(index)?.episode?.toIntOrNull() ?: (index + 1)
+        val loading = AlertDialog.Builder(ctx, R.style.AlertDialogCustomTransparent)
+            .setView(layoutInflater.inflate(R.layout.dialog_loading, null)).create()
+        loading.show()
+        Toast.makeText(ctx, "Finding episode $epNumber in $label…", Toast.LENGTH_SHORT).show()
+        thread {
+            val outcome = try {
+                com.lagradost.shiro.utils.SourcePlayback.resolve(ctx, anime.slug, titles, epNumber, key, chosenExtSlug)
+            } catch (t: Throwable) {
+                logError(t)
+                com.lagradost.shiro.utils.SourcePlayback.Outcome.Problem("$label failed unexpectedly (${t.message ?: t.javaClass.simpleName}). Try another source.")
+            }
+            main {
+                normalSafeApiCall { loading.dismiss() }
+                when (outcome) {
+                    is com.lagradost.shiro.utils.SourcePlayback.Outcome.Found -> {
+                        val alId = Regex("^al(\\d+)$").find(anime.slug)?.groupValues?.get(1)?.toIntOrNull()
+                        val malId = Regex("^mal(\\d+)$").find(anime.slug)?.groupValues?.get(1)?.toIntOrNull()
+                            ?: runCatching { mapper.readTree(anime.ids).path("mal").asText(null)?.toIntOrNull() }.getOrNull()
+                        com.lagradost.shiro.utils.SourcePlayback.link(ctx, outcome.extSlug, anime.slug, anime.title, anime.poster, data.episodes.size, index - outcome.index)
+                        activity?.loadPlayer(outcome.index, 0L, outcome.page, alId, malId, null)
+                    }
+                    is com.lagradost.shiro.utils.SourcePlayback.Outcome.PickMatch ->
+                        AlertDialog.Builder(guaranteedContext(context), R.style.AlertDialogCustom)
+                            .setTitle("${outcome.sourceLabel}: which one is \"${anime.title}\"?")
+                            .setItems(outcome.hits.map { it.title }.toTypedArray()) { _, which ->
+                                playViaSource(data, index, key, outcome.hits[which].slug)
+                            }
+                            .setNegativeButton("Cancel", null)
+                            .show()
+                    is com.lagradost.shiro.utils.SourcePlayback.Outcome.Problem ->
+                        AlertDialog.Builder(guaranteedContext(context), R.style.AlertDialogCustom)
+                            .setTitle("Can't play with $label")
+                            .setMessage(outcome.message)
+                            .setPositiveButton("Choose another source") { _, _ -> showPlaySourcePicker(data, index) }
+                            .setNegativeButton("Close", null)
+                            .show()
+                }
+            }
+        }
+    }
+
+    private fun showMetaEpisodeMenu(data: NekomoApi.Companion.AnimePageNewData, index: Int, longPress: Boolean = false) {
+        val ctx = context ?: return
+        // A plain tap streams straight away through the default source; a long press opens the full menu
+        val defaultKey = com.lagradost.shiro.utils.SourcePlayback.defaultKey(ctx)
+        if (!longPress && defaultKey != null) {
+            playViaSource(data, index, defaultKey)
+            return
+        }
         val slug = data.anime.slug
         val total = data.episodes.size
         val watched = com.lagradost.shiro.utils.Tracker.isWatched(ctx, slug, index)
@@ -306,9 +380,11 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         val pref = com.lagradost.shiro.utils.PreferredSource.get(ctx)
         val options = ArrayList<Pair<String, () -> Unit>>()
 
-        if (com.lagradost.shiro.utils.SourceState.hasAny(ctx)) {
-            if (pref != null) options.add("Play with your default source" to { metaTitle()?.let { searchSource(pref, pref.substringAfter(':'), it) } })
-            options.add("Choose a source to play…" to { showSourceChooser() })
+        if (com.lagradost.shiro.utils.SourcePlayback.installed(ctx).isNotEmpty()) {
+            if (defaultKey != null) options.add("Play with ${com.lagradost.shiro.utils.SourcePlayback.label(ctx, defaultKey)}" to { playViaSource(data, index, defaultKey) })
+            options.add((if (defaultKey != null) "Play with another source…" else "Choose a source to play…") to { showPlaySourcePicker(data, index) })
+        } else {
+            options.add("How to add a source" to { activity?.openBrowser(getString(R.string.link_sources_guide)) })
         }
 
         fun mark(from: Int, to: Int, value: Boolean) {
@@ -816,7 +892,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         val index = episodeClick.data.episode
         val clickData = episodeClick.data.data ?: return@main
         if (clickData.episodes.getOrNull(index)?.ext == "meta") {
-            showMetaEpisodeMenu(clickData, index)
+            showMetaEpisodeMenu(clickData, index, episodeClick.action == ACTION_CLICK_LONG)
             return@main
         }
         var currentLinks: List<ExtractorLink>? = null
