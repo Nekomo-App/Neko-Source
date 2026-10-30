@@ -90,6 +90,10 @@
         >
 
         </activity>
+        <activity android:name=".ui.settings.LicensesActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Open-source licenses"
+        />
         <activity android:name=".ui.settings.AboutActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:label="About"

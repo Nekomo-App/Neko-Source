@@ -82,7 +82,7 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         val added = NekomoRepo.getAdded(this)
         if (added.isEmpty()) {
             val input = EditText(this).apply {
-                hint = "Type nekomo, or paste a repository URL"
+                hint = "Repository URL or code"
                 inputType = InputType.TYPE_TEXT_VARIATION_URI
                 setSingleLine()
                 setTextColor(b.fg)
@@ -113,7 +113,7 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
     private fun startAdd(raw: String) {
         val url = NekomoRepo.resolve(raw)
         if (url == null) {
-            toast("Enter \"${NekomoRepo.NICKNAME}\" or a repository URL starting with https://")
+            toast("Enter a repository URL starting with https:// or a valid code")
             return
         }
         val (loading, label) = busy("Looking up the repository…")
@@ -307,7 +307,7 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
                 .setNegativeButton("Cancel", null).show()
         }
         if (up != null) options += "Update to ${up.to}" to { installUpdate(listOf(up)) }
-        options += "Uninstall" to { CsPluginManager.uninstallPlugin(this, p.internalName); NekomoRepo.log(this, true, "remove", p.name, "Uninstalled"); render() }
+        options += "Uninstall" to { CsPluginManager.uninstallPlugin(this, p.internalName); render() }
         AlertDialog.Builder(this).setTitle(p.name).setItems(options.map { it.first }.toTypedArray()) { _, i -> options[i].second() }
             .setNegativeButton("Close", null).show()
     }
@@ -346,7 +346,7 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         }
         options += (if (enabled) "Disable" else "Enable") to { ZangetsuManager.setEnabled(this, s.id, !enabled); render() }
         if (up != null) options += "Update to ${up.to}" to { installUpdate(listOf(up)) }
-        options += "Uninstall" to { ZangetsuManager.uninstall(this, s.id); NekomoRepo.log(this, true, "remove", s.name, "Uninstalled"); render() }
+        options += "Uninstall" to { ZangetsuManager.uninstall(this, s.id); render() }
         AlertDialog.Builder(this).setTitle(s.name).setItems(options.map { it.first }.toTypedArray()) { _, i -> options[i].second() }
             .setNegativeButton("Close", null).show()
     }

@@ -395,11 +395,16 @@
             <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:elevation="200dp"
+                    android:translationZ="200dp"
             >
                 <FrameLayout
                         android:background="?attr/backgroundColor"
                         tools:visibility="gone"
                         android:id="@+id/loading_overlay"
+                        android:elevation="200dp"
+                        android:translationZ="200dp"
+                        android:clickable="true"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                 >
@@ -415,6 +420,47 @@
                                 android:id="@+id/main_load"
                         >
                         </ProgressBar>
+                        <TextView
+                                android:id="@+id/loading_title"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="20dp"
+                                android:paddingStart="32dp"
+                                android:paddingEnd="32dp"
+                                android:gravity="center"
+                                android:maxLines="2"
+                                android:textColor="?attr/textColor"
+                                android:textSize="17sp"
+                                android:textStyle="bold"/>
+                        <TextView
+                                android:id="@+id/loading_status"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:paddingStart="32dp"
+                                android:paddingEnd="32dp"
+                                android:gravity="center"
+                                android:textColor="?attr/textColorGrayWhite"
+                                android:textSize="13sp"/>
+                        <LinearLayout
+                                android:id="@+id/loading_actions"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="20dp"
+                                android:orientation="horizontal"
+                                android:visibility="gone">
+                            <Button
+                                    android:id="@+id/loading_retry"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="12dp"
+                                    android:text="Try again"/>
+                            <Button
+                                    android:id="@+id/loading_back"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Go back"/>
+                        </LinearLayout>
                         <Button
                                 android:visibility="gone"
                                 android:text="Open website"

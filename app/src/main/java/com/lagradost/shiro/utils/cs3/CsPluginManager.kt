@@ -413,7 +413,16 @@ object CsPluginManager {
     /**
      * Download + verify + load a plugin. Blocking — call off the main thread.
      */
-    fun installPlugin(
+    fun installPlugin(context: Context, repoUrl: String?, plugin: CsSitePlugin): InstallResult {
+        val id = plugin.internalName ?: plugin.name ?: ""
+        val had = getInstalled(context).any { it.internalName == id }
+        val r = installPluginRaw(context, repoUrl, plugin)
+        com.lagradost.shiro.utils.repo.NekomoRepo.log(context, r.success, if (had) "update" else "install", plugin.displayName, if (r.success) "v${plugin.version}" else r.message)
+        if (r.success) com.lagradost.shiro.utils.repo.ExtensionUpdater.dropPending(context, "cs", id)
+        return r
+    }
+
+    private fun installPluginRaw(
         context: Context,
         repoUrl: String?,
         plugin: CsSitePlugin,
@@ -484,6 +493,14 @@ object CsPluginManager {
     }
 
     fun uninstallPlugin(context: Context, internalName: String): Boolean {
+        val name = getInstalled(context).firstOrNull { it.internalName == internalName }?.name ?: internalName
+        val ok = uninstallPluginRaw(context, internalName)
+        com.lagradost.shiro.utils.repo.NekomoRepo.log(context, ok, "remove", name, if (ok) "Uninstalled" else "Could not uninstall")
+        com.lagradost.shiro.utils.repo.ExtensionUpdater.dropPending(context, "cs", internalName)
+        return ok
+    }
+
+    private fun uninstallPluginRaw(context: Context, internalName: String): Boolean {
         val installed = getInstalled(context).firstOrNull { it.internalName == internalName }
         unloadPlugin(context, internalName)
         installed?.let {

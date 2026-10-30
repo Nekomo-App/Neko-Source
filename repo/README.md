@@ -1,7 +1,7 @@
 # Nekomo repository
 
 `index.json` is the official Nekomo repository manifest. In the app: Settings -> Extensions -> Extensions manager ->
-enter `nekomo` (or this file's raw URL) -> confirm. Nothing is installed before that.
+enter the repository code (or this file's raw URL) -> confirm. Nothing is installed before that.
 
 Format (`nekomoRepository` must be present):
 

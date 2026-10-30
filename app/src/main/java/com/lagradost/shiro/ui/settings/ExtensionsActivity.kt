@@ -27,6 +27,18 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
     private lateinit var pluginList: LinearLayout
     private lateinit var statusText: TextView
 
+    override fun onResume() {
+        super.onResume()
+        // The Extensions manager shares these stores; pick up anything it installed, updated or removed
+        if (::repoList.isInitialized) {
+            refreshRepos()
+            refreshPlugins()
+            refreshZangetsu()
+            refreshAniyomi()
+            refreshMihon()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_extensions)
@@ -397,7 +409,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
     }
 
     private fun addRepoFromInput(raw: String, input: EditText) {
-        // "nekomo" is the nickname of the official Nekomo repository: the manager shows what it will install first
+        // A private repository code opens the manager, which shows what it will install first
         if (com.lagradost.shiro.utils.repo.NekomoRepo.isNickname(raw)) {
             input.text.clear()
             startActivity(android.content.Intent(this, ExtensionManagerActivity::class.java).putExtra("add", raw))

@@ -30,12 +30,11 @@ import java.util.concurrent.TimeUnit
 
 /**
  * The optional official "Nekomo repository". It is a small manifest that points at the free/legal source repositories
- * Nekomo recommends and lists the metadata APIs it uses. Nothing happens until the user adds it (nickname "nekomo" or
- * its URL) and confirms. It only ever handles script/plugin sources (CloudStream .cs3, Zangetsu .js). APK extensions
+ * Nekomo recommends and lists the metadata APIs it uses. Nothing happens until the user adds it (private code or its URL) and confirms. It only ever handles script/plugin sources (CloudStream .cs3, Zangetsu .js). APK extensions
  * (Aniyomi, Mihon) are never downloaded, installed or updated by this system.
  */
 object NekomoRepo {
-    const val NICKNAME = "nekomo"
+    private const val CODE_HASH = "4f6155cfdb52577cbde480662278bb02261466b95ff3738c7f3bd49180c69920"
     const val OFFICIAL_URL = "https://raw.githubusercontent.com/Nekomo-App/neko-source/main/repo/index.json"
 
     data class Entry(
@@ -96,9 +95,12 @@ object NekomoRepo {
     // Resolving and reading the manifest
     // ---------------------------------------------------------------------------------------------------------
 
-    fun isNickname(input: String) = input.trim().equals(NICKNAME, ignoreCase = true)
+    /** The private repository code. Only its hash is stored; it is never displayed anywhere. */
+    fun isNickname(input: String): Boolean =
+        java.security.MessageDigest.getInstance("SHA-256").digest(input.trim().uppercase().toByteArray())
+            .joinToString("") { "%02x".format(it) } == CODE_HASH
 
-    /** "nekomo" -> the official manifest URL; an http(s) URL is used as is. */
+    /** The private code -> the official manifest URL; an http(s) URL is used as is. */
     fun resolve(input: String): String? {
         val t = input.trim()
         return when {
@@ -162,7 +164,6 @@ object NekomoRepo {
                             if (!installable(ctx, p) || p.internalName in have) continue
                             progress("Installing ${p.displayName}…")
                             val r = CsPluginManager.installPlugin(ctx, e.url, p)
-                            log(ctx, r.success, "install", p.displayName, r.message)
                             if (r.success) installed++ else failed += "${p.displayName}: ${r.message}"
                         }
                     }
@@ -175,7 +176,6 @@ object NekomoRepo {
                             if ((s.nsfw && !ContentPrefs.nsfw(ctx)) || ZangetsuManager.getInstalled(ctx).any { it.id == s.id }) return@forEach
                             progress("Installing ${s.name}…")
                             val (ok, msg) = ZangetsuManager.install(ctx, e.url, s)
-                            log(ctx, ok, "install", s.name, msg)
                             if (ok) installed++ else failed += "${s.name}: $msg"
                         }
                     }
@@ -234,6 +234,10 @@ object NekomoRepo {
 
 /** Update checks and installs for script/plugin sources. APK extensions are deliberately not part of this. */
 object ExtensionUpdater {
+    /** Called by the managers after any successful install/update so every page agrees on what is outdated. */
+    fun dropPending(ctx: Context, kind: String, id: String) =
+        savePending(ctx, pending(ctx).filter { !(it.kind == kind && it.id == id) })
+
     private val mapper = JsonMapper.builder().addModule(KotlinModule.Builder().build())
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
 
@@ -312,7 +316,6 @@ object ExtensionUpdater {
             logError(t)
             false to (t.message ?: t.javaClass.simpleName)
         }
-        NekomoRepo.log(ctx, result.first, "update", u.name, if (result.first) "${u.from} -> ${u.to}" else "Failed, previous version kept: ${result.second}")
         if (result.first) savePending(ctx, pending(ctx).filter { !(it.kind == u.kind && it.id == u.id) })
         return result
     }

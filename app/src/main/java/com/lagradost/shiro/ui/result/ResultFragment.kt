@@ -498,15 +498,54 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         else t.split(",").map { it.trim() }.filter { it.isNotEmpty() }
     }
 
+    private val loadHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var loadFailed = false
+
+    /** Loading screen: the title being opened plus a status line that explains what is happening (and when it is slow). */
+    private fun startLoadingStatus() {
+        loadFailed = false
+        val name = arguments?.getString(NAME)
+        fv<android.widget.TextView>(R.id.loading_title)?.text = name?.takeIf { it.isNotBlank() } ?: ""
+        fv<View>(R.id.loading_actions)?.visibility = GONE
+        fv<View>(R.id.main_load)?.visibility = VISIBLE
+        fv<android.widget.TextView>(R.id.loading_status)?.text = "Loading details…"
+        loadHandler.removeCallbacksAndMessages(null)
+        loadHandler.postDelayed({ fv<android.widget.TextView>(R.id.loading_status)?.text = "Fetching artwork and episodes…" }, 3000)
+        loadHandler.postDelayed({
+            fv<android.widget.TextView>(R.id.loading_status)?.text = "Still working. The metadata service is slow right now; a backup is used automatically if needed."
+        }, 9000)
+        loadHandler.postDelayed({ showLoadError("This is taking too long. Check your connection and try again.") }, 25000)
+        fv<android.widget.Button>(R.id.loading_retry)?.setOnClickListener { retryLoad() }
+        fv<android.widget.Button>(R.id.loading_back)?.setOnClickListener { activity?.onBackPressed() }
+    }
+
+    private fun showLoadError(message: String) {
+        loadHandler.removeCallbacksAndMessages(null)
+        loadFailed = true
+        fv<View>(R.id.main_load)?.visibility = GONE
+        fv<android.widget.TextView>(R.id.loading_status)?.text = message
+        fv<View>(R.id.loading_actions)?.visibility = VISIBLE
+        fv<android.widget.FrameLayout>(R.id.loading_overlay)?.alpha = 1f
+        fv<android.widget.FrameLayout>(R.id.loading_overlay)?.visibility = VISIBLE
+    }
+
+    private fun retryLoad() {
+        val slug = arguments?.getString(SLUG) ?: return
+        val name = arguments?.getString(NAME) ?: slug
+        val act = activity ?: return
+        act.onBackPressed()
+        act.window.decorView.postDelayed({ act.loadPage(slug, name) }, 250)
+    }
+
     private fun onDataLoaded(data: NekomoApi.Companion.AnimePageNewData?) {
         episodeOffset = if (data?.episodes?.filter { it.episode == "0" }.isNullOrEmpty()) 0 else -1
 
         main {
             if (data == null) {
-                Toast.makeText(activity, "Error loading anime page!", Toast.LENGTH_LONG).show()
-                activity?.onBackPressed()
+                showLoadError("Couldn't load this title. It may be unavailable, or your connection or the metadata service is down.")
                 return@main
             }
+            loadHandler.removeCallbacksAndMessages(null)
             val fadeAnimation = AlphaAnimation(1f, 0f)
             fadeAnimation.duration = 100
             fadeAnimation.isFillEnabled = true
@@ -1184,6 +1223,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
     private var castStateListener: CastStateListener? = null
 
     override fun onDestroyView() {
+        loadHandler.removeCallbacksAndMessages(null)
         castStateListener?.let { listener -> castContext?.removeCastStateListener(listener) }
         castStateListener = null
         castContext = null
@@ -1192,6 +1232,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        startLoadingStatus()
         super.onViewCreated(view, savedInstanceState)
         // ORIENTATION_PORTRAIT not working for some reason so I chose this
         /*if (!settingsManager!!.getBoolean("force_landscape", false)) {
@@ -1405,10 +1446,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
 
 
         resultViewModel?.hasFailed?.observe(viewLifecycleOwner) {
-            if (it == true) {
-                Toast.makeText(activity, "Error loading anime page :(", Toast.LENGTH_LONG).show()
-                activity?.onBackPressed()
-            }
+            if (it == true) showLoadError("Couldn't load this title. It may be unavailable, or your connection or the metadata service is down.")
         }
 
         observe(resultViewModel!!.data) {

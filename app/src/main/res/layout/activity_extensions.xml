@@ -21,7 +21,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="CloudStream extension repositories. Paste the URL of a repository you trust. Nothing is installed by default. The optional Nekomo repository (type nekomo) or any repository URL you paste is added only after you confirm."
+                android:text="CloudStream extension repositories. Paste the URL of a repository you trust. Nothing is installed by default. The optional Nekomo repository or any repository URL you paste is added only after you confirm."
                 android:textSize="13sp"/>
 
         <TextView

@@ -92,7 +92,15 @@ object ZangetsuManager {
 
     private fun save(context: Context, list: List<ZgInstalled>) = context.setKey(INSTALLED_KEY, list)
 
-    fun install(context: Context, repoUrl: String, src: ZgManifestSource): Pair<Boolean, String> = try {
+    fun install(context: Context, repoUrl: String, src: ZgManifestSource): Pair<Boolean, String> {
+        val had = getInstalled(context).any { it.id == src.id }
+        val r = installRaw(context, repoUrl, src)
+        com.lagradost.shiro.utils.repo.NekomoRepo.log(context, r.first, if (had) "update" else "install", src.name, if (r.first) "v${src.version}" else r.second)
+        if (r.first) com.lagradost.shiro.utils.repo.ExtensionUpdater.dropPending(context, "zg", src.id)
+        return r
+    }
+
+    private fun installRaw(context: Context, repoUrl: String, src: ZgManifestSource): Pair<Boolean, String> = try {
         val fileUrl = resolve(repoUrl, src.file)
         val res = khttp.get(fileUrl, timeout = 45.0)
         if (res.statusCode != 200 || res.text.isBlank()) {
@@ -115,6 +123,13 @@ object ZangetsuManager {
     }
 
     fun uninstall(context: Context, id: String) {
+        val name = getInstalled(context).firstOrNull { it.id == id }?.name ?: id
+        uninstallRaw(context, id)
+        com.lagradost.shiro.utils.repo.NekomoRepo.log(context, true, "remove", name, "Uninstalled")
+        com.lagradost.shiro.utils.repo.ExtensionUpdater.dropPending(context, "zg", id)
+    }
+
+    private fun uninstallRaw(context: Context, id: String) {
         getInstalled(context).firstOrNull { it.id == id }?.let { File(it.filePath).delete() }
         save(context, getInstalled(context).filter { it.id != id })
         ZangetsuEngine.forget(id)

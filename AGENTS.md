@@ -314,7 +314,7 @@ this toggle would just add a switch that does nothing.
 ## Nekomo repository, extensions manager and updater
 
 - Policy (user decision): an OPTIONAL official repository. Nothing is installed until the user adds it in Settings ->
-  Extensions -> Extensions manager (nickname `nekomo` or a manifest URL) and confirms. It only lists free/legal sources and
+  Extensions -> Extensions manager (a private code or a manifest URL; the code is stored only as a SHA-256 hash and must never be shown in the UI or docs) and confirms. It only lists free/legal sources and
   never APK extensions. Manifest: `repo/index.json` (marker `nekomoRepository`), format in `repo/README.md`. No catalogue of
   piracy-oriented sources is hosted or listed; users can still add any repository URL manually (ExtensionsActivity).
 - `utils/repo/NekomoRepo` (resolve/fetch/plan/apply/remove, history) and `ExtensionUpdater` (check/apply, WorkManager

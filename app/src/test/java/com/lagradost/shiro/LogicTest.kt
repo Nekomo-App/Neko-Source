@@ -66,12 +66,12 @@ class ApiHealthTest {
 
 class NekomoRepoTest {
     @org.junit.Test
-    fun nicknameAndUrlsResolve() {
+    fun urlsResolveAndUnknownCodesDoNot() {
         val r = com.lagradost.shiro.utils.repo.NekomoRepo
-        com.google.common.truth.Truth.assertThat(r.resolve("nekomo")).isEqualTo(r.OFFICIAL_URL)
-        com.google.common.truth.Truth.assertThat(r.resolve("  NEKOMO ")).isEqualTo(r.OFFICIAL_URL)
         com.google.common.truth.Truth.assertThat(r.resolve("https://example.com/index.json")).isEqualTo("https://example.com/index.json")
         com.google.common.truth.Truth.assertThat(r.resolve("some-other-name")).isNull()
+        com.google.common.truth.Truth.assertThat(r.resolve("nekomo")).isNull()
         com.google.common.truth.Truth.assertThat(r.resolve("ftp://x")).isNull()
+        com.google.common.truth.Truth.assertThat(r.isNickname("")).isFalse()
     }
 }
