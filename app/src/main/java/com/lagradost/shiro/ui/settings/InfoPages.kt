@@ -160,6 +160,9 @@ class AboutActivity : CyaneaAppCompatActivity() {
         b.root.addView(b.heading("Help"))
         b.root.addView(b.card(
             b.row("How to add sources", "A step-by-step guide to repositories and extensions") { b.open(GUIDE_URL) },
+            b.row("Documentation", "Guides and FAQ (Nekomo-Docs)") { b.open("https://github.com/Nekomo-App/Nekomo-Docs") },
+            b.row("Extensions and compatibility", "Supported formats and tested sources") { b.open("https://github.com/Nekomo-App/Nekomo-Extensions") },
+            b.row("Screenshots", "See every screen on the website") { b.open("https://nekomoapp.netlify.app/gallery") },
             b.row("Support", "Questions, bugs and feedback") { b.open(getString(R.string.link_support)) },
         ))
 
@@ -177,6 +180,8 @@ class AboutActivity : CyaneaAppCompatActivity() {
         b.root.addView(b.card(
             b.row("Open-source licenses", "Nekomo is GPL-3.0; libraries and their licenses") { Licenses.show(this) },
             b.row("Source code", "github.com/Nekomo-App/neko-source") { b.open(SOURCE_URL) },
+            b.row("Nekomo on GitHub", "Releases and issue tracker") { b.open("https://github.com/Nekomo-App/Nekomo") },
+            b.row("Brand assets", "Logos and guidelines (Nekomo-Branding)") { b.open("https://github.com/Nekomo-App/Nekomo-Branding") },
         ))
 
         // Credits

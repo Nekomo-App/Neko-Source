@@ -137,7 +137,7 @@ class ErrorLogActivity : CyaneaAppCompatActivity() {
                 append("\n```\n")
             }
             val encodedBody = URLEncoder.encode(body, "UTF-8").replace("+", "%20")
-            val url = "https://github.com/Nekomo-App/neko-source/issues/new?title=" +
+            val url = "https://github.com/Nekomo-App/Nekomo/issues/new?title=" +
                     URLEncoder.encode("Crash report", "UTF-8") +
                     "&body=$encodedBody"
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
