@@ -103,3 +103,13 @@ class FastestFirstTest {
         com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.Race.first<String>(50, listOf({ null }, { null }))).isNull()
     }
 }
+
+class ReleaseNotesTest {
+    @org.junit.Test
+    fun markdownBecomesPlainText() {
+        val md = "### Downloads\n| a | b |\n|---|---|\n**Beta**: `Nekomo-phone-beta.apk` and [NEX](https://github.com/Nekomo-App/NEX)\n\n\n\nDone"
+        val out = com.lagradost.shiro.utils.InAppUpdater.plainNotes(md)
+        com.google.common.truth.Truth.assertThat(out).isEqualTo("Downloads\nBeta: Nekomo-phone-beta.apk and NEX\n\nDone")
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.InAppUpdater.plainNotes(null)).isEmpty()
+    }
+}

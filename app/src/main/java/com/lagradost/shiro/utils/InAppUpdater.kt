@@ -89,6 +89,14 @@ object InAppUpdater {
             .filter { repoRegex.matches(it) }.distinct().ifEmpty { DEFAULT_REPOS.split(',') }
     }
 
+    /** Release notes are GitHub markdown; the dialog is plain text, so drop tables, headings, bold, code ticks and link targets. */
+    internal fun plainNotes(md: String?): String = md.orEmpty().lines()
+        .filterNot { it.trim().startsWith("|") }
+        .joinToString("\n") {
+            it.replace(Regex("^\\s*#+\\s*"), "").replace("**", "").replace("`", "").replace(Regex("\\[([^\\]]*)]\\([^)]*\\)"), "$1")
+        }
+        .replace(Regex("\n{3,}"), "\n\n").trim()
+
     internal fun parseVersion(s: String?): List<Int>? =
         s?.let { versionRegex.find(it) }?.value?.split('.')?.mapNotNull { it.toIntOrNull() }?.takeIf { it.isNotEmpty() }
 
@@ -226,7 +234,7 @@ object InAppUpdater {
             val channel = if (update.prerelease) "pre-release" else "stable"
             AlertDialog.Builder(this, R.style.AlertDialogCustom).apply {
                 setTitle("New update found!\n${BuildConfig.VERSION_NAME} -> ${update.updateVersion}")
-                setMessage("${update.changelog.orEmpty()}\n\nChannel: $channel (${update.repo})")
+                setMessage("${plainNotes(update.changelog)}\n\nChannel: $channel (${update.repo})")
                 setPositiveButton("Update") { _, _ ->
                     Toast.makeText(this@runAutoUpdate, "Download started", Toast.LENGTH_LONG).show()
                     thread {
