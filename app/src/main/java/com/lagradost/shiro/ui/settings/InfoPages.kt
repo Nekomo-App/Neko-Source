@@ -25,7 +25,7 @@ private const val SOURCE_URL = "https://github.com/Nekomo-App/neko-source"
 private const val GUIDE_URL = "https://nekomoapp.netlify.app/sources"
 
 /** Shared look for the About / DMCA / Rules pages so they feel like one family. */
-private class PageBuilder(val activity: CyaneaAppCompatActivity) {
+internal class PageBuilder(val activity: CyaneaAppCompatActivity) {
     val ctx: Context = activity
     val fg = if (Cyanea.instance.isDark) Color.WHITE else Color.BLACK
     val cardColor = if (Cyanea.instance.isDark) 0x1FFFFFFF else 0x12000000
@@ -247,7 +247,7 @@ class LegalPageActivity : CyaneaAppCompatActivity() {
                 "Be respectful" to "Treat other people kindly. No harassment, hate or personal attacks.",
                 "No spam" to "Do not flood chats or issue trackers, advertise, or post scams.",
                 "Keep it appropriate" to "No adult or illegal content in the official Discord, Telegram or GitHub spaces.",
-                "Do not share sources" to "Nekomo ships with none and the community does not trade repository links or pirated content.",
+                "Do not share sources" to "Nekomo ships with no sources installed, and the community does not trade pirated content or unofficial repository links.",
             ).forEach { (t, d) ->
                 b.root.addView(b.card(b.text(t, 16f, bold = true), b.text(d, 13f, dim = true)))
             }
@@ -264,7 +264,7 @@ class LegalPageActivity : CyaneaAppCompatActivity() {
             listOf(
                 "Nekomo hosts nothing" to "It does not store, upload or distribute videos, manga or other media.",
                 "Metadata comes from public providers" to "Titles and artwork come from services such as AniList. Nekomo is not affiliated with them or with any streaming service.",
-                "You choose your sources" to "Nekomo includes no sources, repositories or extensions. Anything you add is provided by third parties Nekomo does not control, and you are responsible for how you use it.",
+                "You choose your sources" to "Nekomo ships with no sources installed. An optional official repository of free and legal sources exists, but nothing is installed until you add it and confirm. Anything you add is provided by third parties that Nekomo does not control, and you are responsible for how you use it.",
                 "Rights holders" to "Nekomo cannot remove content it does not host. Please contact the website or service that hosts the material. Our full policy explains how to reach us.",
             ).forEach { (t, d) ->
                 b.root.addView(b.card(b.text(t, 16f, bold = true), b.text(d, 13f, dim = true)))

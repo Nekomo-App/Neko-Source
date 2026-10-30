@@ -101,6 +101,13 @@ class AcraApplication : Application() {
         // cloudstream3 classes and loads installed .cs3 plugins on a bg thread.
         // Must run here (not attachBaseContext) because applicationContext is null until now.
         normalSafeApiCall { CsPluginManager.init(this) }
+        // Optional automatic updates for installed script/plugin sources (never APK extensions)
+        normalSafeApiCall {
+            com.lagradost.shiro.utils.repo.ExtensionUpdater.schedule(this)
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                kotlin.concurrent.thread { com.lagradost.shiro.utils.repo.ExtensionUpdater.runAuto(this) }
+            }, 30_000)
+        }
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true)
 //        normalSafeApiCall {
 //            // Cleaning up update folder

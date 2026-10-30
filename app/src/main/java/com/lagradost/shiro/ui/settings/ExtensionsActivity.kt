@@ -397,6 +397,12 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
     }
 
     private fun addRepoFromInput(raw: String, input: EditText) {
+        // "nekomo" is the nickname of the official Nekomo repository: the manager shows what it will install first
+        if (com.lagradost.shiro.utils.repo.NekomoRepo.isNickname(raw)) {
+            input.text.clear()
+            startActivity(android.content.Intent(this, ExtensionManagerActivity::class.java).putExtra("add", raw))
+            return
+        }
         run {
             setStatus("Resolving repository…")
             thread {

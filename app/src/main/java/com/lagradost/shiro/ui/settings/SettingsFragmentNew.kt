@@ -102,7 +102,7 @@ class SettingsFragmentNew : Fragment() {
         fv<android.widget.TextView>(R.id.settings_extensions)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {
-                context?.let { startActivity(Intent(it, ExtensionsActivity::class.java)) }
+                context?.let { startActivity(Intent(it, ExtensionManagerActivity::class.java)) }
             }
         }
 

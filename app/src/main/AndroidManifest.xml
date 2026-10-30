@@ -98,6 +98,10 @@
                   android:theme="@style/preferenceActivityTheme"
                   android:label="Legal"
         />
+        <activity android:name=".ui.settings.ExtensionManagerActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Extensions manager"
+        />
         <activity android:name=".ui.settings.HomeSettingsActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:label="Home page"

@@ -254,7 +254,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
         val points = listOf(
             "Nekomo does not host, store, upload or distribute any videos, manga or other media.",
             "Anime information and artwork come from public metadata providers such as AniList. Nekomo is not affiliated with or endorsed by them or by any streaming service.",
-            "Nekomo includes no sources, repositories or extensions. Anything you add is your own choice and responsibility, and it is provided by third parties that Nekomo does not control.",
+            "Nekomo ships with no sources installed. An optional official repository of free and legal sources exists, but nothing is installed until you add it and confirm. Anything you add is provided by third parties that Nekomo does not control, and you are responsible for how you use it.",
             "You are responsible for following the copyright laws and the terms of service that apply to you. Please support official releases where you can.",
             "Rights holders: Nekomo cannot remove content it does not host. Please contact the website or service hosting the material. The full DMCA policy explains how to reach us."
         )

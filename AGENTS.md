@@ -311,3 +311,16 @@ this toggle would just add a switch that does nothing.
   both `alpha` and `debug`; the website keeps redirects for the old lowercase names.
 - Settings -> General -> "Reduce motion" (also follows the system animation setting) via `utils/Motion`.
 
+## Nekomo repository, extensions manager and updater
+
+- Policy (user decision): an OPTIONAL official repository. Nothing is installed until the user adds it in Settings ->
+  Extensions -> Extensions manager (nickname `nekomo` or a manifest URL) and confirms. It only lists free/legal sources and
+  never APK extensions. Manifest: `repo/index.json` (marker `nekomoRepository`), format in `repo/README.md`. No catalogue of
+  piracy-oriented sources is hosted or listed; users can still add any repository URL manually (ExtensionsActivity).
+- `utils/repo/NekomoRepo` (resolve/fetch/plan/apply/remove, history) and `ExtensionUpdater` (check/apply, WorkManager
+  `ExtensionUpdateWorker` + start-up check, settings `ext_auto_update`, `ext_update_hours`). Updates re-download via
+  `CsPluginManager.updatePlugin` / `ZangetsuManager.install`, which only replace the old version after a verified download.
+- `ui/settings/ExtensionManagerActivity`: Nekomo repo, updater + history, repositories, sources (details/enable/providers/update/
+  uninstall), built-in metadata APIs (enable/disable via `api_enabled_<id>`, TMDB key), APK extensions (listed, enable/disable/
+  remove only; installs stay manual in `ExtensionsActivity`).
+

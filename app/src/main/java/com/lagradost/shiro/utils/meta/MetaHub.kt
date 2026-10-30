@@ -112,6 +112,10 @@ object MetaHub {
 
     private fun getJson(provider: String, url: String, headers: Map<String, String> = emptyMap(), timeout: Double = 8.0): JsonNode? {
         if (ApiHealth.blocked(provider)) return null
+        // Backups / media APIs can be switched off in the Extensions manager
+        AcraApplication.context?.let { c ->
+            if (!PreferenceManager.getDefaultSharedPreferences(c).getBoolean("api_enabled_$provider", true)) return null
+        }
         return try {
             if (provider == "jikan") synchronized(jikanLock) {
                 val wait = 450 - (System.currentTimeMillis() - jikanLast)
