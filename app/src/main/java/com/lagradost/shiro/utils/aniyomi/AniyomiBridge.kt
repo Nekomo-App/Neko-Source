@@ -20,6 +20,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.nio.charset.Charset
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Maps Aniyomi extension sources into the app's data model (search, anime page, player). Slugs/tokens are
@@ -52,6 +53,28 @@ object AniyomiBridge {
 
     private fun ctx() = AcraApplication.context
 
+    // Extensions often return an empty title / cover from getAnimeDetails, so what the search showed is remembered.
+    private val seen = ConcurrentHashMap<String, Pair<String, String>>()
+
+    private fun remember(slug: String, title: String, thumb: String?) {
+        if (title.isBlank()) return
+        seen[slug] = title to (thumb ?: "")
+        ctx()?.let {
+            androidx.preference.PreferenceManager.getDefaultSharedPreferences(it).edit()
+                .putString("aycache_$slug", title.replace("\n", " ") + "\n" + (thumb ?: "")).apply()
+        }
+    }
+
+    private fun recall(slug: String): Pair<String, String>? = seen[slug] ?: ctx()?.let {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(it).getString("aycache_$slug", null)
+            ?.split("\n", limit = 2)?.let { p -> (p[0] to p.getOrElse(1) { "" }).also { r -> seen[slug] = r } }
+    }
+
+    /** Last resort title from the extension's URL ("/anime/one-piece-123" -> "One Piece 123"). */
+    private fun titleFromUrl(url: String): String? =
+        url.trim('/').substringAfterLast('/').substringBefore('?').replace(Regex("[-_]+"), " ").trim()
+            .takeIf { it.length > 2 }?.split(' ')?.joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } }
+
     private fun sources(): List<AnimeCatalogueSource> {
         val c = ctx() ?: return emptyList()
         return AniyomiManager.sources(c).filterIsInstance<AnimeCatalogueSource>()
@@ -64,7 +87,7 @@ object AniyomiBridge {
     data class Hit(val title: String, val slug: String)
 
     private fun toData(src: AnimeSource, a: SAnime) = NekomoApi.Companion.Data(
-        id = "", slug = makeSlug(src.id, a.url), title = a.title, title_english = sourceLabel(src),
+        id = "", slug = makeSlug(src.id, a.url).also { remember(it, a.title, a.thumbnail_url) }, title = a.title, title_english = sourceLabel(src),
         native_title = "", poster = a.thumbnail_url ?: "", banner = "", ids = "{}", type = "anime", format = "",
         episodes = "", episode_duration = "", synopsis = a.description ?: "", language = src.lang, synonyms = "",
         season = "", release_year = null, score = "", rating = "", studios = "", genres = a.genre ?: "",
@@ -100,7 +123,7 @@ object AniyomiBridge {
     fun searchBySource(sourceId: Long, query: String): List<Hit> {
         val src = sources().firstOrNull { it.id == sourceId } ?: return emptyList()
         return try {
-            runBlocking { searchSource(src, query) }.map { Hit(it.title, makeSlug(src.id, it.url)) }
+            runBlocking { searchSource(src, query) }.map { Hit(it.title, makeSlug(src.id, it.url).also { slug -> remember(slug, it.title, it.thumbnail_url) }) }
         } catch (t: Throwable) {
             logError(t)
             emptyList()
@@ -139,9 +162,11 @@ object AniyomiBridge {
                             ext = null, views = "0", created_at = "", updated_at = ""
                         )
                     }
-                    val poster = d.thumbnail_url ?: ""
+                    val known = recall(slug)
+                    val poster = d.thumbnail_url?.takeIf { it.isNotBlank() } ?: known?.second.orEmpty()
+                    val title = d.title.takeIf { it.isNotBlank() } ?: known?.first ?: titleFromUrl(url) ?: "Unknown"
                     val anime = NekomoApi.Companion.AnimePageNew(
-                        id = "", slug = slug, title = d.title.ifBlank { "Unknown" }, title_english = sourceLabel(src),
+                        id = "", slug = slug, title = title, title_english = sourceLabel(src),
                         native_title = "", poster = poster, banner = d.background_url ?: poster, ids = "{}",
                         type = "anime", format = "", episodes = epModels.size.toString(), episode_duration = "",
                         synopsis = d.description ?: "", language = src.lang, synonyms = "", season = "",

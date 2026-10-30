@@ -285,6 +285,24 @@
 
                                     </com.google.android.material.textview.MaterialTextView>
                                     <TextView
+                                            android:id="@+id/trailer_btt"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginStart="10dp"
+                                            android:layout_marginEnd="10dp"
+                                            android:layout_marginBottom="10dp"
+                                            android:padding="12dp"
+                                            android:gravity="center"
+                                            android:background="@drawable/outline_background"
+                                            android:text="▶  Watch trailer"
+                                            android:textColor="?attr/textColor"
+                                            android:textStyle="bold"
+                                            android:textSize="14sp"
+                                            android:visibility="gone"
+                                            android:clickable="true"
+                                            android:focusable="true"
+                                    />
+                                    <TextView
                                             android:id="@+id/source_hint"
                                             android:layout_width="match_parent"
                                             android:layout_height="wrap_content"

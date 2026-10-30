@@ -33,7 +33,7 @@ import kotlin.concurrent.thread
  * Releases are read from every repository in the `update_repos` setting (default: the Nekomo-App repos) and the
  * newest matching one wins. Release assets are matched to *this* build, so a Beta app is only ever offered the Beta
  * APK (same package name/signature) and a TV build only the TV APK:
- *   Nekomo-<phone|tv>-<release|beta|debug>.apk   (legacy `x.y.z.apk` / `x.y.z-TV.apk` names still work for stable)
+ *   Nekomo-<phone|TV>-<release|beta|alpha>.apk   (legacy `x.y.z.apk` / `x.y.z-TV.apk` names still work for stable)
  * Pre-releases are offered to beta/debug builds always, and to stable builds when "beta_mode" is enabled.
  */
 object InAppUpdater {
@@ -72,11 +72,11 @@ object InAppUpdater {
     private val repoRegex = Regex("""^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$""")
     private val versionRegex = Regex("""(\d+(?:\.\d+)+)""")
     private val tvRegex = Regex("""(^|[^a-z])tv([^a-z]|$)""")
-    private val typeWords = listOf("debug", "beta", "release")
+    private val typeWords = listOf("debug", "alpha", "beta", "release")
 
     /** "Stable", "Beta" or "Debug" - the channel of the installed build. */
     fun installedChannel() = when (BuildConfig.BUILD_TYPE) {
-        "debug" -> "Debug"
+        "debug" -> "Alpha"
         "beta" -> "Beta"
         else -> "Stable"
     }
@@ -106,7 +106,8 @@ object InAppUpdater {
         if (!name.endsWith(".apk")) return false
         if (tvRegex.containsMatchIn(name) != isTvBuild()) return false
         val words = typeWords.filter { name.contains(it) }
-        return if (words.isEmpty()) BuildConfig.BUILD_TYPE == "release" else BuildConfig.BUILD_TYPE in words
+        val type = BuildConfig.BUILD_TYPE
+        return if (words.isEmpty()) type == "release" else (type in words || (type == "debug" && "alpha" in words))
     }
 
     private fun isTrustedDownload(url: String): Boolean {

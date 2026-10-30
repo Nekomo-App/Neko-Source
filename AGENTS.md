@@ -297,3 +297,17 @@ this toggle would just add a switch that does nothing.
 - Failures are explained to the user (not installed / disabled, incompatible or unreachable extension, title not found,
   no matching episode). Zangetsu logs the provider's answer when it returns no streams.
 
+## Extension metadata, trailers and TV labels
+
+- Extension pages (Aniyomi / CloudStream / Zangetsu) are enriched by `utils/meta/MetaEnricher` from the built-in catalogue
+  (AniList, backups Kitsu/Jikan): title/cover/banner/synopsis/genres/score/studio/season/trailer are filled in; episodes and
+  streams are never touched. The matched built-in slug is cached (`enrich_<extSlug>`). `AniyomiBridge` remembers titles and
+  covers from search (`aycache_*`) because extensions often return an empty title from getAnimeDetails.
+- Trailers: tokens `youtube:<id>` / `dailymotion:<id>` in `AnimePageNew.trailer` (AniList, Kitsu, Jikan, TMDB). `utils/Trailers`
+  resolves YouTube with NewPipe (OkHttp downloader) and plays it in a dialog with the app's ExoPlayer; failures show a message
+  and an "Open in browser" button. R8 keep rules for NewPipe/Rhino are in `proguard-rules.pro`.
+- TV labelling: app titles Nekomo TV / Nekomo TV Beta / Nekomo TV Alpha (`src/tv*/res/values/strings.xml`), phone Nekomo /
+  Nekomo Beta / Nekomo Alpha. APKs: `Nekomo-<phone|TV>-<release|beta|alpha>.apk` ("alpha" = debug build type). The updater accepts
+  both `alpha` and `debug`; the website keeps redirects for the old lowercase names.
+- Settings -> General -> "Reduce motion" (also follows the system animation setting) via `utils/Motion`.
+

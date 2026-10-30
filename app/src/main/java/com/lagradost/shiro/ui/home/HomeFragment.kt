@@ -360,7 +360,7 @@ class HomeFragment : Fragment() {
                 act.displayCardData(items, list, title)
             }
             row.visibility = VISIBLE
-            row.animate().alpha(1f).setDuration(250).start()
+            if (com.lagradost.shiro.utils.Motion.reduced(ctx)) row.alpha = 1f else row.animate().alpha(1f).setDuration(250).start()
         }
 
         HomeFeed.cached(entry.def.id)?.let { show(it); return }

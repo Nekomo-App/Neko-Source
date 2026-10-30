@@ -49,3 +49,16 @@ object SearchHistory {
 
     fun clear(context: Context) = prefs(context).edit().remove(KEY).apply()
 }
+
+/** "Reduce motion" (Settings -> General) or the system's animation-off setting: skip decorative animations. */
+object Motion {
+    fun reduced(context: Context? = null): Boolean {
+        val c = context ?: AcraApplication.context ?: return false
+        if (PreferenceManager.getDefaultSharedPreferences(c).getBoolean("reduce_motion", false)) return true
+        return try {
+            android.provider.Settings.Global.getFloat(c.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+        } catch (e: Exception) {
+            false
+        }
+    }
+}

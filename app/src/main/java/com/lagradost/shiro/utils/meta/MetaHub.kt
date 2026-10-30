@@ -151,13 +151,13 @@ object MetaHub {
         slug: String, title: String, english: String? = null, native: String = "", poster: String = "", banner: String = "",
         malId: String? = null, type: String = "anime", format: String = "", episodes: String = "", duration: String = "",
         synopsis: String = "", season: String = "", year: String? = null, score: String = "", studios: String = "",
-        genres: List<String> = emptyList(), aired: String = "", status: String = "", language: String = "sub",
+        genres: List<String> = emptyList(), aired: String = "", status: String = "", language: String = "sub", trailer: String = "",
     ) = Data(
         id = slug, slug = slug, title = title, title_english = english?.takeIf { it.isNotBlank() }, native_title = native,
         poster = poster, banner = banner, ids = mapper.writeValueAsString(mapOf("mal" to malId)), type = type,
         format = format, episodes = episodes, episode_duration = duration, synopsis = synopsis, language = language,
         synonyms = "", season = season, release_year = year?.takeIf { it.isNotBlank() }, score = score, rating = "",
-        studios = studios, genres = genres.joinToString(","), aired = aired, status = status, trailer = "",
+        studios = studios, genres = genres.joinToString(","), aired = aired, status = status, trailer = trailer,
         total_views = "0", created_at = "", updated_at = ""
     )
 
@@ -245,6 +245,7 @@ object MetaHub {
             season = n.txt("season").replaceFirstChar { it.uppercase() }, year = n.txt("year").ifEmpty { n.txt("aired", "prop", "from", "year") },
             score = n.txt("score"), studios = n.path("studios").joinToString(", ") { it.txt("name") },
             genres = n.path("genres").map { it.txt("name") }, aired = n.txt("aired", "string"), status = jikanStatus(n.txt("status")),
+            trailer = n.txt("trailer", "youtube_id").takeIf { it.isNotBlank() }?.let { "youtube:$it" } ?: "",
         )
     }
 
@@ -305,6 +306,7 @@ object MetaHub {
             episodes = a.txt("episodeCount"), duration = a.txt("episodeLength"), synopsis = a.txt("synopsis"),
             season = seasonOf(start), year = start.take(4), score = a.txt("averageRating"), aired = start,
             status = kitsuStatus(a.txt("status")),
+            trailer = a.txt("youtubeVideoId").takeIf { it.isNotBlank() }?.let { "youtube:$it" } ?: "",
         )
     }
 
@@ -444,9 +446,13 @@ object MetaHub {
         language = n.txt("original_language"),
     )
 
+    private fun tmdbTrailer(kind: String, id: String): String =
+        tmdb("$kind/$id/videos")?.path("results")?.firstOrNull { it.txt("site") == "YouTube" && it.txt("type") == "Trailer" }
+            ?.txt("key")?.takeIf { it.isNotBlank() }?.let { "youtube:$it" } ?: ""
+
     private fun tmdbMoviePage(id: String, slug: String): AnimePageNewRoot? {
         val n = tmdb("movie/$id") ?: return null
-        return root(tmdbMovieData(n, slug), listOf(episode(slug, 1, n.txt("title"), tmdbImage(n.txt("backdrop_path"), "w780").ifEmpty { null }, n.txt("tagline"))))
+        return root(tmdbMovieData(n, slug).copy(trailer = tmdbTrailer("movie", id)), listOf(episode(slug, 1, n.txt("title"), tmdbImage(n.txt("backdrop_path"), "w780").ifEmpty { null }, n.txt("tagline"))))
     }
 
     private fun tmdbTvPage(id: String, slug: String): AnimePageNewRoot? {
@@ -461,7 +467,7 @@ object MetaHub {
                 )
             }
         }
-        return root(tmdbTvData(n, slug).copy(episodes = eps.size.toString()), eps)
+        return root(tmdbTvData(n, slug).copy(episodes = eps.size.toString(), trailer = tmdbTrailer("tv", id)), eps)
     }
 
     private fun tmdbSearch(query: String, ctx: Context?): List<Data> {

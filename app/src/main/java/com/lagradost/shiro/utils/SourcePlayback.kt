@@ -128,7 +128,7 @@ object SourcePlayback {
         }
 
         val page = try {
-            LiveApi.getAnimePage(extSlug)?.data
+            LiveApi.getAnimePage(extSlug, withEpisodes = true, enrich = false)?.data
         } catch (t: Throwable) {
             logError(t)
             null

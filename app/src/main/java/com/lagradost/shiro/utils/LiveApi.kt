@@ -73,6 +73,7 @@ object LiveApi {
         bannerImage
         description(asHtml: false)
         genres format seasonYear status averageScore episodes duration
+        trailer { id site }
         season studios(isMain: true) { nodes { name } }
         startDate { year month day }
         nextAiringEpisode { episode }
@@ -187,7 +188,11 @@ object LiveApi {
             genres = media.path("genres").mapNotNull { it.asText(null) }.joinToString(","),
             aired = aired,
             status = prettyStatus(media.txt("status")),
-            trailer = "",
+            trailer = media.path("trailer").let { t ->
+                val id = t.path("id").asText("")
+                val site = t.path("site").asText("").lowercase()
+                if (id.isNotBlank() && (site == "youtube" || site == "dailymotion")) "$site:$id" else ""
+            },
             total_views = "0",
             created_at = "",
             updated_at = ""
@@ -324,15 +329,22 @@ object LiveApi {
      * Metadata-only page for an AniList title. Streams come from sources the user installs, so the episode
      * list is empty here; the page's "Choose source" button finds the title in an installed source.
      */
-    fun getAnimePage(slug: String): NekomoApi.Companion.AnimePageNewRoot? {
+    fun getAnimePage(slug: String, withEpisodes: Boolean = true, enrich: Boolean = true): NekomoApi.Companion.AnimePageNewRoot? {
         val bare = slug.removeSuffix("-dub")
 
         if (Regex("""^mal\d+$""").matches(bare)) return getAnimePageByMal(bare.removePrefix("mal"))
         if (com.lagradost.shiro.utils.meta.MetaHub.isMetaSlug(bare)) return com.lagradost.shiro.utils.meta.MetaHub.getPage(bare)
         // Slugs from user-installed sources are self-contained tokens
-        if (CsBridge.isCs3Slug(bare)) return CsBridge.getAnimePage(bare)
-        if (com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(bare)) return com.lagradost.shiro.utils.zg.ZangetsuBridge.getAnimePage(bare)
-        if (com.lagradost.shiro.utils.aniyomi.AniyomiBridge.isAySlug(bare)) return com.lagradost.shiro.utils.aniyomi.AniyomiBridge.getAnimePage(bare)
+        // Extension pages keep their own episodes; the built-in catalogue fills in whatever metadata they lack
+        val extPage = when {
+            CsBridge.isCs3Slug(bare) -> CsBridge.getAnimePage(bare)
+            com.lagradost.shiro.utils.zg.ZangetsuBridge.isZgSlug(bare) -> com.lagradost.shiro.utils.zg.ZangetsuBridge.getAnimePage(bare)
+            com.lagradost.shiro.utils.aniyomi.AniyomiBridge.isAySlug(bare) -> com.lagradost.shiro.utils.aniyomi.AniyomiBridge.getAnimePage(bare)
+            else -> null
+        }
+        if (isExtensionSlug(bare)) {
+            return if (extPage != null && enrich) com.lagradost.shiro.utils.meta.MetaEnricher.enrich(extPage, bare) else extPage
+        }
 
         return try {
             val alId = bare.removePrefix("al").toIntOrNull() ?: return null
@@ -342,7 +354,7 @@ object LiveApi {
             val d = mediaToData(media, slugOverride = slug)
             val total = media.path("episodes").takeIf { !it.isNull && !it.isMissingNode }?.asInt()
                 ?: media.path("nextAiringEpisode").path("episode").asInt(0).let { if (it > 1) it - 1 else null }
-            val episodes = com.lagradost.shiro.utils.meta.MetaHub.episodesForMal(
+            val episodes = if (!withEpisodes) emptyList() else com.lagradost.shiro.utils.meta.MetaHub.episodesForMal(
                 slug, media.path("idMal").takeIf { !it.isNull && !it.isMissingNode }?.asText(), total
             )
             NekomoApi.Companion.AnimePageNewRoot(

@@ -92,6 +92,7 @@ private class PageBuilder(val activity: CyaneaAppCompatActivity) {
 
     /** Gentle staggered fade-in so the page does not pop in all at once. */
     fun reveal(v: View) {
+        if (com.lagradost.shiro.utils.Motion.reduced(ctx)) return
         v.alpha = 0f
         v.translationY = dp(12).toFloat()
         v.animate().alpha(1f).translationY(0f).setStartDelay((shown++ * 45L).coerceAtMost(500)).setDuration(280).start()
@@ -135,7 +136,7 @@ class AboutActivity : CyaneaAppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "About"
         val b = PageBuilder(this)
-        val channel = when (BuildConfig.BUILD_TYPE) { "debug" -> "Debug"; "beta" -> "Beta"; else -> "Stable" }
+        val channel = when (BuildConfig.BUILD_TYPE) { "debug" -> "Alpha"; "beta" -> "Beta"; else -> "Stable" }
         val device = if (BuildConfig.FLAVOR.contains("tv", ignoreCase = true)) "Android TV" else "Phone"
 
         // Header

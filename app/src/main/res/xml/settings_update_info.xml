@@ -26,7 +26,7 @@
     <SwitchPreference
             app:key="beta_mode"
             android:title="Include pre-releases (stable app)"
-            android:summary="Stable app: also offer pre-releases. The Beta and Debug apps always follow pre-releases, and only ever update to their own APK."
+            android:summary="Stable app: also offer pre-releases. The Beta and Alpha apps always follow pre-releases, and only ever update to their own APK."
             app:defaultValue="false"
             android:icon="@drawable/ic_baseline_warning_24"
     />

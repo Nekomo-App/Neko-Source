@@ -8,8 +8,8 @@ set -euo pipefail
 VERSION="${1:?version, e.g. 2.8.2}"; CHANNEL="${2:-stable}"; REPO="${3:-Nekomo-App/Nekomo}"
 cd "$(dirname "$0")/.."
 if [ "$CHANNEL" = "beta" ]; then
-  FILES=(apks/Nekomo-phone-beta.apk apks/Nekomo-tv-beta.apk apks/Nekomo-phone-debug.apk apks/Nekomo-tv-debug.apk); FLAGS=(--prerelease)
+  FILES=(apks/Nekomo-phone-beta.apk apks/Nekomo-TV-beta.apk apks/Nekomo-phone-alpha.apk apks/Nekomo-TV-alpha.apk); FLAGS=(--prerelease)
 else
-  FILES=(apks/Nekomo-phone-release.apk apks/Nekomo-tv-release.apk); FLAGS=()
+  FILES=(apks/Nekomo-phone-release.apk apks/Nekomo-TV-release.apk); FLAGS=()
 fi
 gh release create "v$VERSION" "${FILES[@]}" --repo "$REPO" --title "Nekomo $VERSION" --generate-notes "${FLAGS[@]}"

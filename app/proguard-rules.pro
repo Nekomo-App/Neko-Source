@@ -177,3 +177,9 @@
 -keep class kotlin.comparisons.** { *; }
 -dontwarn kotlin.**
 -keep class androidx.preference.** { *; }
+
+# In-app trailers: NewPipe extractor (reflection + JS signature handling)
+-keep class org.schabi.newpipe.extractor.** { *; }
+-keep class org.mozilla.javascript.** { *; }
+-dontwarn org.schabi.newpipe.**
+-dontwarn org.mozilla.javascript.**

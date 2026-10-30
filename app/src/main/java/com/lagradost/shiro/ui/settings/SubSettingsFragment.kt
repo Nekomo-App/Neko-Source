@@ -611,7 +611,7 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
 
                 setTitle("About")
                 val channel = when (com.lagradost.shiro.BuildConfig.BUILD_TYPE) {
-                    "debug" -> "Debug"
+                    "debug" -> "Alpha"
                     "beta" -> "Beta"
                     else -> "Stable"
                 }

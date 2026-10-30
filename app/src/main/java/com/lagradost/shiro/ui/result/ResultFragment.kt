@@ -518,6 +518,11 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             // picks one of the sources they installed themselves.
             val needsSource = data.episodes.none { it.ext != "meta" } && !com.lagradost.shiro.utils.isExtensionSlug(data.anime.slug)
             setupSourceDropdown(data)
+            fv<android.widget.TextView>(R.id.trailer_btt)?.apply {
+                val token = data.anime.trailer
+                visibility = if (token.isNotBlank() && com.lagradost.shiro.utils.Trailers.webUrl(token) != null) VISIBLE else GONE
+                setOnClickListener { activity?.let { com.lagradost.shiro.utils.Trailers.show(it, data.anime.title, token) } }
+            }
             fv<android.widget.TextView>(R.id.source_hint)?.apply {
                 visibility = if (needsSource) VISIBLE else GONE
                 val hasEpisodes = data.episodes.isNotEmpty()
