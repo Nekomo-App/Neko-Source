@@ -242,23 +242,33 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         r.addView(b.heading("Repositories"))
         val cs = CsPluginManager.getRepos(this).map { Triple("CloudStream", it.name ?: host(it.url), it.url) }
         val zg = ZangetsuManager.getRepos(this).map { Triple("Zangetsu", it.name ?: host(it.url), it.url) }
-        val all = cs + zg
+        val ay = AniyomiManager.getRepos(this).map { Triple("Aniyomi", it.name ?: host(it.url), it.url) }
+        val mh = MihonManager.getRepos(this).map { Triple("Mihon", it.name ?: host(it.url), it.url) }
+        val all = cs + zg + ay + mh
         if (all.isEmpty()) {
             r.addView(b.card(b.text("No repositories yet. Add the Nekomo repository above, or add your own in Manual repositories (below).", 13f, dim = true)))
             return
         }
         r.addView(b.card(*all.map { (type, name, url) ->
             b.row(name, "$type · $url") {
-                AlertDialog.Builder(this).setTitle(name).setMessage(url)
-                    .setPositiveButton("Remove, keep sources") { _, _ -> removeRepo(type, url, false) }
-                    .setNeutralButton("Remove and uninstall sources") { _, _ -> removeRepo(type, url, true) }
-                    .setNegativeButton("Cancel", null).show()
+                if (type == "Aniyomi" || type == "Mihon") {
+                    AlertDialog.Builder(this).setTitle(name).setMessage("$url\n\nRemoving the repository does not touch any APK extension you installed.")
+                        .setPositiveButton("Remove repository") { _, _ -> removeRepo(type, url, false) }
+                        .setNegativeButton("Cancel", null).show()
+                } else {
+                    AlertDialog.Builder(this).setTitle(name).setMessage(url)
+                        .setPositiveButton("Remove, keep sources") { _, _ -> removeRepo(type, url, false) }
+                        .setNeutralButton("Remove and uninstall sources") { _, _ -> removeRepo(type, url, true) }
+                        .setNegativeButton("Cancel", null).show()
+                }
             }
         }.toTypedArray()))
     }
 
     private fun removeRepo(type: String, url: String, uninstall: Boolean) {
-        if (type == "CloudStream") {
+        if (type == "Aniyomi") AniyomiManager.removeRepo(this, url)
+        else if (type == "Mihon") MihonManager.removeRepo(this, url)
+        else if (type == "CloudStream") {
             if (uninstall) CsPluginManager.getInstalled(this).filter { it.repoUrl == url }.forEach { CsPluginManager.uninstallPlugin(this, it.internalName) }
             CsPluginManager.removeRepo(this, url)
         } else {
@@ -289,7 +299,18 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
             rows += b.row("${s.name}  v${s.version}", "Zangetsu · ${s.type}/${s.lang} · ${if (enabled) "enabled" else "disabled"} · ${host(s.repoUrl)}" + (up?.let { " · update ${it.to}" } ?: "")) { zgDialog(s, up) }
         }
         if (rows.isEmpty()) r.addView(b.card(b.text("No sources installed. Nekomo works as a tracker until you add some.", 13f, dim = true)))
-        else r.addView(b.card(*rows.toTypedArray()))
+        else {
+            r.addView(b.card(*rows.toTypedArray()))
+            r.addView(b.primaryButton("Uninstall all sources") {
+                AlertDialog.Builder(this).setTitle("Uninstall all sources?")
+                    .setMessage("This removes every CloudStream plugin and Zangetsu script. Your repositories stay, APK extensions are not touched.")
+                    .setPositiveButton("Uninstall all") { _, _ ->
+                        CsPluginManager.getInstalled(this).forEach { CsPluginManager.uninstallPlugin(this, it.internalName) }
+                        ZangetsuManager.getInstalled(this).forEach { ZangetsuManager.uninstall(this, it.id) }
+                        render()
+                    }.setNegativeButton("Cancel", null).show()
+            })
+        }
     }
 
     private fun csDialog(p: CsPluginManager.CsInstalledPlugin, up: NekomoRepo.Update?) {
@@ -370,12 +391,16 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
             val keyNote = if (id == "tmdb") (if (com.lagradost.shiro.utils.meta.MetaHub.tmdbKey(this).isEmpty()) " · no key set" else " · key set") else ""
             b.row(name, "$desc ${if (on) ApiHealth.status(id) else "Disabled"}$keyNote") {
                 val options = ArrayList<Pair<String, () -> Unit>>()
+                if (id == "anilist") options += "Built in (main catalogue, can't be removed)" to { }
                 if (id != "anilist") options += (if (on) "Disable" else "Enable") to { prefs.edit().putBoolean("api_enabled_$id", !on).apply(); render() }
                 if (id == "tmdb") options += "Set API key…" to {
                     val input = EditText(this).apply { setText(com.lagradost.shiro.utils.meta.MetaHub.tmdbKey(this@ExtensionManagerActivity)); setSingleLine() }
                     AlertDialog.Builder(this).setTitle("TMDB API key").setMessage("Free key from themoviedb.org/settings/api. Stored only on this device.")
                         .setView(input).setPositiveButton("Save") { _, _ -> prefs.edit().putString("tmdb_api_key", input.text.toString().trim()).apply(); ApiHealth.reset(); render() }
                         .setNegativeButton("Cancel", null).show()
+                }
+                if (id == "tmdb" && com.lagradost.shiro.utils.meta.MetaHub.tmdbKey(this).isNotEmpty()) options += "Remove API key" to {
+                    prefs.edit().remove("tmdb_api_key").apply(); ApiHealth.reset(); render()
                 }
                 options += "Reset status" to { ApiHealth.reset(); render() }
                 AlertDialog.Builder(this).setTitle(name).setItems(options.map { it.first }.toTypedArray()) { _, i -> options[i].second() }
@@ -414,5 +439,6 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
             *rows.toTypedArray()
         ))
         r.addView(b.primaryButton("Manual repositories and APK extensions") { startActivity(Intent(this, ExtensionsActivity::class.java)) })
+        r.addView(b.primaryButton("Sources guide (website)") { b.open("https://nekomoapp.netlify.app/sources") })
     }
 }
