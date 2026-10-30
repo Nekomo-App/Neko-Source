@@ -37,7 +37,15 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         b = PageBuilder(this)
         setContentView(b.finish())
         render()
-        intent.getStringExtra("add")?.let { startAdd(it) }
+        // Deep link from NEX or a browser: only after the welcome gate has been completed
+        val link = intent.data?.takeIf { it.scheme == "nekomo-repo" && it.host == "add" }?.getQueryParameter("url")
+        if (link != null && !com.lagradost.shiro.utils.auth.AuthManager.canEnter(this)) {
+            toast("Open Nekomo and finish the welcome steps first, then try again.")
+            startActivity(packageManager.getLaunchIntentForPackage(packageName))
+            finish()
+            return
+        }
+        (link ?: intent.getStringExtra("add"))?.let { startAdd(it) }
     }
 
     override fun onResume() {
@@ -120,11 +128,16 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         thread {
             val manifest = NekomoRepo.fetch(url)
             val plan = manifest?.let { NekomoRepo.plan(this, it) }
+            val foreign = if (manifest == null) foreignKind(url) else null
             runOnUiThread {
                 loading.dismiss()
                 if (manifest == null || plan == null) {
+                    if (foreign != null) {
+                        showForeign(url, foreign.first, foreign.second)
+                        return@runOnUiThread
+                    }
                     AlertDialog.Builder(this).setTitle("Can't add repository")
-                        .setMessage("That address is not a Nekomo repository, or it could not be reached. Check the nickname or URL and your connection.")
+                        .setMessage("That address is not a Nekomo repository, or it could not be reached. Check the address and your connection. Nekomo accepts Nekomo, CloudStream, Zangetsu, Aniyomi and Mihon repository addresses.")
                         .setPositiveButton("OK", null).show()
                     return@runOnUiThread
                 }
@@ -145,6 +158,39 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
                     .setNegativeButton("Cancel", null).show()
             }
         }
+    }
+
+    /** Recognises CloudStream, Zangetsu and Aniyomi/Mihon repository addresses. Blocking. Returns (kind, name). */
+    private fun foreignKind(url: String): Pair<String, String>? {
+        CsPluginManager.fetchRepository(url)?.takeIf { !it.pluginLists.isNullOrEmpty() }?.let { return "CloudStream" to (it.name ?: host(url)) }
+        ZangetsuManager.fetchManifest(url)?.takeIf { it.sources.isNotEmpty() }?.let { return "Zangetsu" to (it.name ?: host(url)) }
+        if (AniyomiManager.fetchIndex(AniyomiManager.normaliseRepoUrl(url)) != null) return "APK" to host(url)
+        return null
+    }
+
+    /** Registers a repository address only. Nothing is downloaded or installed, and APK extensions stay manual. */
+    private fun showForeign(url: String, kind: String, name: String) {
+        val warn = "\n\nThis only saves the repository address. Nothing is installed; browse and install from Settings > Extensions > Manual repositories after you confirm you trust it."
+        val b = AlertDialog.Builder(this).setNegativeButton("Cancel", null)
+        if (kind == "APK") {
+            b.setTitle("Add repository?").setMessage("$name looks like an Aniyomi (anime) or Mihon (manga) extension repository.\n$url$warn")
+                .setPositiveButton("Add for Aniyomi") { _, _ -> AniyomiManager.addRepo(this, AniyomiManager.AyRepo(AniyomiManager.normaliseRepoUrl(url), name)); done("Aniyomi", name) }
+                .setNeutralButton("Add for Mihon") { _, _ -> MihonManager.addRepo(this, MihonManager.MhRepo(MihonManager.normaliseRepoUrl(url), name)); done("Mihon", name) }
+        } else {
+            b.setTitle("Add $kind repository?").setMessage("$name\n$url$warn")
+                .setPositiveButton("Add") { _, _ ->
+                    if (kind == "CloudStream") CsPluginManager.addRepo(this, CsPluginManager.CsRepo(url, name))
+                    else ZangetsuManager.addRepo(this, ZangetsuManager.ZgRepo(url, name))
+                    done(kind, name)
+                }
+        }
+        b.show()
+    }
+
+    private fun done(kind: String, name: String) {
+        NekomoRepo.log(this, true, "repository", name, "Added $kind repository (address only)")
+        toast("Added $name. Install its sources from Manual repositories.")
+        render()
     }
 
     private fun runApply(url: String, manifest: NekomoRepo.Manifest) {
@@ -440,5 +486,10 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         ))
         r.addView(b.primaryButton("Manual repositories and APK extensions") { startActivity(Intent(this, ExtensionsActivity::class.java)) })
         r.addView(b.primaryButton("Sources guide (website)") { b.open("https://nekomoapp.netlify.app/sources") })
+        val nexPkg = listOf("net.nekomo.nex", "net.nekomo.nex.debug").firstOrNull { p -> runCatching { packageManager.getPackageInfo(p, 0) }.isSuccess }
+        r.addView(b.primaryButton(if (nexPkg != null) "Open NEX (companion manager)" else "Get NEX (companion manager)") {
+            val launch = nexPkg?.let { packageManager.getLaunchIntentForPackage(it) }
+            if (launch != null) startActivity(launch) else b.open("https://github.com/Nekomo-App/NEX/releases")
+        })
     }
 }

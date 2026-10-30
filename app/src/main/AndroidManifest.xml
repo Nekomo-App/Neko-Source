@@ -27,6 +27,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
+    <queries>
+        <!-- NEX companion app (detect whether it is installed so the Extensions manager can open it) -->
+        <package android:name="net.nekomo.nex"/>
+        <package android:name="net.nekomo.nex.debug"/>
+    </queries>
+
     <application
             android:name=".AcraApplication"
             android:allowBackup="true"
@@ -105,7 +111,17 @@
         <activity android:name=".ui.settings.ExtensionManagerActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:label="Extensions manager"
-        />
+                  android:exported="true"
+        >
+            <!-- nekomo-repo://add?url=<repository url>: used by NEX (and anyone else) to hand a repository over.
+                 It only opens the confirmation dialog; nothing is added or installed without the user's approval. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="nekomo-repo" android:host="add"/>
+            </intent-filter>
+        </activity>
         <activity android:name=".ui.settings.HomeSettingsActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:label="Home page"

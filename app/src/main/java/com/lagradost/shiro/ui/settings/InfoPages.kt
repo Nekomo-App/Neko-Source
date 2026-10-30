@@ -162,6 +162,7 @@ class AboutActivity : CyaneaAppCompatActivity() {
             b.row("How to add sources", "A step-by-step guide to repositories and extensions") { b.open(GUIDE_URL) },
             b.row("Documentation", "Guides and FAQ (Nekomo-Docs)") { b.open("https://github.com/Nekomo-App/Nekomo-Docs") },
             b.row("Extensions and compatibility", "Supported formats and tested sources") { b.open("https://github.com/Nekomo-App/Nekomo-Extensions") },
+            b.row("NEX companion app", "Manage repositories and extensions from a separate app") { b.open("https://github.com/Nekomo-App/NEX") },
             b.row("Screenshots", "See every screen on the website") { b.open("https://nekomoapp.netlify.app/gallery") },
             b.row("Support", "Questions, bugs and feedback") { b.open(getString(R.string.link_support)) },
         ))
