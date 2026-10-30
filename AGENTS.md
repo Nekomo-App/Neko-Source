@@ -333,3 +333,12 @@ this toggle would just add a switch that does nothing.
 - `SourcePlayback.resolveAuto` tries the chosen source (20 s limit) and then the other installed sources ranked by
   `SourceHealth.rank` (healthy and fast first), accepting only confident title matches; the UI says which source played.
 
+## NEX companion app and the add-repo link
+
+- NEX (github.com/Nekomo-App/NEX, package `net.nekomo.nex`) manages repositories/extensions for Nekomo, Mihon, Aniyomi, CloudStream and
+  Zangetsu. It reads `repo/index.json` and `apks/latest.json` (flavor, channel stable/beta/alpha, version, versionCode, sha256): keep
+  those schemas stable and keep the package ids `app.nekomo[.tv][.beta|.debug]`.
+- `ExtensionManagerActivity` handles `nekomo-repo://add?url=<url>` (exported, login-gated, always a confirmation dialog). It accepts Nekomo
+  manifests and CloudStream/Zangetsu/Aniyomi/Mihon repository addresses (address only; APK extensions stay manual). The manager also has
+  an Open/Get NEX button (manifest `<queries>` lists the NEX packages). Issues for the app live on Nekomo-App/Nekomo.
+
