@@ -60,26 +60,26 @@ object MetaEnricher {
         return LiveApi.getAnimePage(builtIn, withEpisodes = false, enrich = false)?.data?.anime
     }
 
+    /** The built-in catalogue is the source of truth for descriptive data; the extension only fills what it lacks. */
     private fun merge(ext: AnimePageNew, m: AnimePageNew): AnimePageNew {
-        fun pick(own: String, builtIn: String) = if (own.isBlank()) builtIn else own
-        val extTitleOk = ext.title.isNotBlank() && !ext.title.equals("Unknown", true)
+        fun pick(builtIn: String, own: String) = if (builtIn.isBlank() || builtIn == "null") own else builtIn
         return ext.copy(
-            title = if (extTitleOk) ext.title else m.title,
-            native_title = pick(ext.native_title, m.native_title),
+            title = m.title.ifBlank { ext.title },
+            native_title = pick(m.native_title, ext.native_title),
             poster = m.poster.ifBlank { ext.poster },
             banner = m.banner.ifBlank { ext.banner.takeIf { it != ext.poster } ?: ext.poster },
             ids = if (m.ids.isNotBlank() && m.ids != "{}") m.ids else ext.ids,
-            format = pick(ext.format, m.format),
-            episode_duration = pick(ext.episode_duration, m.episode_duration),
+            format = pick(m.format, ext.format),
+            episode_duration = pick(m.episode_duration, ext.episode_duration),
             synopsis = m.synopsis.ifBlank { ext.synopsis.replace(Regex("""^[★☆\s\d.]{3,}"""), "").trim() },
-            season = pick(ext.season, m.season),
-            release_year = ext.release_year?.takeIf { it.isNotBlank() } ?: m.release_year,
-            score = pick(ext.score, m.score),
-            studios = pick(ext.studios, m.studios),
-            genres = pick(ext.genres, m.genres),
-            aired = pick(ext.aired, m.aired),
-            status = pick(ext.status, m.status),
-            trailer = pick(ext.trailer, m.trailer),
+            season = pick(m.season, ext.season),
+            release_year = m.release_year?.takeIf { it.isNotBlank() } ?: ext.release_year,
+            score = pick(m.score, ext.score),
+            studios = pick(m.studios, ext.studios),
+            genres = pick(m.genres, ext.genres),
+            aired = pick(m.aired, ext.aired),
+            status = pick(m.status, ext.status),
+            trailer = pick(m.trailer, ext.trailer),
         )
     }
 }

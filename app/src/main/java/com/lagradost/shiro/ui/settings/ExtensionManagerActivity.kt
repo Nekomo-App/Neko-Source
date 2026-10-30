@@ -291,7 +291,7 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
             val enabled = CsPluginManager.isPluginEnabled(this, p.internalName)
             val loaded = CsPluginManager.isLoaded(p.filePath)
             val up = pending.firstOrNull { it.kind == "cs" && it.id == p.internalName }
-            rows += b.row("${p.name}  v${p.version}", "CloudStream · ${if (!enabled) "disabled" else if (loaded) "active" else "not loaded"} · ${host(p.repoUrl)}" + (up?.let { " · update ${it.to}" } ?: "")) { csDialog(p, up) }
+            rows += b.row("${p.name}  v${p.version}", "CloudStream · ${if (!enabled) "disabled" else if (loaded && CsPluginManager.hiddenByFilter(p.internalName)) "hidden by content filter (Settings > General)" else if (loaded) "active" else "not loaded"} · ${host(p.repoUrl)}" + (up?.let { " · update ${it.to}" } ?: "")) { csDialog(p, up) }
         }
         ZangetsuManager.getInstalled(this).forEach { s ->
             val enabled = ZangetsuManager.isEnabled(this, s.id)

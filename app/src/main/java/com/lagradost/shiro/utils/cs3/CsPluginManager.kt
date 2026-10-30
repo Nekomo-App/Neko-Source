@@ -200,6 +200,20 @@ object CsPluginManager {
         }
     }
 
+    /** True when the plugin is loaded and enabled but all its providers are hidden by the movies/TV or 18+ filters. */
+    fun hiddenByFilter(internalName: String): Boolean {
+        val lp = loadedPlugins.values.firstOrNull { it.installed.internalName == internalName } ?: return false
+        if (lp.apis.isEmpty()) return false
+        val ctx = com.lagradost.shiro.AcraApplication.context
+        val animeTypes = setOf("Anime", "AnimeMovie", "OVA")
+        val nonAnimeOk = com.lagradost.shiro.utils.ContentPrefs.nonAnime(ctx)
+        val nsfwOk = com.lagradost.shiro.utils.ContentPrefs.nsfw(ctx)
+        return lp.apis.none { api ->
+            val types = try { api.supportedTypes.map { it.name }.toSet() } catch (t: Throwable) { emptySet() }
+            (nsfwOk || (!lp.installed.nsfw && "NSFW" !in types)) && (nonAnimeOk || types.any { it in animeTypes })
+        }
+    }
+
     /** Whether a repository entry passes the user's 18+ / movies-and-shows content filters. */
     fun allowed(context: Context, p: CsSitePlugin): Boolean {
         val types = p.tvTypes.orEmpty().map { it.lowercase() }

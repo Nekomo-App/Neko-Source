@@ -235,7 +235,11 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                     }
                     .setNegativeButton("Cancel", null)
                     .apply {
-                        if (entries.size == 1) setMessage("No extensions or sources installed. Add them in Settings → Extensions.")
+                        if (entries.size == 1) setMessage(
+                            if (com.lagradost.shiro.utils.cs3.CsPluginManager.getInstalled(ctx).isNotEmpty() || com.lagradost.shiro.utils.zg.ZangetsuManager.getInstalled(ctx).isNotEmpty())
+                                "Your installed sources are hidden by a content filter. Turn on \"Show movies and TV shows\" (or the 18+ option) in Settings → General to use them."
+                            else "No extensions or sources installed. Add them in Settings → Extensions."
+                        )
                     }
                     .show()
             }
