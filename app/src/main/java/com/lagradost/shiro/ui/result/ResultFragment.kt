@@ -330,7 +330,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         Toast.makeText(ctx, "Finding episode $epNumber in $label…", Toast.LENGTH_SHORT).show()
         thread {
             val outcome = try {
-                com.lagradost.shiro.utils.SourcePlayback.resolve(ctx, anime.slug, titles, epNumber, key, chosenExtSlug)
+                com.lagradost.shiro.utils.SourcePlayback.resolveAuto(ctx, anime.slug, titles, epNumber, key, chosenExtSlug)
             } catch (t: Throwable) {
                 logError(t)
                 com.lagradost.shiro.utils.SourcePlayback.Outcome.Problem("$label failed unexpectedly (${t.message ?: t.javaClass.simpleName}). Try another source.")
@@ -339,6 +339,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                 normalSafeApiCall { loading.dismiss() }
                 when (outcome) {
                     is com.lagradost.shiro.utils.SourcePlayback.Outcome.Found -> {
+                        if (outcome.sourceLabel != label) Toast.makeText(ctx, "$label didn't answer, playing via ${outcome.sourceLabel}", Toast.LENGTH_LONG).show()
                         val alId = Regex("^al(\\d+)$").find(anime.slug)?.groupValues?.get(1)?.toIntOrNull()
                         val malId = Regex("^mal(\\d+)$").find(anime.slug)?.groupValues?.get(1)?.toIntOrNull()
                             ?: runCatching { mapper.readTree(anime.ids).path("mal").asText(null)?.toIntOrNull() }.getOrNull()

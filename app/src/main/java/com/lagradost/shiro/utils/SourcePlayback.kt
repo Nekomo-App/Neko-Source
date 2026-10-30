@@ -150,6 +150,34 @@ object SourcePlayback {
         return Outcome.Found(page, index, src.label, extSlug)
     }
 
+    private fun timed(
+        ctx: Context, metaSlug: String, titles: List<String>, episodeNumber: Int, key: String, chosen: String?, limitMs: Long,
+    ): Outcome {
+        val t0 = System.currentTimeMillis()
+        val result = com.lagradost.shiro.utils.meta.Race.first<Outcome>(limitMs, listOf({ resolve(ctx, metaSlug, titles, episodeNumber, key, chosen) }), deadlineMs = limitMs)
+            ?: Outcome.Problem("${label(ctx, key)} took too long to answer.")
+        SourceHealth.record(key, System.currentTimeMillis() - t0, result is Outcome.Found || result is Outcome.PickMatch)
+        return result
+    }
+
+    /**
+     * Like [resolve], but when the chosen source fails or is too slow the other installed sources are tried, healthiest and
+     * fastest first. Only confident matches are used automatically; when none works the original problem is reported.
+     */
+    fun resolveAuto(
+        ctx: Context, metaSlug: String, titles: List<String>, episodeNumber: Int, key: String, chosenExtSlug: String? = null, limitMs: Long = 20_000,
+    ): Outcome {
+        val first = timed(ctx, metaSlug, titles, episodeNumber, key, chosenExtSlug, limitMs)
+        if (first !is Outcome.Problem || chosenExtSlug != null) return first
+        val tried = arrayListOf(label(ctx, key))
+        for (k in SourceHealth.rank(installed(ctx).map { it.key }.filter { it != key })) {
+            val o = timed(ctx, metaSlug, titles, episodeNumber, k, null, limitMs)
+            if (o is Outcome.Found) return o
+            tried += label(ctx, k)
+        }
+        return if (tried.size > 1) Outcome.Problem(first.message + "\n\nAlso tried: " + tried.drop(1).joinToString(", ") + ".") else first
+    }
+
     // ---- keeping the tracker in sync while streaming ----
 
     private fun linkKey(extSlug: String) = "metalink_$extSlug"

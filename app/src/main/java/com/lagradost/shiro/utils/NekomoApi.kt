@@ -431,7 +431,14 @@ class NekomoApi {
 
         fun searchNew(query: String, genres: List<String>? = null, hideChinese: Boolean = false): List<Data>? {
             val primary = try {
-                LiveApi.search(query, genres)
+                if (genres == null) {
+                    // AniList first; if it has not answered within 3.5 s (or answers empty) Kitsu/Jikan start in parallel
+                    com.lagradost.shiro.utils.meta.Race.first<List<Data>>(
+                        3500,
+                        listOf({ LiveApi.search(query, genres) }, { com.lagradost.shiro.utils.meta.MetaHub.fallbackSearch(query) }),
+                        ok = { it.isNotEmpty() }
+                    )
+                } else LiveApi.search(query, genres)
             } catch (e: Exception) {
                 logError(e)
                 null

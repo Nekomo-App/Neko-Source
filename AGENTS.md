@@ -324,3 +324,12 @@ this toggle would just add a switch that does nothing.
   uninstall), built-in metadata APIs (enable/disable via `api_enabled_<id>`, TMDB key), APK extensions (listed, enable/disable/
   remove only; installs stay manual in `ExtensionsActivity`).
 
+## Speed and fallbacks
+
+- `ApiHealth` tracks smoothed latency and failures per metadata API; `ApiHealth.fastest(ids)` orders backups (paused last).
+  `Race.first(hedgeMs, tasks, ok)` runs alternatives in priority order and starts the next one in parallel when the current
+  attempt is slower than `hedgeMs`; the first acceptable result wins. Used for search (AniList then Kitsu/Jikan), MAL details,
+  episode lists and movie/TV search. AniList calls fail fast (10 s) and record latency.
+- `SourcePlayback.resolveAuto` tries the chosen source (20 s limit) and then the other installed sources ranked by
+  `SourceHealth.rank` (healthy and fast first), accepting only confident title matches; the UI says which source played.
+

@@ -75,3 +75,31 @@ class NekomoRepoTest {
         com.google.common.truth.Truth.assertThat(r.isNickname("")).isFalse()
     }
 }
+
+class FastestFirstTest {
+    @org.junit.Test
+    fun fastestApiComesFirstAndPausedLast() {
+        val h = com.lagradost.shiro.utils.meta.ApiHealth
+        h.reset()
+        h.record("t_a", 900); h.record("t_b", 120); h.record("t_c", 400)
+        com.google.common.truth.Truth.assertThat(h.fastest(listOf("t_a", "t_b", "t_c"))).containsExactly("t_b", "t_c", "t_a").inOrder()
+        h.simulateOutage("t_b", 5)
+        com.google.common.truth.Truth.assertThat(h.fastest(listOf("t_a", "t_b", "t_c")).last()).isEqualTo("t_b")
+        h.reset()
+    }
+
+    @org.junit.Test
+    fun raceStartsBackupWhenPrimaryIsSlow() {
+        val start = System.currentTimeMillis()
+        val r = com.lagradost.shiro.utils.meta.Race.first<String>(100, listOf({ Thread.sleep(3000); "slow" }, { "fast" }))
+        com.google.common.truth.Truth.assertThat(r).isEqualTo("fast")
+        com.google.common.truth.Truth.assertThat(System.currentTimeMillis() - start).isLessThan(1500L)
+    }
+
+    @org.junit.Test
+    fun raceFallsThroughFailuresAndEmptyResults() {
+        val r = com.lagradost.shiro.utils.meta.Race.first<List<Int>>(1000, listOf({ throw RuntimeException("down") }, { emptyList() }, { listOf(1) }), ok = { it.isNotEmpty() })
+        com.google.common.truth.Truth.assertThat(r).containsExactly(1)
+        com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.meta.Race.first<String>(50, listOf({ null }, { null }))).isNull()
+    }
+}

@@ -40,7 +40,8 @@ object LiveApi {
             )
             val headers =
                 defaultHeaders
-            val res = khttp.post(url, headers = headers, json = body, timeout = 20.0)
+            val t0 = System.currentTimeMillis()
+            val res = khttp.post(url, headers = headers, json = body, timeout = 10.0)
             if (res.statusCode == 429) {
                 val retry = res.headers.entries.firstOrNull { it.key.equals("Retry-After", true) }?.value?.toIntOrNull() ?: 60
                 com.lagradost.shiro.utils.meta.ApiHealth.rateLimited("anilist", retry)
@@ -51,6 +52,7 @@ object LiveApi {
                 return null
             }
             com.lagradost.shiro.utils.meta.ApiHealth.success("anilist")
+            com.lagradost.shiro.utils.meta.ApiHealth.record("anilist", System.currentTimeMillis() - t0)
             mapper.readTree(res.text)
         } catch (e: Exception) {
             com.lagradost.shiro.utils.meta.ApiHealth.failure("anilist")

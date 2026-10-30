@@ -27,6 +27,17 @@ import java.util.concurrent.ConcurrentHashMap
 object ApiHealth {
     private val until = ConcurrentHashMap<String, Long>()
     private val fails = ConcurrentHashMap<String, Int>()
+    private val latency = ConcurrentHashMap<String, Long>()
+
+    /** Remembers how fast [id] answers (smoothed), so the quickest healthy API is always tried first. */
+    fun record(id: String, ms: Long) {
+        latency[id] = latency[id]?.let { (it * 6 + ms * 4) / 10 } ?: ms
+    }
+
+    /** Lower is better: paused APIs last, then recent failures, then average response time. */
+    fun score(id: String): Long = if (blocked(id)) 1_000_000L else (latency[id] ?: 1500L) + (fails[id] ?: 0) * 4000L
+
+    fun fastest(ids: List<String>): List<String> = ids.sortedBy { score(it) }
 
     fun blocked(id: String) = (until[id] ?: 0L) > System.currentTimeMillis()
 
@@ -57,7 +68,49 @@ object ApiHealth {
 
     fun status(id: String): String {
         val left = ((until[id] ?: 0L) - System.currentTimeMillis()) / 1000
-        return if (left > 0) "Paused for ${if (left >= 90) "${left / 60} min" else "$left s"} (backups are used)" else "Available"
+        return if (left > 0) "Paused for ${if (left >= 90) "${left / 60} min" else "$left s"} (backups are used)"
+        else "Available" + (latency[id]?.let { " · ~${it} ms" } ?: "")
+    }
+}
+
+/**
+ * Runs alternatives in priority order but does not wait for a slow one: when the current attempt has not answered after
+ * [hedgeMs] the next one starts in parallel, and the first acceptable answer wins. Slow or failed primaries therefore
+ * cost at most [hedgeMs] before a backup takes over.
+ */
+object Race {
+    private val pool = java.util.concurrent.Executors.newCachedThreadPool { r -> Thread(r, "nk-race").apply { isDaemon = true } }
+
+    fun <T : Any> first(hedgeMs: Long, tasks: List<() -> T?>, deadlineMs: Long = 30_000, ok: (T) -> Boolean = { true }): T? {
+        if (tasks.isEmpty()) return null
+        val cs = java.util.concurrent.ExecutorCompletionService<T?>(pool)
+        val futures = ArrayList<java.util.concurrent.Future<T?>>()
+        var next = 0
+        var pending = 0
+        val end = System.currentTimeMillis() + deadlineMs
+        fun launch() {
+            val i = next++
+            futures += cs.submit(java.util.concurrent.Callable<T?> { try { tasks[i]() } catch (e: Exception) { null } })
+            pending++
+        }
+        launch()
+        try {
+            while (pending > 0 && System.currentTimeMillis() < end) {
+                val hedge = next < tasks.size
+                val done = cs.poll(if (hedge) hedgeMs else (end - System.currentTimeMillis()).coerceAtLeast(1), java.util.concurrent.TimeUnit.MILLISECONDS)
+                if (done == null) {
+                    if (hedge) launch() else break
+                    continue
+                }
+                pending--
+                val v = try { done.get() } catch (e: Exception) { null }
+                if (v != null && ok(v)) return v
+                if (next < tasks.size) launch()
+            }
+            return null
+        } finally {
+            futures.forEach { it.cancel(true) }
+        }
     }
 }
 
@@ -122,9 +175,10 @@ object MetaHub {
                 if (wait > 0) Thread.sleep(wait)
                 jikanLast = System.currentTimeMillis()
             }
+            val t0 = System.currentTimeMillis()
             val res = khttp.get(url, headers = mapOf("User-Agent" to NekomoApi.USER_AGENT) + headers, timeout = timeout)
             when (res.statusCode) {
-                in 200..299 -> mapper.readTree(res.text).also { ApiHealth.success(provider) }
+                in 200..299 -> mapper.readTree(res.text).also { ApiHealth.success(provider); ApiHealth.record(provider, System.currentTimeMillis() - t0) }
                 404 -> null
                 429 -> {
                     ApiHealth.rateLimited(provider, header(res, "Retry-After")?.toIntOrNull() ?: 60)
@@ -188,7 +242,12 @@ object MetaHub {
         val id = m.groupValues[2]
         val page = try {
             when (m.groupValues[1]) {
-                "mal" -> jikanPage(id, slug) ?: kitsuByMal(id)?.let { kitsuPage(it, slug) }
+                "mal" -> {
+                    val tasks: List<() -> AnimePageNewRoot?> = ApiHealth.fastest(listOf("jikan", "kitsu")).map { p ->
+                        { if (p == "jikan") jikanPage(id, slug) else kitsuByMal(id)?.let { kitsuPage(it, slug) } }
+                    }
+                    Race.first(3000, tasks)
+                }
                 "kt" -> kitsuPage(id, slug)
                 "tvm" -> tvmazePage(id, slug)
                 "tmm" -> tmdbMoviePage(id, slug)
@@ -204,14 +263,20 @@ object MetaHub {
     }
 
     /** Anime search when AniList is unavailable: Kitsu first, then Jikan. */
-    fun fallbackSearch(query: String): List<Data> =
-        kitsuSearch(query).ifEmpty { jikanSearch(query) }
+    fun fallbackSearch(query: String): List<Data> {
+        val tasks: List<() -> List<Data>?> = ApiHealth.fastest(listOf("kitsu", "jikan")).map { p ->
+            { if (p == "kitsu") kitsuSearch(query) else jikanSearch(query) }
+        }
+        return Race.first(2500, tasks, ok = { it.isNotEmpty() }) ?: emptyList()
+    }
 
     /** Movies and TV shows (only when the user enabled them). */
     fun searchMedia(query: String, ctx: Context? = null): List<Data> {
         if (!ContentPrefs.nonAnime()) return emptyList()
-        val tmdb = tmdbSearch(query, ctx)
-        return if (tmdb.isNotEmpty()) tmdb else tvmazeSearch(query)
+        val tasks: List<() -> List<Data>?> = ApiHealth.fastest(listOf("tmdb", "tvmaze")).map { p ->
+            { if (p == "tmdb") tmdbSearch(query, ctx) else tvmazeSearch(query) }
+        }
+        return Race.first(2500, tasks, ok = { it.isNotEmpty() }) ?: emptyList()
     }
 
     /**
@@ -220,7 +285,10 @@ object MetaHub {
      */
     fun episodesForMal(slug: String, malId: String?, total: Int?): List<AnimePageNewEpisodes> {
         val real = malId?.takeIf { it.isNotBlank() && it != "null" }?.let { mal ->
-            jikanEpisodes(slug, mal).ifEmpty { kitsuByMal(mal)?.let { kitsuEpisodes(slug, it) }.orEmpty() }
+            val tasks: List<() -> List<AnimePageNewEpisodes>?> = ApiHealth.fastest(listOf("jikan", "kitsu")).map { p ->
+                { if (p == "jikan") jikanEpisodes(slug, mal) else kitsuByMal(mal)?.let { kitsuEpisodes(slug, it) }.orEmpty() }
+            }
+            Race.first(3500, tasks, ok = { it.isNotEmpty() })
         }.orEmpty()
         val count = total?.takeIf { it > 0 } ?: 0
         return if (real.size >= count) real else real + placeholders(slug, real.size + 1, count)
