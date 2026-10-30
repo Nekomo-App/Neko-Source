@@ -526,7 +526,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         fv<android.widget.TextView>(R.id.loading_status)?.text = message
         fv<View>(R.id.loading_actions)?.visibility = VISIBLE
         fv<android.widget.FrameLayout>(R.id.loading_overlay)?.alpha = 1f
-        fv<android.widget.FrameLayout>(R.id.loading_overlay)?.visibility = VISIBLE
+        fv<android.widget.FrameLayout>(R.id.loading_overlay)?.apply { visibility = VISIBLE; isClickable = true }
     }
 
     private fun retryLoad() {
@@ -551,6 +551,10 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             fadeAnimation.isFillEnabled = true
             fadeAnimation.fillAfter = true
             fv<android.widget.FrameLayout>(R.id.loading_overlay)?.startAnimation(fadeAnimation)
+            fv<android.widget.FrameLayout>(R.id.loading_overlay)?.postDelayed({
+                // fully remove the overlay so it can never block scrolling or taps on the page underneath
+                fv<android.widget.FrameLayout>(R.id.loading_overlay)?.apply { clearAnimation(); visibility = GONE; isClickable = false }
+            }, 150)
             fv<android.widget.Button>(R.id.open_website_btt)?.isEnabled = false
             loadSeason()
             // Nekomo bundles no streaming source: an AniList title has no episodes until the user
@@ -595,6 +599,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                 Timer().schedule(500) {
                     activity?.runOnUiThread {
                         fv<android.widget.FrameLayout>(R.id.loading_overlay)?.alpha = 0f
+                        fv<android.widget.FrameLayout>(R.id.loading_overlay)?.visibility = GONE
                         fv<android.widget.Button>(R.id.open_website_btt)?.isEnabled = false
                     }
                 }

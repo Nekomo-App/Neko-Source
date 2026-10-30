@@ -404,7 +404,6 @@
                         android:id="@+id/loading_overlay"
                         android:elevation="200dp"
                         android:translationZ="200dp"
-                        android:clickable="true"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                 >
