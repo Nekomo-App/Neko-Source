@@ -120,6 +120,8 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="nekomo-repo" android:host="add"/>
+                <data android:scheme="nekomo-repo" android:host="source"/>
+                <data android:scheme="nekomo-repo" android:host="api"/>
             </intent-filter>
         </activity>
         <activity android:name=".ui.settings.HomeSettingsActivity"

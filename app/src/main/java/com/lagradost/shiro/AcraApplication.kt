@@ -100,6 +100,18 @@ class AcraApplication : Application() {
         // CloudStream extension subsystem: injects our Context into the vendored
         // cloudstream3 classes and loads installed .cs3 plugins on a bg thread.
         // Must run here (not attachBaseContext) because applicationContext is null until now.
+        // Screenshots, screen recording and recents thumbnails are blocked in every screen of the app
+        registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) {
+                activity.window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            }
+            override fun onActivityStarted(activity: android.app.Activity) {}
+            override fun onActivityResumed(activity: android.app.Activity) {}
+            override fun onActivityPaused(activity: android.app.Activity) {}
+            override fun onActivityStopped(activity: android.app.Activity) {}
+            override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}
+            override fun onActivityDestroyed(activity: android.app.Activity) {}
+        })
         normalSafeApiCall { CsPluginManager.init(this) }
         // Optional automatic updates for installed script/plugin sources (never APK extensions)
         normalSafeApiCall {

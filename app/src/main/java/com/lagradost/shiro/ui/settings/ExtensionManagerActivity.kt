@@ -38,14 +38,19 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         setContentView(b.finish())
         render()
         // Deep link from NEX or a browser: only after the welcome gate has been completed
-        val link = intent.data?.takeIf { it.scheme == "nekomo-repo" && it.host == "add" }?.getQueryParameter("url")
-        if (link != null && !com.lagradost.shiro.utils.auth.AuthManager.canEnter(this)) {
+        val data = intent.data?.takeIf { it.scheme == "nekomo-repo" }
+        val link = data?.takeIf { it.host == "add" }?.getQueryParameter("url")
+        val sourceLink = data?.takeIf { it.host == "source" }
+        val apiLink = data?.takeIf { it.host == "api" }?.getQueryParameter("id")
+        if ((link != null || sourceLink != null || apiLink != null) && !com.lagradost.shiro.utils.auth.AuthManager.canEnter(this)) {
             toast("Open Nekomo and finish the welcome steps first, then try again.")
             startActivity(packageManager.getLaunchIntentForPackage(packageName))
             finish()
             return
         }
         (link ?: intent.getStringExtra("add"))?.let { startAdd(it) }
+        sourceLink?.let { startSource(it.getQueryParameter("repo"), it.getQueryParameter("id"), it.getQueryParameter("type")) }
+        apiLink?.let { apiOpeners[it]?.invoke() ?: toast("Unknown API: $it") }
     }
 
     override fun onResume() {
@@ -422,6 +427,8 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
     // Metadata APIs (built in)
     // ---------------------------------------------------------------------------------------------------------
 
+    private val apiOpeners = HashMap<String, () -> Unit>()
+
     private fun apisSection(r: LinearLayout) {
         r.addView(b.heading("Metadata APIs (built in)"))
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
@@ -435,7 +442,7 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         r.addView(b.card(*apis.map { (id, name, desc) ->
             val on = id == "anilist" || prefs.getBoolean("api_enabled_$id", true)
             val keyNote = if (id == "tmdb") (if (com.lagradost.shiro.utils.meta.MetaHub.tmdbKey(this).isEmpty()) " · no key set" else " · key set") else ""
-            b.row(name, "$desc ${if (on) ApiHealth.status(id) else "Disabled"}$keyNote") {
+            val open: () -> Unit = {
                 val options = ArrayList<Pair<String, () -> Unit>>()
                 if (id == "anilist") options += "Built in (main catalogue, can't be removed)" to { }
                 if (id != "anilist") options += (if (on) "Disable" else "Enable") to { prefs.edit().putBoolean("api_enabled_$id", !on).apply(); render() }
@@ -449,10 +456,76 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
                     prefs.edit().remove("tmdb_api_key").apply(); ApiHealth.reset(); render()
                 }
                 options += "Reset status" to { ApiHealth.reset(); render() }
-                AlertDialog.Builder(this).setTitle(name).setItems(options.map { it.first }.toTypedArray()) { _, i -> options[i].second() }
+                AlertDialog.Builder(this).setTitle(name).setMessage("$desc\n\nStatus: ${if (on) ApiHealth.status(id) else "Disabled"}$keyNote")
+                    .setItems(options.map { it.first }.toTypedArray()) { _, i -> options[i].second() }
                     .setNegativeButton("Close", null).show()
             }
+            apiOpeners[id] = open
+            b.row(name, "$desc ${if (on) ApiHealth.status(id) else "Disabled"}$keyNote") { open() }
         }.toTypedArray()))
+    }
+
+    /** nekomo-repo://source?repo=<url>&id=<plugin id>&type=cloudstream|zangetsu|aniyomi|mihon: show a source and install it after confirmation. */
+    private fun startSource(repo: String?, id: String?, type: String?) {
+        if (repo.isNullOrBlank() || !repo.startsWith("http") || id.isNullOrBlank()) { toast("That link is incomplete."); return }
+        val t = (type ?: "").lowercase()
+        if (t == "aniyomi" || t == "mihon") {
+            // APK extensions are never installed by Nekomo: only the repository address is saved, you install the APK yourself
+            val (loading, _) = busy("Looking up the repository…")
+            thread {
+                val name = host(repo)
+                runOnUiThread { loading.dismiss(); showForeign(repo, "APK", name) }
+            }
+            return
+        }
+        val (loading, _) = busy("Looking up the source…")
+        thread {
+            data class Found(val name: String, val version: String, val desc: String, val nsfw: Boolean)
+            val found: Found? = try {
+                if (t == "zangetsu") ZangetsuManager.fetchManifest(repo)?.sources?.firstOrNull { it.id == id }
+                    ?.let { Found(it.name, it.version, "${it.type} · ${it.lang}", it.nsfw) }
+                else CsPluginManager.fetchRepoPlugins(repo).firstOrNull { it.internalName == id || it.name == id }
+                    ?.let { Found(it.displayName, "v${it.version}", listOfNotNull(it.description, it.tvTypes?.joinToString()).joinToString("\n"), "nsfw" in it.tvTypes.orEmpty().map { x -> x.lowercase() }) }
+            } catch (e: Exception) { null }
+            runOnUiThread {
+                loading.dismiss()
+                if (found == null) {
+                    AlertDialog.Builder(this).setTitle("Source not found").setMessage("That source isn't offered by the repository right now.").setPositiveButton("OK", null).show()
+                    return@runOnUiThread
+                }
+                if (found.nsfw && !com.lagradost.shiro.utils.ContentPrefs.nsfw(this)) {
+                    AlertDialog.Builder(this).setTitle("18+ source").setMessage("${found.name} is an 18+ source. Turn on the 18+ option in Settings > General first.").setPositiveButton("OK", null).show()
+                    return@runOnUiThread
+                }
+                AlertDialog.Builder(this).setTitle("Install ${found.name}?")
+                    .setMessage("${found.version}\n${found.desc}\n\nFrom: $repo\n\nSources are third-party code that runs inside this app. Nekomo does not control them. Only continue if you trust this repository.")
+                    .setPositiveButton("Install") { _, _ -> installOne(repo, id, t, found.name) }
+                    .setNegativeButton("Cancel", null).show()
+            }
+        }
+    }
+
+    private fun installOne(repo: String, id: String, type: String, name: String) {
+        val (dialog, label) = busy("Installing $name…")
+        thread {
+            val result: Pair<Boolean, String> = try {
+                if (type == "zangetsu") {
+                    ZangetsuManager.addRepo(this, ZangetsuManager.ZgRepo(repo, null))
+                    val src = ZangetsuManager.fetchManifest(repo)?.sources?.firstOrNull { it.id == id }
+                    if (src == null) false to "No longer offered by the repository" else ZangetsuManager.install(this, repo, src)
+                } else {
+                    CsPluginManager.addRepo(this, CsPluginManager.CsRepo(repo, null))
+                    val p = CsPluginManager.fetchRepoPlugins(repo).firstOrNull { it.internalName == id || it.name == id }
+                    if (p == null) false to "No longer offered by the repository" else CsPluginManager.installPlugin(this, repo, p).let { it.success to it.message }
+                }
+            } catch (e: Exception) { false to (e.message ?: "Error") }
+            runOnUiThread {
+                dialog.dismiss()
+                render()
+                AlertDialog.Builder(this).setTitle(if (result.first) "Installed" else "Couldn't install").setMessage(if (result.first) "$name is ready to use." else result.second)
+                    .setPositiveButton("OK", null).show()
+            }
+        }
     }
 
     // ---------------------------------------------------------------------------------------------------------
