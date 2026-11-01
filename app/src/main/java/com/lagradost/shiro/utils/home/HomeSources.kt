@@ -296,12 +296,12 @@ object KitsuHomeSource : HomeSource {
 
 // ---------------------------------------------------------------------------------------------------------------
 
-/** TV shows from TVMaze (free, no key). Shown only with "Show movies and TV shows". */
+/** TV shows from TVMaze (free, no key). Off on the home page until the user turns it on (and "Show movies and TV shows" must be on too). */
 object TvMazeHomeSource : HomeSource {
     override val id = "tvmaze"
     override val name = "TVMaze"
     override val kind = SourceKind.METADATA
-    override val defaultEnabled = true
+    override val defaultEnabled = false
     override val nonAnime = true
     override val attribution = "TV show data from TVMaze (tvmaze.com), licensed CC BY-SA."
     override val termsUrl = "https://www.tvmaze.com/api"
@@ -311,12 +311,12 @@ object TvMazeHomeSource : HomeSource {
     override fun fetch(context: Context, section: HomeSectionDef) = com.lagradost.shiro.utils.meta.MetaHub.tvmazeAiringToday()
 }
 
-/** Movies and TV shows from TMDB. Needs your own free API key (Settings -> General). */
+/** Movies and TV shows from TMDB. Needs your own free API key (Settings -> General). Off on the home page until the user turns it on. */
 object TmdbHomeSource : HomeSource {
     override val id = "tmdb"
     override val name = "TMDB"
     override val kind = SourceKind.METADATA
-    override val defaultEnabled = true
+    override val defaultEnabled = false
     override val nonAnime = true
     override val attribution = "This product uses the TMDB API but is not endorsed or certified by TMDB. Add your free API key in Settings -> General."
     override val termsUrl = "https://www.themoviedb.org/api-terms-of-use"

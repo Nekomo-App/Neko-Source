@@ -29,7 +29,7 @@
             android:icon="@drawable/ic_baseline_filter_list_24"
             app:key="non_anime_enabled"
             android:title="Show movies and TV shows"
-            android:summary="Off: anime sources only. On: also show sources that provide movies and series."
+            android:summary="Off (default): anime only everywhere, including the home page. On: sources for movies and series become available; their home page rows stay off until you enable them in Settings > Home page."
             app:defaultValue="false"
     />
         <SwitchPreference
