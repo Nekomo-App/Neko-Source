@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit
  * (Aniyomi, Mihon) are never downloaded, installed or updated by this system.
  */
 object NekomoRepo {
-    private const val CODE_HASH = "4f6155cfdb52577cbde480662278bb02261466b95ff3738c7f3bd49180c69920"
     const val OFFICIAL_URL = "https://raw.githubusercontent.com/Nekomo-App/neko-source/main/repo/index.json"
 
     data class Entry(
@@ -95,19 +94,14 @@ object NekomoRepo {
     // Resolving and reading the manifest
     // ---------------------------------------------------------------------------------------------------------
 
-    /** The private repository code. Only its hash is stored; it is never displayed anywhere. */
-    fun isNickname(input: String): Boolean =
-        java.security.MessageDigest.getInstance("SHA-256").digest(input.trim().uppercase().toByteArray())
-            .joinToString("") { "%02x".format(it) } == CODE_HASH
+    /** True when [input] is one of the private shortcodes (see [Shortcodes]); the codes are never displayed anywhere. */
+    fun isNickname(input: String): Boolean = Shortcodes.lookup(input) != null
 
-    /** The private code -> the official manifest URL; an http(s) URL is used as is. */
+    /** A repository shortcode -> its URL; an http(s) URL is used as is. */
     fun resolve(input: String): String? {
         val t = input.trim()
-        return when {
-            isNickname(t) -> OFFICIAL_URL
-            Regex("^https?://\\S+$").matches(t) -> t
-            else -> null
-        }
+        Shortcodes.lookup(t)?.takeIf { it.kind == "repo" }?.url?.let { return it }
+        return if (Regex("^https?://\\S+$").matches(t)) t else null
     }
 
     /** Blocking. Returns null when the URL is not a Nekomo repository manifest. */

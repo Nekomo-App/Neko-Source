@@ -17,6 +17,7 @@ import com.lagradost.shiro.utils.meta.ApiHealth
 import com.lagradost.shiro.utils.mihon.MihonManager
 import com.lagradost.shiro.utils.repo.ExtensionUpdater
 import com.lagradost.shiro.utils.repo.NekomoRepo
+import com.lagradost.shiro.utils.repo.Shortcodes
 import com.lagradost.shiro.utils.zg.ZangetsuManager
 import java.text.DateFormat
 import java.util.Date
@@ -120,10 +121,27 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
                         }.setNegativeButton("Cancel", null).show()
                 }))
             }
+            // More repositories, sources or APIs can always be added by URL or code
+            val more = EditText(this).apply {
+                hint = "Repository URL or code"
+                inputType = InputType.TYPE_TEXT_VARIATION_URI
+                setSingleLine()
+                setTextColor(b.fg)
+                setHintTextColor(b.fg and 0x00FFFFFF or 0x66000000)
+            }
+            r.addView(b.card(b.text("Add another repository, source or API", 15f, bold = true), more))
+            r.addView(b.primaryButton("Add") { startAdd(more.text.toString()) })
         }
     }
 
     private fun startAdd(raw: String) {
+        // Source and API shortcodes open the matching dialog directly; repository shortcodes continue below
+        Shortcodes.lookup(raw)?.let { e ->
+            when (e.kind) {
+                "source" -> { startSource(e.url, e.id, e.type); return }
+                "api" -> { apiOpeners[e.id]?.invoke() ?: toast("That API is not available."); return }
+            }
+        }
         val url = NekomoRepo.resolve(raw)
         if (url == null) {
             toast("Enter a repository URL starting with https:// or a valid code")

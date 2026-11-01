@@ -113,3 +113,15 @@ class ReleaseNotesTest {
         com.google.common.truth.Truth.assertThat(com.lagradost.shiro.utils.InAppUpdater.plainNotes(null)).isEmpty()
     }
 }
+
+class ShortcodeRegistryTest {
+    @org.junit.Test
+    fun registryMatchesNexAndRejectsUnknownCodes() {
+        val sc = com.lagradost.shiro.utils.repo.Shortcodes
+        com.google.common.truth.Truth.assertThat(sc.size).isEqualTo(10)
+        com.google.common.truth.Truth.assertThat(sc.digest).isEqualTo("c7d89d5973291b4a5f65ccb23e9083ded998bcf09307de3f574d250437661a19")
+        com.google.common.truth.Truth.assertThat(sc.lookup("")).isNull()
+        com.google.common.truth.Truth.assertThat(sc.lookup("not-a-code")).isNull()
+        com.google.common.truth.Truth.assertThat(sc.lookup("nekomo")).isNull()
+    }
+}
