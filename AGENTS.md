@@ -348,4 +348,6 @@ this toggle would just add a switch that does nothing.
 - Search (`ui/search/SearchFragment`): the bar never grabs focus on entry (focus is cleared after `onActionViewExpanded()`); the keyboard opens only when the bar is tapped. Recent searches stay under/above the bar, tap to re-run.
 - Custom name and icon (`utils/AppIdentity`, `ui/settings/AppIdentityActivity`, NEX has the same in `util/AppIdentity` + a Settings dialog): pinned home-screen shortcut, long-press shortcut and recent-apps card. Always give the shortcut an icon (launchers crash without). Android TV launchers cannot pin shortcuts; the UI says so.
 - Policy: no catalogue of unofficial third-party source repositories is bundled or given shortcodes; users add those by URL.
+- Aniyomi + Mihon are one integration in the Extensions manager: adding a repository URL (or `nekomo-repo://add` link) detects the shared extension format, classifies entries by package name (animeextension = Aniyomi, otherwise Mihon) and adds the repo to whichever manager(s) need it. A repo used by both shows as one "Aniyomi + Mihon" row. APKs are never installed by Nekomo.
+- Releases are published to BOTH Nekomo-App/Nekomo and Nekomo-App/Neko-Source (same tags and assets); the in-app updater reads both and picks the newest per build.
 

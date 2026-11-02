@@ -187,7 +187,12 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
     private fun foreignKind(url: String): Pair<String, String>? {
         CsPluginManager.fetchRepository(url)?.takeIf { !it.pluginLists.isNullOrEmpty() }?.let { return "CloudStream" to (it.name ?: host(url)) }
         ZangetsuManager.fetchManifest(url)?.takeIf { it.sources.isNotEmpty() }?.let { return "Zangetsu" to (it.name ?: host(url)) }
-        if (AniyomiManager.fetchIndex(AniyomiManager.normaliseRepoUrl(url)) != null) return "APK" to host(url)
+        // Aniyomi (anime) and Mihon (manga) share one extension format; classify by package name instead of asking
+        val ay = AniyomiManager.fetchIndex(AniyomiManager.normaliseRepoUrl(url))
+        val mh = if (ay == null || ay.none { !it.pkg.contains("animeextension") }) MihonManager.fetchIndex(MihonManager.normaliseRepoUrl(url)) else null
+        val anime = ay?.count { it.pkg.contains("animeextension") } ?: 0
+        val manga = (ay?.count { !it.pkg.contains("animeextension") } ?: 0).coerceAtLeast(mh?.count { !it.pkg.contains("animeextension") } ?: 0)
+        if (anime + manga > 0) return "APK" to "${host(url)}|$anime|$manga"
         return null
     }
 
@@ -196,9 +201,17 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         val warn = "\n\nThis only saves the repository address. Nothing is installed; browse and install from Settings > Extensions > Manual repositories after you confirm you trust it."
         val b = AlertDialog.Builder(this).setNegativeButton("Cancel", null)
         if (kind == "APK") {
-            b.setTitle("Add repository?").setMessage("$name looks like an Aniyomi (anime) or Mihon (manga) extension repository.\n$url$warn")
-                .setPositiveButton("Add for Aniyomi") { _, _ -> AniyomiManager.addRepo(this, AniyomiManager.AyRepo(AniyomiManager.normaliseRepoUrl(url), name)); done("Aniyomi", name) }
-                .setNeutralButton("Add for Mihon") { _, _ -> MihonManager.addRepo(this, MihonManager.MhRepo(MihonManager.normaliseRepoUrl(url), name)); done("Mihon", name) }
+            val parts = name.split("|")
+            val label = parts[0]
+            val anime = parts.getOrNull(1)?.toIntOrNull() ?: 0
+            val manga = parts.getOrNull(2)?.toIntOrNull() ?: 0
+            b.setTitle("Add Aniyomi / Mihon repository?")
+                .setMessage("$label offers $anime anime extension(s) (Aniyomi) and $manga manga extension(s) (Mihon). It is added for whichever it contains.\n$url$warn")
+                .setPositiveButton("Add") { _, _ ->
+                    if (anime > 0) AniyomiManager.addRepo(this, AniyomiManager.AyRepo(AniyomiManager.normaliseRepoUrl(url), label))
+                    if (manga > 0) MihonManager.addRepo(this, MihonManager.MhRepo(MihonManager.normaliseRepoUrl(url), label))
+                    done(if (anime > 0 && manga > 0) "Aniyomi + Mihon" else if (anime > 0) "Aniyomi" else "Mihon", label)
+                }
         } else {
             b.setTitle("Add $kind repository?").setMessage("$name\n$url$warn")
                 .setPositiveButton("Add") { _, _ ->
@@ -311,16 +324,20 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
         r.addView(b.heading("Repositories"))
         val cs = CsPluginManager.getRepos(this).map { Triple("CloudStream", it.name ?: host(it.url), it.url) }
         val zg = ZangetsuManager.getRepos(this).map { Triple("Zangetsu", it.name ?: host(it.url), it.url) }
-        val ay = AniyomiManager.getRepos(this).map { Triple("Aniyomi", it.name ?: host(it.url), it.url) }
-        val mh = MihonManager.getRepos(this).map { Triple("Mihon", it.name ?: host(it.url), it.url) }
-        val all = cs + zg + ay + mh
+        val ayRepos = AniyomiManager.getRepos(this)
+        val mhRepos = MihonManager.getRepos(this)
+        val shared = ayRepos.filter { a -> mhRepos.any { it.url == a.url } }.map { it.url }.toSet()
+        val ay = ayRepos.filter { it.url !in shared }.map { Triple("Aniyomi", it.name ?: host(it.url), it.url) }
+        val mh = mhRepos.filter { it.url !in shared }.map { Triple("Mihon", it.name ?: host(it.url), it.url) }
+        val both = ayRepos.filter { it.url in shared }.map { Triple("Aniyomi + Mihon", it.name ?: host(it.url), it.url) }
+        val all = cs + zg + both + ay + mh
         if (all.isEmpty()) {
             r.addView(b.card(b.text("No repositories yet. Add the Nekomo repository above, or add your own in Manual repositories (below).", 13f, dim = true)))
             return
         }
         r.addView(b.card(*all.map { (type, name, url) ->
             b.row(name, "$type · $url") {
-                if (type == "Aniyomi" || type == "Mihon") {
+                if (type == "Aniyomi" || type == "Mihon" || type == "Aniyomi + Mihon") {
                     AlertDialog.Builder(this).setTitle(name).setMessage("$url\n\nRemoving the repository does not touch any APK extension you installed.")
                         .setPositiveButton("Remove repository") { _, _ -> removeRepo(type, url, false) }
                         .setNegativeButton("Cancel", null).show()
@@ -335,7 +352,8 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
     }
 
     private fun removeRepo(type: String, url: String, uninstall: Boolean) {
-        if (type == "Aniyomi") AniyomiManager.removeRepo(this, url)
+        if (type == "Aniyomi + Mihon") { AniyomiManager.removeRepo(this, url); MihonManager.removeRepo(this, url) }
+        else if (type == "Aniyomi") AniyomiManager.removeRepo(this, url)
         else if (type == "Mihon") MihonManager.removeRepo(this, url)
         else if (type == "CloudStream") {
             if (uninstall) CsPluginManager.getInstalled(this).filter { it.repoUrl == url }.forEach { CsPluginManager.uninstallPlugin(this, it.internalName) }
@@ -551,7 +569,7 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
     // ---------------------------------------------------------------------------------------------------------
 
     private fun apkSection(r: LinearLayout) {
-        r.addView(b.heading("APK extensions (you install and update these)"))
+        r.addView(b.heading("Aniyomi & Mihon extensions (APK, you install and update these)"))
         val rows = ArrayList<android.view.View>()
         AniyomiManager.getInstalled(this).forEach { e ->
             val on = AniyomiManager.isEnabled(this, e.pkg)
