@@ -350,4 +350,8 @@ this toggle would just add a switch that does nothing.
 - Policy: no catalogue of unofficial third-party source repositories is bundled or given shortcodes; users add those by URL.
 - Aniyomi + Mihon are one integration in the Extensions manager: adding a repository URL (or `nekomo-repo://add` link) detects the shared extension format, classifies entries by package name (animeextension = Aniyomi, otherwise Mihon) and adds the repo to whichever manager(s) need it. A repo used by both shows as one "Aniyomi + Mihon" row. APKs are never installed by Nekomo.
 - Releases are published to BOTH Nekomo-App/Nekomo and Nekomo-App/Neko-Source (same tags and assets); the in-app updater reads both and picks the newest per build.
+- Screen-capture protection is on by default (`FLAG_SECURE` via `utils/CapturePolicy`, applied in the activity lifecycle callbacks). Turning it off (Settings > Screen capture) and changing the app name/icon each sit behind their own multi-step puzzle (`utils/Puzzle`, `ui/settings/PuzzleUi`). A hidden bypass exists in the puzzle title; do not document it publicly. NEX has the same in `util/Puzzle` + `ui/screens/PuzzleDialog`.
+- Orientation: every screen follows the device's auto-rotate setting (`SCREEN_ORIENTATION_USER`); "Force landscape" still forces landscape. The player keeps `userLandscape`.
+- Default theme is dark purple (`assets/themes/cyanea_themes.json`[0], `values/colors.xml`, applied once per install via `nekomo_theme_v2`). NEX uses a dark purple palette in `ui/Theme.kt`.
+- Updater: when the GitHub releases API fails or is rate-limited it falls back to each repo's `apks/latest.json` (raw.githubusercontent.com) and logs the failure.
 

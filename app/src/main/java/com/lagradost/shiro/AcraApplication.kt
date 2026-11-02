@@ -104,10 +104,10 @@ class AcraApplication : Application() {
         // Screenshots, screen recording and recents thumbnails are blocked in every screen of the app
         registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) {
-                activity.window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                com.lagradost.shiro.utils.CapturePolicy.apply(activity)
             }
             override fun onActivityStarted(activity: android.app.Activity) {}
-            override fun onActivityResumed(activity: android.app.Activity) { AppIdentity.applyTaskDescription(activity) }
+            override fun onActivityResumed(activity: android.app.Activity) { com.lagradost.shiro.utils.CapturePolicy.apply(activity); AppIdentity.applyTaskDescription(activity) }
             override fun onActivityPaused(activity: android.app.Activity) {}
             override fun onActivityStopped(activity: android.app.Activity) {}
             override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}

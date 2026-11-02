@@ -94,6 +94,8 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
             toast("Back to the original name and icon. Remove any pinned shortcut from your home screen.")
         })
         setContentView(b.finish())
+        // Changing the name or icon needs its own puzzle (separate from the screen-capture one)
+        com.lagradost.shiro.ui.settings.PuzzleUi.require(this, com.lagradost.shiro.utils.Puzzle.Kind.IDENTITY, "App name and icon", onCancel = { finish() }) { }
     }
 
     override fun onSupportNavigateUp(): Boolean {

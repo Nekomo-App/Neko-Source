@@ -207,7 +207,7 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                     if (newValue == true) {
                         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
                     } else {
-                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
                     }
                     return@setOnPreferenceChangeListener true
                 }

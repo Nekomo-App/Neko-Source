@@ -82,7 +82,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         activity?.requestedOrientation = if (settingsManager.getBoolean("force_landscape", false)) {
             ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
         } else {
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            ActivityInfo.SCREEN_ORIENTATION_USER
         }
         isInSettings = true
         super.onResume()

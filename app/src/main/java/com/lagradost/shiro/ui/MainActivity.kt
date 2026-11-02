@@ -305,10 +305,10 @@ class MainActivity : CyaneaAppCompatActivity() {
             theme.applyStyle(R.style.darkText, true)
         }
         val themePrefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
-        if (!Cyanea.instance.isThemeModified || !themePrefs.getBoolean("nekomo_theme_v1", false)) {
+        if (!Cyanea.instance.isThemeModified || !themePrefs.getBoolean("nekomo_theme_v2", false)) {
             normalSafeApiCall {
                 val list: List<CyaneaTheme> = CyaneaTheme.Companion.from(assets, "themes/cyanea_themes.json")
-                themePrefs.edit().putBoolean("nekomo_theme_v1", true).apply()
+                themePrefs.edit().putBoolean("nekomo_theme_v2", true).apply()
                 list[0].apply(Cyanea.instance).recreate(this)
             }
         }
@@ -329,7 +329,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         if (settingsManager.getBoolean("force_landscape", false)) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
         } else {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
         }
         /*if (settingsManager.getBoolean("use_external_storage", false)) {
             if (!checkWrite()) {
@@ -491,7 +491,7 @@ class MainActivity : CyaneaAppCompatActivity() {
                 requestedOrientation = if (settingsManager?.getBoolean("force_landscape", false) == true) {
                     ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
                 } else {
-                    ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    ActivityInfo.SCREEN_ORIENTATION_USER
                 }
             }
 

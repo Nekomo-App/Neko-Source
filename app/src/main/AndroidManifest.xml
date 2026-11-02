@@ -123,6 +123,10 @@
                 <data android:scheme="nekomo-repo" android:host="api"/>
             </intent-filter>
         </activity>
+        <activity android:name=".ui.settings.CapturePrivacyActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="Screen capture"
+        />
         <activity android:name=".ui.settings.AppIdentityActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:label="App name and icon"

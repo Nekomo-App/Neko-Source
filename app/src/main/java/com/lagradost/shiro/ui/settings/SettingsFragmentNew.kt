@@ -83,6 +83,13 @@ class SettingsFragmentNew : Fragment() {
             }
         }
 
+        fv<android.widget.TextView>(R.id.settings_capture)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                context?.let { startActivity(Intent(it, CapturePrivacyActivity::class.java)) }
+            }
+        }
+
         fv<android.widget.TextView>(R.id.settings_identity)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {
@@ -247,7 +254,7 @@ class SettingsFragmentNew : Fragment() {
             activity?.requestedOrientation = if (settingsManager.getBoolean("force_landscape", false)) {
                 ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
             } else {
-                ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                ActivityInfo.SCREEN_ORIENTATION_USER
             }
         }
         super.onResume()

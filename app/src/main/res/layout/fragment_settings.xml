@@ -147,6 +147,13 @@
                     </TextView>
                     <View style="@style/Divider"/>
                     <TextView
+                            android:id="@+id/settings_capture"
+                            android:text="Screen capture"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
+                    <TextView
                             android:id="@+id/settings_player"
                             android:text="Player"
                             style="@style/SettingsItem"

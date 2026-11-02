@@ -2,15 +2,15 @@
   {
     "theme_name": "Nekomo",
     "base_theme": "DARK",
-    "primary": "#e5395f",
-    "primary_dark": "#8d2249",
-    "primary_light": "#ff5c7a",
-    "accent": "#ff5c7a",
-    "accent_dark": "#e5395f",
-    "accent_light": "#ff7a95",
-    "background": "#0c0508",
-    "background_dark": "#150910",
-    "background_light": "#2a1620"
+    "primary": "#7c3aed",
+    "primary_dark": "#4c1d95",
+    "primary_light": "#8b5cf6",
+    "accent": "#a78bfa",
+    "accent_dark": "#7c3aed",
+    "accent_light": "#c4b5fd",
+    "background": "#0d0714",
+    "background_dark": "#150c20",
+    "background_light": "#2a1b3d"
   },
   {
     "theme_name": "Classic red",

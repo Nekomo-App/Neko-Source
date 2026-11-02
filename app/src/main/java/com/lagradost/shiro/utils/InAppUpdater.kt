@@ -123,10 +123,25 @@ object InAppUpdater {
         return url.startsWith("https://") && (host == "github.com" || host.endsWith(".githubusercontent.com"))
     }
 
-    private fun fetchReleases(repo: String): List<GithubRelease> = try {
-        val headers = mapOf("Accept" to "application/vnd.github.v3+json")
-        mapper.readValue<List<GithubRelease>>(khttp.get("https://api.github.com/repos/$repo/releases?per_page=30", headers = headers).text)
+    /** GitHub's releases API first; if it fails or is rate-limited, the repo's own apks/latest.json (raw.githubusercontent.com). */
+    private fun fetchReleases(repo: String): List<GithubRelease> {
+        val fromApi = try {
+            val headers = mapOf("Accept" to "application/vnd.github.v3+json")
+            mapper.readValue<List<GithubRelease>>(khttp.get("https://api.github.com/repos/$repo/releases?per_page=30", headers = headers).text)
+        } catch (e: Exception) {
+            logError(e)
+            emptyList()
+        }
+        return fromApi.ifEmpty { fetchFromManifest(repo) }
+    }
+
+    private fun fetchFromManifest(repo: String): List<GithubRelease> = try {
+        val base = "https://raw.githubusercontent.com/$repo/main/apks/"
+        val node = mapper.readTree(khttp.get(base + "latest.json").text)
+        val assets = node["builds"].map { GithubAsset(it["file"].asText(), it["size"]?.asLong() ?: 0, base + it["file"].asText()) }
+        listOf(GithubRelease("v" + node["version"].asText(), "Published in the $repo repository.", assets, false, true))
     } catch (e: Exception) {
+        logError(e)
         emptyList()
     }
 

@@ -125,3 +125,18 @@ class ShortcodeRegistryTest {
         com.google.common.truth.Truth.assertThat(sc.lookup("nekomo")).isNull()
     }
 }
+
+class PuzzleTest {
+    @org.junit.Test
+    fun everyRoundHasACorrectAnswerAndRejectsWrongOnes() {
+        val p = com.lagradost.shiro.utils.Puzzle
+        for (kind in com.lagradost.shiro.utils.Puzzle.Kind.values()) repeat(60) { seed ->
+            val rounds = p.generate(kind, java.util.Random(seed.toLong()))
+            com.google.common.truth.Truth.assertThat(rounds.size).isEqualTo(if (kind == com.lagradost.shiro.utils.Puzzle.Kind.IDENTITY) 4 else 3)
+            rounds.forEach { r ->
+                com.google.common.truth.Truth.assertThat(p.isCorrect(r, "  " + r.answer.uppercase() + " ")).isTrue()
+                com.google.common.truth.Truth.assertThat(p.isCorrect(r, r.answer + "1")).isFalse()
+            }
+        }
+    }
+}
