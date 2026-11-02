@@ -48,7 +48,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
     private var statusView: TextView? = null
     private var hiddenForBrowser = false
 
-    private enum class Step { SIGN_IN, DMCA, RULES }
+    private enum class Step { SIGN_IN, DMCA, RULES, REPOS }
 
     private val bg = Cyanea.instance.backgroundColor
     private val fg = if (Cyanea.instance.isDark) Color.WHITE else Color.BLACK
@@ -96,7 +96,11 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
 
         // Returning users who already signed in / skipped only need the steps they have not seen yet
         if (AuthManager.isSignedIn(ctx) || AuthManager.hasSkippedSignIn(ctx)) {
-            step = if (!AuthManager.hasSeenDmca(ctx)) Step.DMCA else Step.RULES
+            step = when {
+                !AuthManager.hasSeenDmca(ctx) -> Step.DMCA
+                !AuthManager.hasAcceptedRules(ctx) -> Step.RULES
+                else -> Step.REPOS
+            }
         }
         render()
         dialog.show()
@@ -141,6 +145,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
             Step.SIGN_IN -> renderSignIn()
             Step.DMCA -> renderDmca()
             Step.RULES -> renderRules()
+            Step.REPOS -> renderRepos()
         }
         root.post { root.findFocus() ?: root.getChildAt(0)?.requestFocus() }
     }
@@ -231,9 +236,11 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
 
     /** Moves to the next step that still has to be shown, or closes the gate when everything is done. */
     private fun advance(from: Step) {
+        // Fixed order: Sign in, DMCA notice, Rules, Third-party repository warning. Steps already acknowledged are skipped.
         val next = when {
             from == Step.SIGN_IN && !AuthManager.hasSeenDmca(ctx) -> Step.DMCA
-            from != Step.RULES && !AuthManager.hasAcceptedRules(ctx) -> Step.RULES
+            from.ordinal <= Step.DMCA.ordinal && !AuthManager.hasAcceptedRules(ctx) -> Step.RULES
+            from.ordinal <= Step.RULES.ordinal && !AuthManager.hasAcceptedRepoWarning(ctx) -> Step.REPOS
             else -> null
         }
         if (next == null) {
@@ -263,6 +270,24 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
         root.addView(button("I understand", 0xFF43A047.toInt()) {
             AuthManager.setDmcaSeen(ctx)
             advance(Step.DMCA)
+        })
+    }
+
+    private fun renderRepos() {
+        val pad = SocialLinks.dp(ctx, 12)
+        root.addView(text("Step 4 of 4", 13f, alpha = true).apply { setPadding(0, SocialLinks.dp(ctx, 16), 0, 0) })
+        root.addView(text("Third-party repositories", 24f, bold = true).apply { setPadding(0, SocialLinks.dp(ctx, 8), 0, pad) })
+        root.addView(text("Read this before adding anything", 16f, bold = true).apply { setPadding(0, 0, 0, pad) })
+        listOf(
+            "Sources, repositories and extensions are written and hosted by independent third parties. Nekomo does not create, review, endorse or control them.",
+            "They run inside this app and can read data the app can access and make network requests. Only add repositories from people you trust.",
+            "Nothing is installed automatically. Every repository and source asks you to confirm first, and APK extensions are always installed by you.",
+            "You are responsible for the content you access and for following the laws and terms that apply to you.",
+        ).forEach { p -> root.addView(text("•  $p", 15f, alpha = true).apply { setPadding(0, 0, 0, pad) }) }
+        root.addView(linkText("Sources guide") { SocialLinks.openUrl(ctx, "https://nekomoapp.netlify.app/sources") })
+        root.addView(button("I understand the risks", 0xFF43A047.toInt()) {
+            AuthManager.setRepoWarningAccepted(ctx)
+            advance(Step.REPOS)
         })
     }
 

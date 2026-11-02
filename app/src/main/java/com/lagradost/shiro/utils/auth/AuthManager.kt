@@ -58,7 +58,7 @@ object AuthManager {
 
     /** Signed in or explicitly skipped; the community rules still have to be accepted. */
     fun canEnter(context: Context): Boolean =
-        (isSignedIn(context) || hasSkippedSignIn(context)) && hasSeenDmca(context) && hasAcceptedRules(context)
+        (isSignedIn(context) || hasSkippedSignIn(context)) && hasSeenDmca(context) && hasAcceptedRules(context) && hasAcceptedRepoWarning(context)
 
     /** The DMCA notice is shown once, right after signing in or skipping, before the home screen. */
     fun hasSeenDmca(context: Context): Boolean = try {
@@ -76,6 +76,15 @@ object AuthManager {
     }
 
     fun setRulesAccepted(context: Context) = context.setKey(RULES_ACCEPTED_KEY, true)
+
+    /** Last onboarding step: the third-party repository warning. Also shown once to people who finished the older three steps. */
+    fun hasAcceptedRepoWarning(context: Context): Boolean = try {
+        context.getKey<Boolean>("repo_warning_accepted_v1", false) ?: false
+    } catch (e: Exception) {
+        false
+    }
+
+    fun setRepoWarningAccepted(context: Context) = context.setKey("repo_warning_accepted_v1", true)
 
     fun logoutKitsu(context: Context) {
         context.removeKey(KITSU_TOKEN_KEY, KITSU_ACCOUNT_ID)

@@ -342,3 +342,10 @@ this toggle would just add a switch that does nothing.
   manifests and CloudStream/Zangetsu/Aniyomi/Mihon repository addresses (address only; APK extensions stay manual). The manager also has
   an Open/Get NEX button (manifest `<queries>` lists the NEX packages). Issues for the app live on Nekomo-App/Nekomo.
 
+## Onboarding, search keyboard, custom app identity
+
+- Onboarding (`ui/welcome/WelcomeGate`): Sign in -> DMCA notice -> Rules -> Third-party repository warning (step 4, `AuthManager.hasAcceptedRepoWarning`). People who finished the older three steps see only the new step once. Auto-backup is disabled (`allowBackup=false` in main/phone/tv manifests) so a reinstall always starts onboarding and never restores account tokens.
+- Search (`ui/search/SearchFragment`): the bar never grabs focus on entry (focus is cleared after `onActionViewExpanded()`); the keyboard opens only when the bar is tapped. Recent searches stay under/above the bar, tap to re-run.
+- Custom name and icon (`utils/AppIdentity`, `ui/settings/AppIdentityActivity`, NEX has the same in `util/AppIdentity` + a Settings dialog): pinned home-screen shortcut, long-press shortcut and recent-apps card. Always give the shortcut an icon (launchers crash without). Android TV launchers cannot pin shortcuts; the UI says so.
+- Policy: no catalogue of unofficial third-party source repositories is bundled or given shortcodes; users add those by URL.
+

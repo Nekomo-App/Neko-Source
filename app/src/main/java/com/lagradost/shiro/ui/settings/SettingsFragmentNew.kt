@@ -83,6 +83,13 @@ class SettingsFragmentNew : Fragment() {
             }
         }
 
+        fv<android.widget.TextView>(R.id.settings_identity)?.apply {
+            background = ColorDrawable(Cyanea.instance.backgroundColorDark)
+            setOnClickListener {
+                context?.let { startActivity(Intent(it, AppIdentityActivity::class.java)) }
+            }
+        }
+
         fv<android.widget.TextView>(R.id.settings_home)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {

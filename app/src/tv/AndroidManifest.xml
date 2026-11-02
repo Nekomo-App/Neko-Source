@@ -19,8 +19,7 @@
     <application
             tools:node="merge"
             android:name=".AcraApplication"
-            android:allowBackup="true"
-            android:fullBackupContent="@xml/backup_descriptor"
+            android:allowBackup="false"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"

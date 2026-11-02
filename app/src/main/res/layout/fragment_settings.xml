@@ -140,6 +140,13 @@
                     </TextView>
                     <View style="@style/Divider"/>
                     <TextView
+                            android:id="@+id/settings_identity"
+                            android:text="App name and icon"
+                            style="@style/SettingsItem"
+                    >
+                    </TextView>
+                    <View style="@style/Divider"/>
+                    <TextView
                             android:id="@+id/settings_player"
                             android:text="Player"
                             style="@style/SettingsItem"

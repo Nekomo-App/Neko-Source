@@ -1,5 +1,6 @@
 package com.lagradost.shiro
 
+import com.lagradost.shiro.utils.AppIdentity
 import ANILIST_SHOULD_UPDATE_LIST
 import DataStore.setKey
 import MAL_SHOULD_UPDATE_LIST
@@ -106,7 +107,7 @@ class AcraApplication : Application() {
                 activity.window.setFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE, android.view.WindowManager.LayoutParams.FLAG_SECURE)
             }
             override fun onActivityStarted(activity: android.app.Activity) {}
-            override fun onActivityResumed(activity: android.app.Activity) {}
+            override fun onActivityResumed(activity: android.app.Activity) { AppIdentity.applyTaskDescription(activity) }
             override fun onActivityPaused(activity: android.app.Activity) {}
             override fun onActivityStopped(activity: android.app.Activity) {}
             override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}

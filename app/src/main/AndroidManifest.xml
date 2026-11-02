@@ -35,8 +35,7 @@
 
     <application
             android:name=".AcraApplication"
-            android:allowBackup="true"
-            android:fullBackupContent="@xml/backup_descriptor"
+            android:allowBackup="false"
             android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
             android:roundIcon="@mipmap/ic_launcher_round"
@@ -124,6 +123,10 @@
                 <data android:scheme="nekomo-repo" android:host="api"/>
             </intent-filter>
         </activity>
+        <activity android:name=".ui.settings.AppIdentityActivity"
+                  android:theme="@style/preferenceActivityTheme"
+                  android:label="App name and icon"
+        />
         <activity android:name=".ui.settings.HomeSettingsActivity"
                   android:theme="@style/preferenceActivityTheme"
                   android:label="Home page"

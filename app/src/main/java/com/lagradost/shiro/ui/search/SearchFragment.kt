@@ -64,6 +64,13 @@ class SearchFragment : Fragment() {
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // The search bar must not grab focus on entry: the keyboard opens only when the user taps it
+        view.isFocusableInTouchMode = true
+        view.requestFocus() // keeps the keyboard closed until the bar is tapped
+        view.post {
+            (activity?.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager)
+                ?.hideSoftInputFromWindow(view.windowToken, 0)
+        }
 //        if (context?.getKey(HAS_DISMISSED_SEARCH_INFO, false) == false) {
 //            val builder: AlertDialog.Builder =
 //                AlertDialog.Builder(getCurrentActivity()!!, R.style.AlertDialogCustom)
@@ -330,6 +337,13 @@ class SearchFragment : Fragment() {
         }
 //        if (!isInResults && !isInPlayer) {
         fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.onActionViewExpanded()
+        // onActionViewExpanded() focuses the bar and pops the keyboard: give focus back so it opens only on tap
+        fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.let { sv ->
+            sv.post {
+                sv.clearFocus()
+                (activity?.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager)?.hideSoftInputFromWindow(sv.windowToken, 0)
+            }
+        }
         refreshHistory()
         searchViewModel?.searchQuery?.value?.let {
             fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.setQuery(it, false)
