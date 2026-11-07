@@ -303,7 +303,8 @@ object LiveApi {
 
     fun getGenres(): List<String>? {
         val data = anilist(GENRES_QUERY, emptyMap()) ?: return null
-        return data.path("GenreCollection").mapNotNull { it.asText(null) }
+        // The adult genre only shows when 18+ content is enabled (Settings > General)
+        return data.path("GenreCollection").mapNotNull { it.asText(null) }.filter { com.lagradost.shiro.utils.ContentPrefs.nsfw() || !it.equals("Hentai", true) }
     }
 
     // endregion
@@ -311,7 +312,7 @@ object LiveApi {
     // region ---------- search ----------
 
     fun search(query: String, genres: List<String>?): List<NekomoApi.Companion.Data>? {
-        val data = anilist(searchQuery(), mapOf("q" to query, "genres" to (genres?.takeIf { it.isNotEmpty() })))
+        val data = anilist(searchQuery(), mapOf("q" to query.takeIf { it.isNotBlank() }, "genres" to (genres?.takeIf { it.isNotEmpty() })))
             ?: return null
         return data.path("Page").path("media").map { mediaToData(it) }
     }

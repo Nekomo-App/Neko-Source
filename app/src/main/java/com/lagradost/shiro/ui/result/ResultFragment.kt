@@ -165,6 +165,11 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.relatedScrollView)?.adapter?.notifyDataSetChanged()
         fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.recommendationsScrollView)?.adapter?.notifyDataSetChanged()
         super.onConfigurationChanged(newConfig)
+        // The page height is pinned to the screen height when it loads; re-measure after rotating so it never stays at the old height
+        view?.let { v ->
+            v.layoutParams = v.layoutParams?.apply { height = ViewGroup.LayoutParams.MATCH_PARENT }
+            v.post { v.layoutParams = v.layoutParams?.apply { height = v.rootView?.height ?: height } }
+        }
     }
 
 
