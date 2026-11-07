@@ -355,4 +355,5 @@ this toggle would just add a switch that does nothing.
 - Default theme is dark purple (`assets/themes/cyanea_themes.json`[0], `values/colors.xml`, applied once per install via `nekomo_theme_v2`). NEX uses a dark purple palette in `ui/Theme.kt`.
 - Updater: when the GitHub releases API fails or is rate-limited it falls back to each repo's `apks/latest.json` (raw.githubusercontent.com) and logs the failure.
 - Genre filter: a genre-only search sends `q = null` (an empty string made AniList return nothing); the adult genre ("Hentai") is hidden from the genre list unless 18+ is on. The title page re-measures its height after a rotation (it used to stay at the old height and look cut in half).
+- Manual Extensions page: Aniyomi and Mihon are ONE section (single add-repository field that detects anime/manga by package name, one repo list, one installed list). Mihon's loader falls back to the sibling `index.pb` when `index.min.json` is an "update your app" stub (keiyoushi). Settings landscape hides the logo header (follow the view size, not `resources.configuration`, which is stale during rotation).
 

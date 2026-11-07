@@ -66,17 +66,25 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
     // ---------- Aniyomi extensions ----------
 
     private fun refreshAniyomi() {
+        // One combined section for Aniyomi (anime) and Mihon (manga): they share an extension format
         val box = findViewById<LinearLayout>(R.id.aniyomi_container)
         box.removeAllViews()
-        val repos = AniyomiManager.getRepos(this)
-        if (repos.isEmpty()) box.addView(rowText("No Aniyomi repositories added yet"))
-        for (repo in repos) {
+        val ay = AniyomiManager.getRepos(this)
+        val mh = MihonManager.getRepos(this)
+        val urls = (ay.map { it.url } + mh.map { it.url }).distinct()
+        if (urls.isEmpty()) box.addView(rowText("No Aniyomi or Mihon repositories added yet"))
+        for (url in urls) {
+            val a = ay.firstOrNull { it.url == url }
+            val m = mh.firstOrNull { it.url == url }
+            val kind = if (a != null && m != null) "Aniyomi + Mihon" else if (a != null) "Aniyomi" else "Mihon"
             val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            row.addView(rowText(repo.name ?: repo.url))
+            row.addView(rowText("${a?.name ?: m?.name ?: url}  \u2022  $kind"))
             val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            buttons.addView(rowButton("Browse") { browseAniyomi(repo.url) })
+            if (a != null) buttons.addView(rowButton(if (m != null) "Browse anime" else "Browse") { browseAniyomi(url) })
+            if (m != null) buttons.addView(rowButton(if (a != null) "Browse manga" else "Browse") { browseMihon(url) })
             buttons.addView(rowButton("Remove") {
-                AniyomiManager.removeRepo(this, repo.url)
+                AniyomiManager.removeRepo(this, url)
+                MihonManager.removeRepo(this, url)
                 refreshAniyomi()
             })
             row.addView(buttons)
@@ -84,41 +92,47 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         }
 
         val input = EditText(this).apply {
-            hint = "Aniyomi repository URL (index.min.json)"
+            hint = "Aniyomi or Mihon repository URL (index.min.json or index.pb)"
             inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
             maxLines = 1
         }
         box.addView(input)
-        box.addView(rowButton("Add Aniyomi repository") {
+        box.addView(rowButton("Add repository") {
             val raw = input.text.toString().trim()
             if (!raw.startsWith("http")) {
                 toast("Enter the full https URL of the repository")
                 return@rowButton
             }
-            val url = AniyomiManager.normaliseRepoUrl(raw)
             confirmRisk {
-                setStatus("Reading repository…")
+                setStatus("Reading repository\u2026")
                 thread {
-                    val index = AniyomiManager.fetchIndex(url)
+                    val ayUrl = AniyomiManager.normaliseRepoUrl(raw)
+                    val mhUrl = MihonManager.normaliseRepoUrl(raw)
+                    val ayIdx = AniyomiManager.fetchIndex(ayUrl)
+                    val mhIdx = if (ayIdx == null || ayIdx.none { !it.pkg.contains("animeextension") }) MihonManager.fetchIndex(mhUrl) else null
+                    val anime = ayIdx?.count { it.pkg.contains("animeextension") } ?: 0
+                    val manga = maxOf(ayIdx?.count { !it.pkg.contains("animeextension") } ?: 0, mhIdx?.count { !it.pkg.contains("animeextension") } ?: 0)
                     runOnUiThread {
-                        if (index == null) {
-                            setStatus("Could not read an Aniyomi repository at that URL")
-                            toast("Not a valid Aniyomi repository")
-                        } else {
-                            AniyomiManager.addRepo(this, AniyomiManager.AyRepo(url, repoLabel(url)))
-                            setStatus("")
-                            refreshAniyomi()
+                        setStatus("")
+                        if (anime + manga == 0) {
+                            toast("Not a valid Aniyomi or Mihon repository")
+                            return@runOnUiThread
                         }
+                        if (anime > 0) AniyomiManager.addRepo(this, AniyomiManager.AyRepo(ayUrl, repoLabel(ayUrl)))
+                        if (manga > 0) MihonManager.addRepo(this, MihonManager.MhRepo(mhUrl, repoLabel(mhUrl)))
+                        toast("Added: $anime anime and $manga manga extension(s) available")
+                        refreshAniyomi()
                     }
                 }
             }
         })
 
-        val installed = AniyomiManager.getInstalled(this)
-        box.addView(rowText(if (installed.isEmpty()) "No Aniyomi extensions installed" else "Installed extensions"))
-        for (ext in installed) {
+        val ayInst = AniyomiManager.getInstalled(this)
+        val mhInst = MihonManager.getInstalled(this)
+        box.addView(rowText(if (ayInst.isEmpty() && mhInst.isEmpty()) "No Aniyomi or Mihon extensions installed" else "Installed extensions"))
+        for (ext in ayInst) {
             val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            row.addView(rowText("${ext.name.removePrefix("Aniyomi: ")}  v${ext.version}  •  ${ext.lang}"))
+            row.addView(rowText("${ext.name.removePrefix("Aniyomi: ")}  v${ext.version}  \u2022  ${ext.lang}  \u2022  Aniyomi"))
             val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             buttons.addView(Switch(this).apply {
                 isChecked = AniyomiManager.isEnabled(this@ExtensionsActivity, ext.pkg)
@@ -128,6 +142,23 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
             buttons.addView(rowButton("Report") { reportExtension(ext.repoUrl) })
             buttons.addView(rowButton("Uninstall") {
                 AniyomiManager.uninstall(this, ext.pkg)
+                refreshAniyomi()
+            })
+            row.addView(buttons)
+            box.addView(row)
+        }
+        for (ext in mhInst) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            row.addView(rowText("${ext.name.removePrefix("Mihon: ")}  v${ext.version}  \u2022  ${ext.lang}  \u2022  Mihon"))
+            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            buttons.addView(Switch(this).apply {
+                isChecked = MihonManager.isEnabled(this@ExtensionsActivity, ext.pkg)
+                text = "Enabled"
+                setOnCheckedChangeListener { _, checked -> MihonManager.setEnabled(this@ExtensionsActivity, ext.pkg, checked) }
+            })
+            buttons.addView(rowButton("Report") { reportExtension(ext.repoUrl) })
+            buttons.addView(rowButton("Uninstall") {
+                MihonManager.uninstall(this, ext.pkg)
                 refreshAniyomi()
             })
             row.addView(buttons)
@@ -177,75 +208,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
 
     // ---------- Mihon extensions ----------
 
-    private fun refreshMihon() {
-        val box = findViewById<LinearLayout>(R.id.mihon_container)
-        box.removeAllViews()
-        val repos = MihonManager.getRepos(this)
-        if (repos.isEmpty()) box.addView(rowText("No Mihon repositories added yet"))
-        for (repo in repos) {
-            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            row.addView(rowText(repo.name ?: repo.url))
-            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            buttons.addView(rowButton("Browse") { browseMihon(repo.url) })
-            buttons.addView(rowButton("Remove") {
-                MihonManager.removeRepo(this, repo.url)
-                refreshMihon()
-            })
-            row.addView(buttons)
-            box.addView(row)
-        }
-
-        val input = EditText(this).apply {
-            hint = "Mihon repository URL (index.min.json or index.pb)"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
-            maxLines = 1
-        }
-        box.addView(input)
-        box.addView(rowButton("Add Mihon repository") {
-            val raw = input.text.toString().trim()
-            if (!raw.startsWith("http")) {
-                toast("Enter the full https URL of the repository")
-                return@rowButton
-            }
-            val url = MihonManager.normaliseRepoUrl(raw)
-            confirmRisk {
-                setStatus("Reading repository…")
-                thread {
-                    val index = MihonManager.fetchIndex(url)
-                    runOnUiThread {
-                        if (index == null) {
-                            setStatus("Could not read an Mihon repository at that URL")
-                            toast("Not a valid Mihon repository")
-                        } else {
-                            MihonManager.addRepo(this, MihonManager.MhRepo(url, repoLabel(url)))
-                            setStatus("")
-                            refreshMihon()
-                        }
-                    }
-                }
-            }
-        })
-
-        val installed = MihonManager.getInstalled(this)
-        box.addView(rowText(if (installed.isEmpty()) "No Mihon extensions installed" else "Installed extensions"))
-        for (ext in installed) {
-            val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            row.addView(rowText("${ext.name.removePrefix("Mihon: ")}  v${ext.version}  •  ${ext.lang}"))
-            val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            buttons.addView(Switch(this).apply {
-                isChecked = MihonManager.isEnabled(this@ExtensionsActivity, ext.pkg)
-                text = "Enabled"
-                setOnCheckedChangeListener { _, checked -> MihonManager.setEnabled(this@ExtensionsActivity, ext.pkg, checked) }
-            })
-            buttons.addView(rowButton("Report") { reportExtension(ext.repoUrl) })
-            buttons.addView(rowButton("Uninstall") {
-                MihonManager.uninstall(this, ext.pkg)
-                refreshMihon()
-            })
-            row.addView(buttons)
-            box.addView(row)
-        }
-    }
+    private fun refreshMihon() = refreshAniyomi()
 
     private fun browseMihon(repoUrl: String) {
         setStatus("Fetching extensions…")

@@ -126,7 +126,7 @@
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Aniyomi extensions"
+                android:text="Aniyomi &amp; Mihon extensions"
                 android:textSize="22sp"
                 android:textStyle="bold"/>
 
@@ -134,7 +134,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
-                android:text="Add an Aniyomi extension repository (its index.min.json URL), then install the anime extensions you want. Nothing is installed by default."
+                android:text="Add an Aniyomi (anime) or Mihon (manga) repository URL once and Nekomo detects which it offers, then install the extensions you want. Nothing is installed by default. Manga extensions are read from Settings → Manga."
                 android:textSize="13sp"/>
 
         <LinearLayout
@@ -143,34 +143,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"/>
 
-        <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="20dp"
-                android:background="?android:attr/listDivider"/>
-
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Mihon extensions (manga)"
-                android:textSize="22sp"
-                android:textStyle="bold"/>
-
-        <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:text="Add a Mihon extension repository (its index.min.json or index.pb URL), then install the manga extensions you want. They are read from Settings → Manga. Nothing is installed by default."
-                android:textSize="13sp"/>
-
-        <LinearLayout
-                android:id="@+id/mihon_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"/>
-
-        <TextView
+                <TextView
                 android:id="@+id/extension_status"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

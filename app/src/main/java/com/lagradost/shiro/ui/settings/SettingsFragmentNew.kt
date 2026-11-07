@@ -54,6 +54,16 @@ class SettingsFragmentNew : Fragment() {
         return inflater.inflate(R.layout.fragment_settings, container, false)
     }
 
+    /** The logo header uses ~260dp, which leaves almost no room for the list in landscape, so it is hidden there (and on TV). */
+    private fun updateHeader(landscape: Boolean) {
+        fv<android.widget.LinearLayout>(R.id.account_icon)?.let { h ->
+            h.layoutTransition = null // the layout animation kept the old space reserved after hiding
+            val show = tvActivity == null && !landscape
+            h.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
+            (h.parent as? android.view.View)?.requestLayout()
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -66,7 +76,9 @@ class SettingsFragmentNew : Fragment() {
             Pair("Updates", R.xml.settings_update_info),
             Pair("About", R.xml.settings_about),
         )*/
-        fv<android.widget.LinearLayout>(R.id.account_icon)?.isVisible = tvActivity == null
+        updateHeader(resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE)
+        // Rotating resizes the view without recreating it (and the fragment sees the old orientation), so follow the real size
+        view.addOnLayoutChangeListener { _, l, t, r, b, _, _, _, _ -> updateHeader((r - l) > (b - t)) }
         val array = arrayOf(
             Pair(fv<android.widget.TextView>(R.id.settings_general), R.xml.settings_general),
             Pair(fv<android.widget.TextView>(R.id.settings_style), R.xml.custom_pref_cyanea),

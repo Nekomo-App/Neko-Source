@@ -66,7 +66,13 @@ class ExtensionManagerActivity : CyaneaAppCompatActivity() {
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
     private fun date(t: Long) = if (t == 0L) "never" else DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(t))
-    private fun host(url: String?) = url?.substringAfter("://")?.substringBefore('/') ?: "unknown"
+    /** A readable name for a repository URL: owner/repo for GitHub-hosted ones, otherwise the host. */
+    private fun host(url: String?): String {
+        val rest = url?.substringAfter("://") ?: return "unknown"
+        val host = rest.substringBefore('/')
+        val parts = rest.substringAfter('/', "").split('/').filter { it.isNotBlank() }
+        return if ((host == "raw.githubusercontent.com" || host == "github.com") && parts.size >= 2) "${parts[0]}/${parts[1]}" else host
+    }
 
     private fun busy(message: String): Pair<AlertDialog, TextView> {
         val tv = TextView(this).apply { text = message; textSize = 15f; setPadding(b.dp(24), b.dp(20), b.dp(24), b.dp(20)) }

@@ -94,7 +94,20 @@ object MihonManager {
         }
     }
 
-    fun fetchIndex(repoUrl: String): List<MhIndexEntry>? = try {
+    fun fetchIndex(repoUrl: String): List<MhIndexEntry>? {
+        val first = fetchIndexOnce(repoUrl)
+        // Some repos replaced index.min.json with an "update your app" stub and moved the real list to index.pb
+        val bare = repoUrl.substringBefore('?')
+        if (bare.endsWith("index.min.json") && (first == null || isStub(first))) {
+            fetchIndexOnce(bare.removeSuffix("index.min.json") + "index.pb")?.takeIf { it.isNotEmpty() && !isStub(it) }?.let { return it }
+        }
+        return first
+    }
+
+    private fun isStub(list: List<MhIndexEntry>) =
+        list.size <= 5 && list.isNotEmpty() && list.all { it.name.startsWith("Outdated", true) || it.name.startsWith("Update to", true) }
+
+    private fun fetchIndexOnce(repoUrl: String): List<MhIndexEntry>? = try {
         val res = khttp.get(repoUrl, timeout = 30.0)
         when {
             res.statusCode != 200 -> null
