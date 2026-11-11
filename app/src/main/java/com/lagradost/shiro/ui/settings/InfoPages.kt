@@ -59,7 +59,7 @@ internal class PageBuilder(val activity: CyaneaAppCompatActivity) {
     fun card(vararg children: View): LinearLayout = LinearLayout(ctx).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(16), dp(14), dp(16), dp(14))
-        background = GradientDrawable().apply { setColor(cardColor); cornerRadius = dp(14).toFloat() }
+        background = GradientDrawable().apply { setColor(cardColor); cornerRadius = com.lagradost.shiro.utils.UiStyle.cardRadiusPx(ctx) }
         children.forEach { addView(it) }
         layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) }
         reveal(this)
@@ -82,7 +82,7 @@ internal class PageBuilder(val activity: CyaneaAppCompatActivity) {
         isAllCaps = false
         setTextColor(Color.WHITE)
         textSize = 15f
-        background = GradientDrawable().apply { setColor(accent); cornerRadius = dp(24).toFloat() }
+        background = GradientDrawable().apply { setColor(accent); cornerRadius = com.lagradost.shiro.utils.UiStyle.buttonRadiusPx(ctx) }
         layoutParams = LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(8); bottomMargin = dp(8) }
         setOnClickListener { onClick() }
         reveal(this)

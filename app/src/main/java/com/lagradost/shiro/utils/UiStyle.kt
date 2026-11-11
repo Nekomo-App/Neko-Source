@@ -37,6 +37,10 @@ object UiStyle {
 
     fun cardRadiusPx(ctx: Context): Float = cardRadiusDp(ctx) * density(ctx)
 
+    /** Buttons: sharp-ish in Classic (matches the home buttons), pill-ish in Modern. */
+    fun buttonRadiusDp(ctx: Context): Int = if (isModern(ctx)) 20 else 10
+    fun buttonRadiusPx(ctx: Context): Float = buttonRadiusDp(ctx) * density(ctx)
+
     fun cardSpacingPx(ctx: Context): Int =
         (prefs(ctx).getInt("card_spacing_dp", if (isModern(ctx)) 8 else 5) * density(ctx)).toInt()
 
