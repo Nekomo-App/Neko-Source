@@ -260,6 +260,14 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## Advanced & diagnostics (Settings -> General)
+
+- `experimental_features` switch gates genuinely experimental prefs (currently it hides
+  the `subtitle_delay_ms` slider unless on or already non-zero). Read in
+  `SubSettingsFragment` settings_player block.
+- `adv_error_log` (reuses ErrorLogActivity), `adv_diagnostics` (copies build/device info),
+  `adv_cache_clear` (deletes the exoplayer + image cache dirs, shows freed size).
+
 ## Subtitle delay
 
 - `ui/player/DelayedTextRenderer.kt`: TextRenderer is final in ExoPlayer 2.19, so a

@@ -283,6 +283,13 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                         Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
                 }
 
+                // Subtitle delay rides the Experimental features switch (General -> Advanced);
+                // stays visible if a non-zero delay is already set so existing users keep access.
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext()).let { prefs ->
+                    findPreference<Preference>("subtitle_delay_ms")?.isVisible =
+                        prefs.getBoolean("experimental_features", false) || prefs.getInt("subtitle_delay_ms", 0) != 0
+                }
+
                 val selectedProvidersPreference = findPreference<MultiSelectListPreference?>("selected_providers")
                 selectedProvidersPreference?.isVisible = false
                 val apiNames = APIS.map { it.name }
@@ -582,8 +589,34 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 }
 
                 findPreference<Preference?>("error_log_btt")?.setOnPreferenceClickListener {
-                    startActivity(Intent(activity, ErrorLogActivity::class.java))
-                    return@setOnPreferenceClickListener true
+                    startActivity(Intent(activity, ErrorLogActivity::class.java)); true
+                }
+
+                // Advanced & diagnostics
+                findPreference<Preference>("adv_error_log")?.setOnPreferenceClickListener {
+                    startActivity(Intent(activity, ErrorLogActivity::class.java)); true
+                }
+                findPreference<Preference>("adv_diagnostics")?.setOnPreferenceClickListener {
+                    context?.let { c ->
+                        val info = "Nekomo ${com.lagradost.shiro.BuildConfig.VERSION_NAME} (${com.lagradost.shiro.BuildConfig.VERSION_CODE}) ${com.lagradost.shiro.BuildConfig.BUILD_TYPE}/${com.lagradost.shiro.BuildConfig.FLAVOR}" +
+                                " | ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} | Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})"
+                        (c.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                            .setPrimaryClip(android.content.ClipData.newPlainText("Nekomo diagnostics", info))
+                        Toast.makeText(c, "Diagnostics copied", Toast.LENGTH_SHORT).show()
+                    }
+                    true
+                }
+                findPreference<Preference>("adv_cache_clear")?.setOnPreferenceClickListener {
+                    context?.let { c ->
+                        var freed = 0L
+                        fun du(f: java.io.File): Long = f.walkTopDown().filter { it.isFile }.sumOf { it.length() }
+                        val dirs = listOf(java.io.File(c.filesDir, "exoplayer"), java.io.File(c.cacheDir, "image_manager_disk_cache"))
+                        val total = dirs.sumOf { if (it.exists()) du(it) else 0 }
+                        dirs.forEach { it.deleteRecursively() }
+                        freed = total
+                        Toast.makeText(c, "Freed ${freed / (1024 * 1024)} MB of cache", Toast.LENGTH_SHORT).show()
+                    }
+                    true
                 }
 
                 findPreference<Preference?>("backup_btt")?.setOnPreferenceClickListener {

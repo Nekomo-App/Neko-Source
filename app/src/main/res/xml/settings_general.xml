@@ -249,6 +249,33 @@
                       android:defaultValue="false"/>
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="Advanced &amp; diagnostics">
+        <SwitchPreference
+                android:icon="@drawable/ic_baseline_code_24"
+                app:key="experimental_features"
+                android:title="Experimental features"
+                android:summary="Enables work-in-progress features. May be unstable"
+                app:defaultValue="false"
+        />
+        <Preference
+                android:icon="@drawable/ic_baseline_access_time_24"
+                app:key="adv_error_log"
+                android:title="Error log"
+                android:summary="View, copy or share the on-device error log"
+        />
+        <Preference
+                android:icon="@drawable/ic_baseline_code_24"
+                app:key="adv_diagnostics"
+                android:title="Copy diagnostics"
+                android:summary="Copies app + device build info to the clipboard for bug reports"
+        />
+        <Preference
+                android:icon="@drawable/ic_baseline_delete_outline_24"
+                app:key="adv_cache_clear"
+                android:title="Clear playback + image caches"
+                android:summary="Frees space used by the video and image caches (keeps downloads)"
+        />
+    </PreferenceCategory>
     <!--
     <SwitchPreference
             android:icon="@drawable/ic_baseline_language_24"
