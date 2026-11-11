@@ -500,6 +500,8 @@ class PlayerFragment : Fragment() {
                 && exoPlayer.duration > 0 && exoPlayer.currentPosition > 0
             ) {
                 context?.setViewPosDur(data!!, exoPlayer.currentPosition, exoPlayer.duration)
+                // Keep the continue-watching home-screen widget in sync with playback.
+                context?.let { com.lagradost.shiro.ui.widget.ContinueWidgetProvider.refresh(it) }
             }
         }
     }

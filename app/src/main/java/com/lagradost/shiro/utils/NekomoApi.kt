@@ -688,7 +688,7 @@ class NekomoApi {
             }
         }
 
-        private fun Context.getLastWatch(): List<LastEpisodeInfo?> {
+        fun Context.getLastWatch(): List<LastEpisodeInfo?> {
             val legacyRecents = getKey(LEGACY_RECENTS, true)
             if (legacyRecents == true && !isConvertingRecents) {
                 convertOldRecents()
