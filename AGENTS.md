@@ -260,6 +260,14 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## Subtitle delay
+
+- `ui/player/DelayedTextRenderer.kt`: TextRenderer is final in ExoPlayer 2.19, so a
+  `Renderer` wrapper delegates every method and calls `render(positionUs - offsetUs)` —
+  positive `subtitle_delay_ms` (Settings -> Player, -10s..+10s) delays subtitles.
+  `DelayedRenderersFactory` plugs it into `SimpleExoPlayer.Builder` and keeps the live
+  instance in `current`; a pref listener in `PlayerFragment` applies changes mid-playback.
+
 ## Player stats overlay
 
 - `player_stats` switch (Settings -> Player, "Playback statistics overlay") toggles a

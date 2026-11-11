@@ -532,6 +532,13 @@ class PlayerFragment : Fragment() {
         handler.removeCallbacks(checkProgressAction)
         statsRunning = false
         statsHandler.removeCallbacksAndMessages(null)
+        subtitleDelayListener?.let { l ->
+            context?.let { c ->
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(c)
+                    .unregisterOnSharedPreferenceChangeListener(l)
+            }
+        }
+        subtitleDelayListener = null
 
         super.onDestroy()
         //MainActivity.showSystemUI()
@@ -1311,6 +1318,15 @@ class PlayerFragment : Fragment() {
         }
         applySubtitleStyle()
         applyStatsOverlay()
+        context?.let { c ->
+            val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(c)
+            subtitleDelayListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key == "subtitle_delay_ms") {
+                    DelayedRenderersFactory.current?.offsetUs =
+                        prefs.getInt("subtitle_delay_ms", 0).toLong() * 1000L
+                }
+            }.also { prefs.registerOnSharedPreferenceChangeListener(it) }
+        }
         fv<androidx.cardview.widget.CardView>(R.id.popout_btt)?.setOnClickListener {
             updateHideTime()
             popOut()
@@ -1477,6 +1493,7 @@ class PlayerFragment : Fragment() {
     /** Subtitle size, color and background from Settings -> Player; applied to ExoPlayer's SubtitleView. */
     private val statsHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var statsRunning = false
+    private var subtitleDelayListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
 
     /** "Stats for nerds": codec / resolution / buffer / speed text over the video, refreshed once a second. */
     private fun applyStatsOverlay() {
@@ -2268,8 +2285,10 @@ class PlayerFragment : Fragment() {
                             .clearSelectionOverrides()
                             .build()
 
+                        // Custom renderers factory: DelayedTextRenderer powers the subtitle-delay
+                        // setting (offset lives in DelayedRenderersFactory.current).
                         val exoPlayerBuilder =
-                            SimpleExoPlayer.Builder(getCurrentActivity()!!)
+                            SimpleExoPlayer.Builder(getCurrentActivity()!!, DelayedRenderersFactory(getCurrentActivity()!!))
                                 .setTrackSelector(trackSelector)
 
                         val factory = newDataSourceFactory()
@@ -2295,6 +2314,9 @@ class PlayerFragment : Fragment() {
                         )
                         lastMediaSourceFactory = mediaSourceFactory
                         exoPlayer = exoPlayerBuilder.build().apply {
+                            // Subtitle delay (ms) -> renderer offset (µs). Positive delays subtitles.
+                            DelayedRenderersFactory.current?.offsetUs =
+                                settingsManager.getInt("subtitle_delay_ms", 0).toLong() * 1000L
                             playWhenReady = isPlayerPlaying
                             seekTo(currentWindow, playbackPosition)
                             setMediaSource(
