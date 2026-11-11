@@ -129,6 +129,8 @@ class MangaReaderActivity : AppCompatActivity() {
         } else 0
     }
 
+    private var gapDeco: RecyclerView.ItemDecoration? = null
+
     private fun configureRecycler(keepPage: Int = -1) {
         snapHelper?.attachToRecyclerView(null)
         val lm = when (mode) {
@@ -137,6 +139,19 @@ class MangaReaderActivity : AppCompatActivity() {
             else -> LinearLayoutManager(this)
         }
         recycler.layoutManager = lm
+        gapDeco?.let { recycler.removeItemDecoration(it) }
+        val gapPx = when (prefs.getString("manga_page_gap", "none")) {
+            "small" -> dp(4); "medium" -> dp(10); else -> 0
+        }
+        if (gapPx > 0) {
+            val horiz = lm.orientation == LinearLayoutManager.HORIZONTAL
+            gapDeco = object : RecyclerView.ItemDecoration() {
+                override fun getItemOffsets(outRect: android.graphics.Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
+                    if (horiz) outRect.right = gapPx else outRect.bottom = gapPx
+                }
+            }
+            recycler.addItemDecoration(gapDeco!!)
+        } else gapDeco = null
         if (paged) {
             snapHelper = PagerSnapHelper().also { it.attachToRecyclerView(recycler) }
         } else {
@@ -203,6 +218,15 @@ class MangaReaderActivity : AppCompatActivity() {
             android.widget.RadioButton(ctx).apply { text = bgs[bgValues.indexOf(value)]; isChecked = prefs.getString("manga_reader_bg", "black") == value }
         }
         bgButtons.forEach { box.addView(it) }
+        box.addView(heading("Page gap"))
+        val gapValues = arrayOf("none", "small", "medium")
+        val gapButtons = gapValues.map { v ->
+            android.widget.RadioButton(ctx).apply {
+                text = v.replaceFirstChar { it.uppercase() }
+                isChecked = prefs.getString("manga_page_gap", "none") == v
+            }
+        }
+        gapButtons.forEach { box.addView(it) }
         box.addView(heading("Options"))
         val checks = toggleKeys.mapIndexed { i, key ->
             android.widget.CheckBox(ctx).apply { text = toggles[i]; isChecked = prefs.getBoolean(key, toggleDefaults[i]) }
@@ -217,6 +241,7 @@ class MangaReaderActivity : AppCompatActivity() {
                 val e = prefs.edit()
                 modeValues.forEachIndexed { i, v -> if (modeButtons[i].isChecked) e.putString("manga_reader_mode", v) }
                 bgValues.forEachIndexed { i, v -> if (bgButtons[i].isChecked) e.putString("manga_reader_bg", v) }
+                gapValues.forEachIndexed { i, v -> if (gapButtons[i].isChecked) e.putString("manga_page_gap", v) }
                 toggleKeys.forEachIndexed { i, k -> e.putBoolean(k, checks[i].isChecked) }
                 e.apply()
                 applyUi()
