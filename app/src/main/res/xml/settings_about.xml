@@ -77,6 +77,12 @@
                 android:data="https://github.com/MarshMeadow"/>
     </Preference>
     <Preference
+            app:key="about_original"
+            android:title="Nekomo vs the original app"
+            android:icon="@drawable/ic_baseline_code_24"
+            app:summary="How Nekomo compares to the original Shiro/Kuro project"
+    />
+    <Preference
             android:title="Previous developers"
             android:icon="@drawable/ic_baseline_code_24"
             app:summary="Lag (LagradOst) &amp; Blue Fire (Blatzar) — original open-source project"

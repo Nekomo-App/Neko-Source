@@ -746,6 +746,38 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 findPreference<Preference>("about_version")?.summary =
                     "${com.lagradost.shiro.BuildConfig.VERSION_NAME} · $channel channel"
 
+                findPreference<Preference>("about_original")?.setOnPreferenceClickListener {
+                    val ctx = requireContext()
+                    val text = "Nekomo is a continuation of the original Shiro anime app " +
+                            "(the open-source project by Lag and Blue Fire that Kuro also descends from). " +
+                            "It keeps Shiro's recognizable look, architecture and data so existing users feel at home, " +
+                            "then builds on it:\n\n" +
+                            "• Extensions: CloudStream (.cs3), Zangetsu (JS), Aniyomi anime and Mihon manga sources\n" +
+                            "• Manga reader (webtoon / paged LTR–RTL, offline chapter downloads) and a manga source browser\n" +
+                            "• Classic and Modern interface modes, card layout presets, poster size, corners, spacing\n" +
+                            "• Quick-setup onboarding, PIN app lock, settings search\n" +
+                            "• New-episode alerts with quiet hours and per-show mutes, \"Coming up\" home row\n" +
+                            "• Offline library with statuses, custom collections, sorting, export/import and AniList sync\n" +
+                            "• DNS-over-HTTPS, in-app updater, Android TV builds, 40+ themes\n\n" +
+                            "The original project's core is MIT-licensed; the combined app is GPL-3.0-or-later " +
+                            "because it ships GPL-3.0 components (see Open-source licenses)."
+                    val tv = android.widget.TextView(ctx).apply {
+                        this.text = text
+                        textSize = 14f
+                        setTextIsSelectable(true)
+                        setPadding(48, 24, 48, 24)
+                    }
+                    AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                        .setTitle("Nekomo vs the original app")
+                        .setView(android.widget.ScrollView(ctx).apply { addView(tv) })
+                        .setPositiveButton("OK", null)
+                        .setNeutralButton("Shiro source") { _, _ ->
+                            com.lagradost.shiro.ui.welcome.SocialLinks.openUrl(ctx, "https://github.com/deceptions/no")
+                        }
+                        .show()
+                    true
+                }
+
                 /** End of Info settings */
 
             }
