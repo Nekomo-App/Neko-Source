@@ -530,6 +530,8 @@ class PlayerFragment : Fragment() {
         }
         activity?.window?.attributes = lp
         handler.removeCallbacks(checkProgressAction)
+        statsRunning = false
+        statsHandler.removeCallbacksAndMessages(null)
 
         super.onDestroy()
         //MainActivity.showSystemUI()
@@ -1308,6 +1310,7 @@ class PlayerFragment : Fragment() {
             showSubtitleDialog()
         }
         applySubtitleStyle()
+        applyStatsOverlay()
         fv<androidx.cardview.widget.CardView>(R.id.popout_btt)?.setOnClickListener {
             updateHideTime()
             popOut()
@@ -1472,6 +1475,46 @@ class PlayerFragment : Fragment() {
 
     // ---------------------------------------------------------------------------------------
     /** Subtitle size, color and background from Settings -> Player; applied to ExoPlayer's SubtitleView. */
+    private val statsHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var statsRunning = false
+
+    /** "Stats for nerds": codec / resolution / buffer / speed text over the video, refreshed once a second. */
+    private fun applyStatsOverlay() {
+        val view = fv<android.widget.TextView>(R.id.player_stats_overlay) ?: return
+        val on = context?.let {
+            androidx.preference.PreferenceManager.getDefaultSharedPreferences(it).getBoolean("player_stats", false)
+        } ?: false
+        statsRunning = false
+        statsHandler.removeCallbacksAndMessages(null)
+        if (!on) {
+            view.visibility = View.GONE
+            return
+        }
+        view.visibility = View.VISIBLE
+        statsRunning = true
+        val tick = object : Runnable {
+            override fun run() {
+                if (!statsRunning) return
+                if (this@PlayerFragment::exoPlayer.isInitialized) {
+                    val f = exoPlayer.videoFormat
+                    val codec = f?.sampleMimeType?.removePrefix("video/")?.uppercase() ?: "-"
+                    val res = f?.let { "${it.width}x${it.height}" } ?: "-"
+                    val br = f?.bitrate?.let { if (it > 0) "%.1f Mbps".format(it / 1e6) else "-" } ?: "-"
+                    val buf = ((exoPlayer.bufferedPosition - exoPlayer.currentPosition) / 1000f).coerceAtLeast(0f)
+                    val state = when (exoPlayer.playbackState) {
+                        com.google.android.exoplayer2.Player.STATE_READY -> if (exoPlayer.isPlaying) "playing" else "paused"
+                        com.google.android.exoplayer2.Player.STATE_BUFFERING -> "buffering"
+                        com.google.android.exoplayer2.Player.STATE_ENDED -> "ended"
+                        else -> "idle"
+                    }
+                    view.text = "$codec  $res\n$br  ${"%.1f".format(buf)}s buffer\n$state  ${exoPlayer.playbackParameters.speed}x"
+                }
+                statsHandler.postDelayed(this, 1000)
+            }
+        }
+        statsHandler.post(tick)
+    }
+
     private fun applySubtitleStyle() {
         val ctx = context ?: return
         val sub = fv<com.google.android.exoplayer2.ui.PlayerView>(R.id.player_view)?.subtitleView ?: return

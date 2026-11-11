@@ -72,6 +72,13 @@
             app:defaultValue="false"
     />
     <SwitchPreference
+            android:icon="@drawable/ic_baseline_access_time_24"
+            app:key="player_stats"
+            android:title="Playback statistics overlay"
+            android:summary="Shows codec, resolution, buffer and speed on top of the video"
+            app:defaultValue="false"
+    />
+    <SwitchPreference
             android:icon="@drawable/ic_baseline_fast_forward_24"
             app:key="skip_op_enabled"
             android:title="Skip OP button"

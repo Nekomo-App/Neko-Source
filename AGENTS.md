@@ -260,6 +260,13 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## Player stats overlay
+
+- `player_stats` switch (Settings -> Player, "Playback statistics overlay") toggles a
+  monospace readout (`player_stats_overlay` in `player_custom_layout.xml`): codec,
+  resolution, bitrate, buffered seconds, state and speed, refreshed every second via
+  `PlayerFragment.applyStatsOverlay`/`statsHandler` (stopped in `onDestroy`).
+
 ## Per-show alert mutes + card presets
 
 - Episode alerts can be muted per title: long-press the subscribe bell on a title page
