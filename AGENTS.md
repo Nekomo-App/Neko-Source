@@ -260,6 +260,14 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## Manga chapter alerts
+
+- `utils/manga/MangaFollows.kt`: per-device follows (`sourceId:Long|url` -> title in
+  `manga_follows` prefs) + last-seen chapter counts in `episode_notify_seen`.
+- `MangaDetailActivity` header gets a "Follow — notify on new chapters" checkbox.
+- `NewEpisodeWorker` (same 12h job + quiet hours) loops follows after the anime pass:
+  `MihonBridge.details(...).chapters.size` vs stored count; first run sets baseline.
+
 ## Launcher disguise (activity-alias)
 
 - `app/src/phone/AndroidManifest.xml`: the LAUNCHER intent-filter moved OFF `.ui.MainActivity`

@@ -66,6 +66,18 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
                 isChecked = hideRead
                 setOnCheckedChangeListener { _, on -> hideRead = on; bindChapters() }
             })
+            addView(android.widget.CheckBox(this@MangaDetailActivity).apply {
+                text = "Follow — notify on new chapters"
+                isChecked = com.lagradost.shiro.utils.manga.MangaFollows.isFollowed(
+                    this@MangaDetailActivity, MangaSession.sourceId, url
+                )
+                setOnCheckedChangeListener { _, on ->
+                    com.lagradost.shiro.utils.manga.MangaFollows.set(
+                        this@MangaDetailActivity, MangaSession.sourceId, url,
+                        MangaSession.mangaTitle, on
+                    )
+                }
+            })
         }
         list = ListView(this).apply { addHeaderView(header, null, false); adapter = ArrayAdapter<String>(this@MangaDetailActivity, android.R.layout.simple_list_item_1, emptyList<String>()) }
         setContentView(list)

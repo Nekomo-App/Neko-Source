@@ -72,6 +72,29 @@ class NewEpisodeWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, par
             if (ep > last) seen.edit().putFloat(key, ep).apply()
         }
 
+        // Manga follows: check chapter counts on each followed title (baseline first run).
+        try {
+            com.lagradost.shiro.utils.manga.MangaFollows.all(ctx).forEach { f ->
+                try {
+                    val src = com.lagradost.shiro.utils.mihon.MihonBridge.sourceById(ctx, f.sourceId) ?: return@forEach
+                    val count = runCatching {
+                        com.lagradost.shiro.utils.mihon.MihonBridge.details(src, f.url, f.title).chapters.size
+                    }.getOrDefault(-1)
+                    val last = com.lagradost.shiro.utils.manga.MangaFollows.lastCount(ctx, f.sourceId, f.url)
+                    if (count >= 0) {
+                        if (last >= 0 && count > last) {
+                            fresh += f.title to "${count - last} new chapter(s)"
+                        }
+                        com.lagradost.shiro.utils.manga.MangaFollows.setCount(ctx, f.sourceId, f.url, count)
+                    }
+                } catch (t: Throwable) {
+                    logError(t)
+                }
+            }
+        } catch (t: Throwable) {
+            logError(t)
+        }
+
         when {
             fresh.isEmpty() -> Unit
             fresh.size == 1 -> notify(ctx, fresh[0].first, "Episode ${fresh[0].second} is out")
