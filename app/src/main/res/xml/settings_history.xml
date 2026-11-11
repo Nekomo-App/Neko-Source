@@ -20,6 +20,12 @@
             app:defaultValue="false"
     />
     <Preference
+            android:icon="@drawable/ic_baseline_vpn_lock_24"
+            app:key="app_lock"
+            android:title="Lock the app with a PIN"
+            android:summary="Asks for your code every time the app starts"
+    />
+    <Preference
             android:icon="@drawable/ic_baseline_delete_outline_24"
             app:key="clear_search_history"
             android:title="Clear search history"

@@ -58,7 +58,7 @@ object AuthManager {
 
     /** Signed in or explicitly skipped; the community rules still have to be accepted. */
     fun canEnter(context: Context): Boolean =
-        (isSignedIn(context) || hasSkippedSignIn(context)) && hasSeenDmca(context) && hasAcceptedRules(context) && hasAcceptedRepoWarning(context)
+        (isSignedIn(context) || hasSkippedSignIn(context)) && hasSeenDmca(context) && hasAcceptedRules(context) && hasAcceptedRepoWarning(context) && hasCompletedSetup(context)
 
     /** The DMCA notice is shown once, right after signing in or skipping, before the home screen. */
     fun hasSeenDmca(context: Context): Boolean = try {
@@ -85,6 +85,15 @@ object AuthManager {
     }
 
     fun setRepoWarningAccepted(context: Context) = context.setKey("repo_warning_accepted_v1", true)
+
+    /** Final onboarding step: the CloudStream-style quick setup (interface mode, content, DoH). Shown once. */
+    fun hasCompletedSetup(context: Context): Boolean = try {
+        context.getKey<Boolean>("setup_completed_v1", false) ?: false
+    } catch (e: Exception) {
+        false
+    }
+
+    fun setSetupCompleted(context: Context) = context.setKey("setup_completed_v1", true)
 
     fun logoutKitsu(context: Context) {
         context.removeKey(KITSU_TOKEN_KEY, KITSU_ACCOUNT_ID)

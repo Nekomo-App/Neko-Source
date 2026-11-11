@@ -427,6 +427,76 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
 
                 setTitle("History settings")
 
+                // App lock: set/change/remove the startup PIN. Removing or changing asks the current code.
+                findPreference<Preference>("app_lock")?.apply {
+                    summary = if (com.lagradost.shiro.utils.AppLock.enabled(requireContext()))
+                        "On — the app asks for your code when it starts" else "Asks for your code every time the app starts"
+                    setOnPreferenceClickListener { pref ->
+                        val c = requireContext()
+                        val wasOn = com.lagradost.shiro.utils.AppLock.enabled(c)
+                        fun pinDialog(title: String, onPin: (String) -> Boolean) {
+                            val input = android.widget.EditText(c).apply {
+                                inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+                                maxLines = 1
+                            }
+                            AlertDialog.Builder(c, R.style.AlertDialogCustom)
+                                .setTitle(title)
+                                .setView(input)
+                                .setPositiveButton("OK") { _, _ ->
+                                    if (!onPin(input.text.toString())) {
+                                        Toast.makeText(c, "Wrong PIN", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        pref.summary = if (com.lagradost.shiro.utils.AppLock.enabled(c))
+                                            "On — the app asks for your code when it starts" else "Asks for your code every time the app starts"
+                                    }
+                                }
+                                .setNegativeButton("Cancel", null)
+                                .show()
+                        }
+                        if (!wasOn) {
+                            pinDialog("Choose a PIN (4+ digits)") { pin ->
+                                if (pin.length >= 4) {
+                                    com.lagradost.shiro.utils.AppLock.set(c, pin)
+                                    Toast.makeText(c, "App lock enabled", Toast.LENGTH_SHORT).show()
+                                    true
+                                } else {
+                                    Toast.makeText(c, "PIN needs at least 4 digits", Toast.LENGTH_SHORT).show()
+                                    false
+                                }
+                            }
+                        } else {
+                            pinDialog("Enter your current PIN") { pin ->
+                                if (!com.lagradost.shiro.utils.AppLock.check(c, pin)) false
+                                else {
+                                    AlertDialog.Builder(c, R.style.AlertDialogCustom)
+                                        .setTitle("App lock")
+                                        .setItems(arrayOf("Change PIN", "Remove app lock")) { _, which ->
+                                            if (which == 0) {
+                                                pinDialog("Choose a new PIN (4+ digits)") { np ->
+                                                    if (np.length >= 4) {
+                                                        com.lagradost.shiro.utils.AppLock.set(c, np)
+                                                        Toast.makeText(c, "PIN changed", Toast.LENGTH_SHORT).show()
+                                                        true
+                                                    } else {
+                                                        Toast.makeText(c, "PIN needs at least 4 digits", Toast.LENGTH_SHORT).show()
+                                                        false
+                                                    }
+                                                }
+                                            } else {
+                                                com.lagradost.shiro.utils.AppLock.clear(c)
+                                                pref.summary = "Asks for your code every time the app starts"
+                                                Toast.makeText(c, "App lock removed", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        .show()
+                                    true
+                                }
+                            }
+                        }
+                        true
+                    }
+                }
+
                 findPreference<Preference?>("clear_search_history")?.setOnPreferenceClickListener {
                     context?.let { c ->
                         com.lagradost.shiro.utils.SearchHistory.clear(c)

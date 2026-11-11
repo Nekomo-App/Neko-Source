@@ -127,6 +127,7 @@ class TvActivity : CyaneaAppCompatActivity() {
         // swap it for the plain theme background once content is up.
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Cyanea.instance.backgroundColor))
         normalSafeApiCall { com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this) }
+        normalSafeApiCall { com.lagradost.shiro.ui.welcome.AppLockGate.attachIfNeeded(this) }
         navController = fv<androidx.fragment.app.FragmentContainerView>(R.id.home_root_tv).findNavController()
         handleIntent(intent)
     }

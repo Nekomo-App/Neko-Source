@@ -247,6 +247,15 @@ this toggle would just add a switch that does nothing.
   `notify_new_episodes` (settings_general); toggling it requests POST_NOTIFICATIONS (33+) and calls
   `schedule(ctx, override)`. Scheduled from `AcraApplication.onCreate`. Notification channel
   "new_episodes", id 7401.
+- Onboarding is 5 steps: Sign in -> DMCA -> Rules -> Third-party repo warning -> Quick setup
+  (`Step.SETUP` in `ui/welcome/WelcomeGate`, gated on `AuthManager.hasCompletedSetup`
+  `setup_completed_v1` in DataStore; `canEnter` includes it so existing users see it once).
+  The setup step writes `ui_mode` (+card corner/spacing seeds), `non_anime_enabled` and
+  `dns_provider` directly to default prefs and ends with a DMCA/rules reminder line.
+- App lock: `utils/AppLock` stores a salted SHA-256 of the PIN (`app_lock_hash_v1`/`app_lock_salt_v1`);
+  `AppLock.unlocked` is a per-process flag so the PIN is asked once per cold start.
+  `ui/welcome/AppLockGate.attachIfNeeded` runs on both launchers right after `WelcomeGate`.
+  Set/change/remove in Settings -> History and privacy -> "Lock the app with a PIN".
 - Search page: "Random" sits in the history panel (always visible on an empty query) and opens a
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.

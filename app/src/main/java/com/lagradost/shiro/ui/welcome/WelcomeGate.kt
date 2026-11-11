@@ -48,7 +48,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
     private var statusView: TextView? = null
     private var hiddenForBrowser = false
 
-    private enum class Step { SIGN_IN, DMCA, RULES, REPOS }
+    private enum class Step { SIGN_IN, DMCA, RULES, REPOS, SETUP }
 
     private val bg = Cyanea.instance.backgroundColor
     private val fg = if (Cyanea.instance.isDark) Color.WHITE else Color.BLACK
@@ -99,7 +99,8 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
             step = when {
                 !AuthManager.hasSeenDmca(ctx) -> Step.DMCA
                 !AuthManager.hasAcceptedRules(ctx) -> Step.RULES
-                else -> Step.REPOS
+                !AuthManager.hasAcceptedRepoWarning(ctx) -> Step.REPOS
+                else -> Step.SETUP
             }
         }
         render()
@@ -146,6 +147,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
             Step.DMCA -> renderDmca()
             Step.RULES -> renderRules()
             Step.REPOS -> renderRepos()
+            Step.SETUP -> renderSetup()
         }
         root.post { root.findFocus() ?: root.getChildAt(0)?.requestFocus() }
     }
@@ -241,6 +243,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
             from == Step.SIGN_IN && !AuthManager.hasSeenDmca(ctx) -> Step.DMCA
             from.ordinal <= Step.DMCA.ordinal && !AuthManager.hasAcceptedRules(ctx) -> Step.RULES
             from.ordinal <= Step.RULES.ordinal && !AuthManager.hasAcceptedRepoWarning(ctx) -> Step.REPOS
+            from.ordinal <= Step.REPOS.ordinal && !AuthManager.hasCompletedSetup(ctx) -> Step.SETUP
             else -> null
         }
         if (next == null) {
@@ -288,6 +291,75 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
         root.addView(button("I understand the risks", 0xFF43A047.toInt()) {
             AuthManager.setRepoWarningAccepted(ctx)
             advance(Step.REPOS)
+        })
+    }
+
+    /** Last step: CloudStream-style quick setup. Picks the basics once; everything stays editable in Settings. */
+    private fun renderSetup() {
+        val pad = SocialLinks.dp(ctx, 12)
+        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(ctx)
+        root.addView(text("Step 5 of 5", 13f, alpha = true).apply { setPadding(0, SocialLinks.dp(ctx, 16), 0, 0) })
+        root.addView(text("Quick setup", 24f, bold = true).apply { setPadding(0, SocialLinks.dp(ctx, 8), 0, pad) })
+        root.addView(text("Pick a few basics. Everything here can be changed later in Settings.", 15f, alpha = true).apply { setPadding(0, 0, 0, pad) })
+
+        val accent = 0xFF7c3aed.toInt()
+        fun radioGroup(title: String, options: List<String>, selected: Int, onPick: (Int) -> Unit) {
+            root.addView(text(title, 16f, bold = true).apply { setPadding(0, pad, 0, SocialLinks.dp(ctx, 4)) })
+            val buttons = options.map { label ->
+                android.widget.RadioButton(ctx).apply { text = label; textSize = 14f }
+            }
+            buttons.forEachIndexed { i, b ->
+                b.isChecked = i == selected
+                b.setOnClickListener { buttons.forEachIndexed { j, other -> other.isChecked = j == i }; onPick(i) }
+                root.addView(b)
+            }
+        }
+
+        // Interface mode (classic keeps today's look; modern rounds and spaces out cards)
+        var uiMode = prefs.getString("ui_mode", "classic") ?: "classic"
+        radioGroup("Interface", listOf("Classic — the current Nekomo look", "Modern — rounded cards, more space, subtle motion"),
+            if (uiMode == "modern") 1 else 0) { uiMode = if (it == 1) "modern" else "classic" }
+
+        // Content: anime only or also movies/TV
+        var nonAnime = prefs.getBoolean("non_anime_enabled", false)
+        val moviesBox = android.widget.CheckBox(ctx).apply {
+            text = "Also show movies and TV shows (off = anime only)"
+            textSize = 14f
+            isChecked = nonAnime
+            setOnCheckedChangeListener { _, on -> nonAnime = on }
+        }
+        root.addView(text("Content", 16f, bold = true).apply { setPadding(0, pad, 0, SocialLinks.dp(ctx, 4)) })
+        root.addView(moviesBox)
+
+        // DNS over HTTPS provider
+        val dohOptions = listOf("Off (system DNS)", "Cloudflare", "Google", "AdGuard", "Quad9")
+        val dohKeys = listOf("disabled", "Cloudflare", "Google", "AdGuard", "Quad9")
+        var doh = when (prefs.getString("dns_provider", "")) {
+            "Cloudflare" -> 1; "Google" -> 2; "AdGuard" -> 3; "Quad9" -> 4; else -> 0
+        }
+        radioGroup("DNS over HTTPS (privacy)", dohOptions, doh) { doh = it }
+
+        root.addView(text("Reminder: Nekomo does not host or provide any media. You accepted the DMCA notice, community rules and third-party repository warning earlier in this setup — you are responsible for what you access.", 12f, alpha = true).apply { setPadding(0, pad, 0, pad) })
+        root.addView(button("Finish setup", accent) {
+            val current = prefs.getString("ui_mode", "classic") ?: "classic"
+            prefs.edit().apply {
+                putString("ui_mode", uiMode)
+                if (uiMode != current) {
+                    // Seed the matching card defaults, same as the Appearance screen does.
+                    if (uiMode == "modern") {
+                        if (prefs.getInt("card_corner_dp", 6) == 6) putInt("card_corner_dp", 14)
+                        if (prefs.getInt("card_spacing_dp", 5) == 5) putInt("card_spacing_dp", 8)
+                    } else {
+                        if (prefs.getInt("card_corner_dp", 14) == 14) putInt("card_corner_dp", 6)
+                        if (prefs.getInt("card_spacing_dp", 8) == 8) putInt("card_spacing_dp", 5)
+                    }
+                }
+                putBoolean("non_anime_enabled", nonAnime)
+                putString("dns_provider", if (doh == 0) ctx.getString(R.string.dns_provider_disabled) else dohKeys[doh])
+                apply()
+            }
+            AuthManager.setSetupCompleted(ctx)
+            advance(Step.SETUP)
         })
     }
 
