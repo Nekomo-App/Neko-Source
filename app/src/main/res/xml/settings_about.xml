@@ -81,6 +81,12 @@
                 android:data="https://github.com/MarshMeadow"/>
     </Preference>
     <Preference
+            app:key="about_devin"
+            android:title="AI-assisted development"
+            android:icon="@drawable/ic_baseline_code_24"
+            app:summary="How Devin AI helps build and maintain Nekomo (transparency notice)"
+    />
+    <Preference
             app:key="about_original"
             android:title="Nekomo vs the original app"
             android:icon="@drawable/ic_baseline_code_24"

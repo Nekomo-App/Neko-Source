@@ -779,6 +779,30 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 findPreference<Preference>("about_version")?.summary =
                     "${com.lagradost.shiro.BuildConfig.VERSION_NAME} · $channel channel"
 
+                findPreference<Preference>("about_devin")?.setOnPreferenceClickListener {
+                    val ctx = requireContext()
+                    val text = "Nekomo is built and maintained with assistance from Devin AI " +
+                            "(Cognition). Devin helps the maintainers review and analyze the app's " +
+                            "code, make improvements and bug fixes, manage code changes, and handle " +
+                            "GitHub operations such as committing, pulling, pushing and publishing " +
+                            "releases.\n\n" +
+                            "Every change is reviewed before it ships, and Devin runs inside the " +
+                            "project's own repository — no user data, accounts or viewing activity " +
+                            "is ever sent to it. This notice exists for transparency about how the " +
+                            "project is developed."
+                    val tv = android.widget.TextView(ctx).apply {
+                        this.text = text
+                        textSize = 14f
+                        setTextIsSelectable(true)
+                        setPadding(48, 24, 48, 24)
+                    }
+                    AlertDialog.Builder(ctx, R.style.AlertDialogCustom)
+                        .setTitle("AI-assisted development")
+                        .setView(android.widget.ScrollView(ctx).apply { addView(tv) })
+                        .setPositiveButton("OK", null)
+                        .show()
+                    true
+                }
                 findPreference<Preference>("about_original")?.setOnPreferenceClickListener {
                     val ctx = requireContext()
                     val text = "Nekomo is a continuation of the original Shiro anime app " +
