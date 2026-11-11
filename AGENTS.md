@@ -271,15 +271,16 @@ this toggle would just add a switch that does nothing.
 ## Launcher disguise (activity-alias)
 
 - `app/src/phone/AndroidManifest.xml`: the LAUNCHER intent-filter moved OFF `.ui.MainActivity`
-  onto `.ui.AliasDefault` (enabled) + 9 themed aliases (disabled): Neko, NekoHub, AnimeNeko,
-  Neko Stream, Neko Club + seasonal Sakura/Winter/Spooky/Midnight (own adaptive icons,
-  `ic_bg_*` colors + `ic_launcher_*` mipmaps). MainActivity keeps VIEW filters and stays
+  onto `.ui.AliasDefault` (enabled) + themed aliases (disabled): Neko, NekoHub, AnimeNeko,
+  Neko Stream, Neko Club, Neko-chan + seasonal Sakura/Winter/Spooky/Midnight icons
+  (recolored Nekomo mark on `ic_bg_*` tiles). MainActivity keeps VIEW filters and stays
   exported, so deep links and direct-component launches (NEX) still work.
 - `AppIdentity.aliases` maps alias suffix -> launcher label; `applyAlias` flips component
   enabled state (`DONT_KILL_APP`, never leaves zero enabled). Picker lives in
   AppIdentityActivity ("Launcher name & icon" row, phone only — hidden on TV).
-- Verified on device: all 10 aliases register LAUNCHER filters, `.ui.AliasDefault`
-  launches the app.
+- Cat artwork (N3KO box-cat, katakana marks) belongs to the NEX app — do NOT re-add it here.
+  The identity screen is presets-only: no free-text name, no custom image import.
+- Verified on device: all aliases register LAUNCHER filters, `.ui.AliasDefault` launches the app.
 
 ## Kuro-style translucent banner + UI polish pass
 
