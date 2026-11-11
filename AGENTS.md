@@ -292,6 +292,11 @@ this toggle would just add a switch that does nothing.
 
 ## Manga chapter downloads
 
+- Reader settings (gear in `MangaReaderActivity`) adds "Auto-download next chapter"
+  (`manga_auto_download`, default off): after a chapter loads, `maybeAutoDownloadNext`
+  quietly downloads the next chapter in reading order via `ChapterDownloads`.
+- Chapter long-press menu also has "Mark previous read" (bulk-read below the chapter).
+
 - `utils/manga/ChapterDownloads` stores each chapter under
   `filesDir/manga_dl/<sourceId>/<md5(chapterUrl)>/` as `p<i>` page files + `meta.json`
   (sourceId/url/name/manga/pages). Writes go to a `<md5>.part` dir renamed into place,

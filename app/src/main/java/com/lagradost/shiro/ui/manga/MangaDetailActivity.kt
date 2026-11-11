@@ -136,6 +136,7 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
         if (dl) opts += "Delete download" else opts += "Download chapter"
         opts += "Download all unread"
         opts += if (ch.url in read) "Mark unread" else "Mark read"
+        opts += "Mark previous read"
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(ch.name.ifBlank { "Chapter ${ch.number}" })
             .setItems(opts.toTypedArray()) { _, which ->
@@ -144,6 +145,13 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
                     "Download all unread" -> downloadAllUnread()
                     "Delete download" -> { com.lagradost.shiro.utils.manga.ChapterDownloads.delete(this, MangaSession.sourceId, ch.url); bindChapters() }
                     "Mark read" -> { read.add(ch.url); saveRead(); bindChapters() }
+                    "Mark previous read" -> {
+                        // Chapters are newest-first; "previous" in reading order is everything below this one.
+                        val list = details?.chapters ?: return@setItems
+                        val pos = list.indexOfFirst { it.url == ch.url }
+                        if (pos >= 0) list.drop(pos + 1).forEach { read.add(it.url) }
+                        saveRead(); bindChapters()
+                    }
                     else -> { read.remove(ch.url); saveRead(); bindChapters() }
                 }
             }

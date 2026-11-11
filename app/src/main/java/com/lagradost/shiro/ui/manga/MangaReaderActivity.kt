@@ -183,9 +183,9 @@ class MangaReaderActivity : AppCompatActivity() {
         val modeValues = arrayOf("webtoon", "ltr", "rtl")
         val bgs = arrayOf("Black", "Dark gray", "White")
         val bgValues = arrayOf("black", "gray", "white")
-        val toggles = arrayOf("Volume keys turn pages", "Keep screen on", "Fullscreen (hide system bars)", "Remember position per chapter")
-        val toggleKeys = arrayOf("manga_volume_keys", "manga_keep_screen_on", "manga_immersive", "manga_remember_position")
-        val toggleDefaults = booleanArrayOf(true, true, true, true)
+        val toggles = arrayOf("Volume keys turn pages", "Keep screen on", "Fullscreen (hide system bars)", "Remember position per chapter", "Auto-download next chapter")
+        val toggleKeys = arrayOf("manga_volume_keys", "manga_keep_screen_on", "manga_immersive", "manga_remember_position", "manga_auto_download")
+        val toggleDefaults = booleanArrayOf(true, true, true, true, false)
 
         val box = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
@@ -292,6 +292,24 @@ class MangaReaderActivity : AppCompatActivity() {
                 recycler.adapter = PageAdapter()
                 updatePageLabel(0)
                 restorePosition()
+                maybeAutoDownloadNext()
+            }
+        }
+    }
+
+    /** When "Auto-download next chapter" is on, quietly downloads the next unread chapter in the background. */
+    private fun maybeAutoDownloadNext() {
+        if (!prefs.getBoolean("manga_auto_download", false)) return
+        // Chapters are newest-first; the next one in reading order is the previous list index.
+        val next = MangaSession.chapters.getOrNull(index - 1) ?: return
+        val sid = MangaSession.sourceId
+        if (com.lagradost.shiro.utils.manga.ChapterDownloads.isDownloaded(this, sid, next.url)) return
+        thread {
+            val s = try { MihonBridge.sourceById(this, sid) } catch (t: Throwable) { null } ?: return@thread
+            try {
+                com.lagradost.shiro.utils.manga.ChapterDownloads.download(this, s, sid, MangaSession.mangaTitle, next)
+            } catch (t: Throwable) {
+                com.lagradost.shiro.utils.mvvm.logError(t)
             }
         }
     }
