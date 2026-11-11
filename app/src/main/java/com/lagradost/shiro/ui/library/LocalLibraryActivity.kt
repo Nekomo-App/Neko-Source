@@ -32,6 +32,11 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
     private lateinit var filters: LinearLayout
     private var filter: String? = null
 
+    private val sortModes = listOf("Recently added", "A-Z", "Progress")
+    private var sortIndex: Int
+        get() = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).getInt("local_library_sort", 0)
+        set(v) = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).edit().putInt("local_library_sort", v).apply()
+
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,8 +90,20 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
                 setOnClickListener { filter = n; refresh() }
             })
         }
+        filters.addView(Button(this).apply {
+            text = "Sort: ${sortModes.getOrElse(sortIndex) { sortModes[0] }}"
+            isAllCaps = false
+            alpha = 0.85f
+            setOnClickListener { sortIndex = (sortIndex + 1) % sortModes.size; refresh() }
+        })
         list.removeAllViews()
-        val shown = all.filter { filter == null || it.status == filter }
+        val shown = all.filter { filter == null || it.status == filter }.let { entries ->
+            when (sortIndex) {
+                1 -> entries.sortedBy { it.title.lowercase() }
+                2 -> entries.sortedByDescending { it.progress }
+                else -> entries.sortedByDescending { it.updatedAt }
+            }
+        }
         if (shown.isEmpty()) {
             list.addView(TextView(this).apply {
                 text = if (all.isEmpty()) "Nothing here yet. Open a title and tap \"Save to offline library\"." else "No titles with this status."
