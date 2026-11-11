@@ -52,7 +52,7 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
         // Names — presets only (ReSpotF-ck style: names stay close to the real one, Neko included).
         r.addView(b.heading("Name"))
         val nameRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("Nekomo", "Neko", "NekoHub", "AnimeNeko", "Neko Stream", "Neko Club", "N3KO").forEach { n ->
+        listOf("Nekomo", "Neko", "NekoHub", "AnimeNeko", "Neko Stream", "Neko Club").forEach { n ->
             nameRow.addView(b.primaryButton(n) { chosenName = n; refreshPreview() })
         }
         r.addView(android.widget.HorizontalScrollView(this).apply { addView(nameRow) })
@@ -80,14 +80,6 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
         ).forEach { (label, color) ->
             iconRow.addView(b.primaryButton(label) {
                 pendingIcon = presetIcon(color)
-                refreshPreview()
-            })
-        }
-        listOf("Pixel" to com.lagradost.shiro.R.mipmap.ic_launcher_katakana,
-               "Bloom" to com.lagradost.shiro.R.mipmap.ic_launcher_katakana_sakura,
-               "N3KO" to com.lagradost.shiro.R.mipmap.ic_launcher_n3ko).forEach { (label, res) ->
-            iconRow.addView(b.primaryButton(label) {
-                pendingIcon = AppIdentity.prepareIcon(BitmapFactory.decodeResource(resources, res))
                 refreshPreview()
             })
         }

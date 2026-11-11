@@ -111,9 +111,7 @@ object AppIdentity {
         "AliasWinter" to "Neko Winter",
         "AliasSpooky" to "Neko Spooky",
         "AliasMidnight" to "Neko Midnight",
-        "AliasN3ko" to "N3KO",
-        "AliasKatakana" to "Nekomo Pixel",
-        "AliasKatakanaSakura" to "Nekomo Sakura",
+        "AliasNekoChan" to "Neko-chan",
     )
 
     fun activeAlias(c: Context): String = prefs(c).getString("launcher_alias", "AliasDefault") ?: "AliasDefault"
