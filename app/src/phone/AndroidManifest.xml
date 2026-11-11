@@ -127,6 +127,11 @@
                 android:label="Neko Midnight" android:icon="@mipmap/ic_launcher_midnight">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity-alias>
+        <activity-alias android:name=".ui.AliasN3ko" android:targetActivity=".ui.MainActivity"
+                android:exported="true" android:enabled="false"
+                android:label="N3KO" android:icon="@mipmap/ic_launcher_n3ko_icon" android:roundIcon="@mipmap/ic_launcher_n3ko">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity-alias>
 
         <!--<activity
                 android:name=".ui.tv.TvActivity"
