@@ -76,6 +76,11 @@
                             android:layout_height="110dp"
                             android:layout_gravity="top"
                             android:background="@drawable/gradient_top"/>
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="140dp"
+                            android:layout_gravity="top"
+                            android:background="@drawable/gradient_gloss"/>
                     <!--
                     305 dp here (+ a new view) is needed to hide a
                     parallax scrolling bug making the gradient not cover the image

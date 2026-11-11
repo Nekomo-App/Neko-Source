@@ -260,15 +260,18 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
-## Kuro-style translucent banner
+## Kuro-style translucent banner + UI polish pass
 
 - `utils/BlurTransform.kt`: lightweight Glide BitmapTransformation (1/8 downscale +
   desaturate + darken) applied to `results_banner` — no RenderScript, API 24 safe.
 - `site_data_card_view` is set to ~85% of `Cyanea.instance.backgroundColor` in code so
   the blurred banner shows through (theme-aware).
-- `res/drawable/gradient_top.xml` (bg -> transparent) + the existing `gradient`
-  (transparent -> bg) give top/bottom edge fades; used on `results_banner_holder`
-  and `main_poster_holder` (home hero).
+- Edge fades: `res/drawable/gradient_top.xml` (bg -> transparent) pairs with the
+  existing `gradient` (transparent -> bg); used on `results_banner_holder` and
+  `main_poster_holder` (home hero). `gradient_gloss` adds a faint top sheen.
+- Dialog polish: `AlertDialogCustom` now has `windowBackground=@drawable/dialog_rounded_bg`
+  (18dp corners, theme bg) + `DialogAnimationCustom` (pop_enter/pop_exit scale+fade).
+  Everything is additive — Classic layout/positions untouched.
 
 ## Advanced & diagnostics (Settings -> General)
 
