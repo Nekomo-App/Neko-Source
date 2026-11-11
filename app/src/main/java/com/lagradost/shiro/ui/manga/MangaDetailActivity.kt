@@ -24,6 +24,7 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
     private lateinit var meta: TextView
     private lateinit var desc: TextView
     private lateinit var cover: ImageView
+    private var hideRead = false
     private val read: MutableSet<String> by lazy {
         getSharedPreferences("manga_read", MODE_PRIVATE).getStringSet("urls", emptySet())!!.toMutableSet()
     }
@@ -60,6 +61,11 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
             addView(top)
             addView(desc)
             addView(status)
+            addView(android.widget.CheckBox(this@MangaDetailActivity).apply {
+                text = "Hide read chapters"
+                isChecked = hideRead
+                setOnCheckedChangeListener { _, on -> hideRead = on; bindChapters() }
+            })
         }
         list = ListView(this).apply { addHeaderView(header, null, false); adapter = ArrayAdapter<String>(this@MangaDetailActivity, android.R.layout.simple_list_item_1, emptyList<String>()) }
         setContentView(list)
@@ -99,12 +105,16 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
 
     private fun bindChapters() {
         val d = details ?: return
-        val labels = d.chapters.map { (if (it.url in read) "✓  " else "") + it.name.ifBlank { "Chapter ${it.number}" } }
+        // Shown chapter indexes point back into the full list so the reader navigates correctly.
+        val shownIdx = d.chapters.indices.filter { !hideRead || d.chapters[it].url !in read }
+        val labels = shownIdx.map { i -> d.chapters[i].let { (if (it.url in read) "✓  " else "") + it.name.ifBlank { "Chapter ${it.number}" } } }
+        status.text = if (hideRead && shownIdx.size != d.chapters.size) "${d.chapters.size} chapters (${shownIdx.size} unread)"
+                      else if (d.chapters.isEmpty()) "No chapters found" else "${d.chapters.size} chapters"
         list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, labels)
         list.setOnItemClickListener { _, _, pos, _ ->
-            val index = pos - list.headerViewsCount
-            if (index in d.chapters.indices) {
-                startActivity(Intent(this, MangaReaderActivity::class.java).putExtra("index", index))
+            val shownPos = pos - list.headerViewsCount
+            if (shownPos in shownIdx.indices) {
+                startActivity(Intent(this, MangaReaderActivity::class.java).putExtra("index", shownIdx[shownPos]))
             }
         }
     }
