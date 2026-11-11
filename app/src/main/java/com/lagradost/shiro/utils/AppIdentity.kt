@@ -97,6 +97,45 @@ object AppIdentity {
         return runCatching { ShortcutManagerCompat.requestPinShortcut(c, s, null) }.getOrDefault(false)
     }
 
+    // ---- Launcher aliases (real name+icon swap) ----
+
+    /** Manifest activity-alias suffixes in `.ui.*` -> the label the launcher shows. */
+    val aliases = linkedMapOf(
+        "AliasDefault" to "Nekomo",
+        "AliasNeko" to "Neko",
+        "AliasNekoHub" to "NekoHub",
+        "AliasAnimeNeko" to "AnimeNeko",
+        "AliasNekoStream" to "Neko Stream",
+        "AliasNekoClub" to "Neko Club",
+        "AliasSakura" to "Neko Sakura",
+        "AliasWinter" to "Neko Winter",
+        "AliasSpooky" to "Neko Spooky",
+        "AliasMidnight" to "Neko Midnight",
+    )
+
+    fun activeAlias(c: Context): String = prefs(c).getString("launcher_alias", "AliasDefault") ?: "AliasDefault"
+
+    /**
+     * Enables exactly one launcher alias and disables the rest (never the default unless another is
+     * on — that would remove the app from the launcher). Launchers pick the change up within seconds.
+     */
+    fun applyAlias(c: Context, aliasId: String) {
+        if (!aliases.containsKey(aliasId)) return
+        val pm = c.packageManager
+        for (id in aliases.keys) {
+            val comp = android.content.ComponentName(c.packageName, "${c.packageName}.ui.$id")
+            runCatching {
+                pm.setComponentEnabledSetting(
+                    comp,
+                    if (id == aliasId) android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                    else android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP
+                )
+            }
+        }
+        prefs(c).edit().putString("launcher_alias", aliasId).apply()
+    }
+
     /** Recent-apps card: shows the custom name and icon. */
     fun applyTaskDescription(a: Activity) {
         if (!isCustom(a)) return

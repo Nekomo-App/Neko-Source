@@ -81,6 +81,20 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
         }
         r.addView(android.widget.HorizontalScrollView(this).apply { addView(nameRow) })
 
+        // Real launcher disguise — activity-aliases swap the tile's name + icon system-wide.
+        if (!AppIdentity.isTv(this)) {
+            r.addView(b.heading("Launcher name & icon"))
+            r.addView(b.text("Changes the app's own launcher tile. The launcher updates it a few seconds after you pick.", 12f, dim = true).apply { setPadding(0, 0, 0, b.dp(8)) })
+            val aliasRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            AppIdentity.aliases.forEach { (id, label) ->
+                aliasRow.addView(b.primaryButton(label) {
+                    AppIdentity.applyAlias(this, id)
+                    toast("Launcher tile set to \"$label\"")
+                })
+            }
+            r.addView(android.widget.HorizontalScrollView(this).apply { addView(aliasRow) })
+        }
+
         // Seasonal icon presets — the Nekomo mark recolored onto a themed tile.
         r.addView(b.heading("Icon presets"))
         val iconRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
