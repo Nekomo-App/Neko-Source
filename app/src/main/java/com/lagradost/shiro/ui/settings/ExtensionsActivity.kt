@@ -88,7 +88,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 refreshAniyomi()
             })
             row.addView(buttons)
-            box.addView(row)
+            box.addView(rowCard(row))
         }
 
         val input = EditText(this).apply {
@@ -145,7 +145,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 refreshAniyomi()
             })
             row.addView(buttons)
-            box.addView(row)
+            box.addView(rowCard(row))
         }
         for (ext in mhInst) {
             val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -162,7 +162,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 refreshAniyomi()
             })
             row.addView(buttons)
-            box.addView(row)
+            box.addView(rowCard(row))
         }
     }
 
@@ -187,21 +187,18 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                     }
                     "${e.name.removePrefix("Aniyomi: ")} (${e.lang})${if (e.nsfw == 1) " 18+" else ""}$marker"
                 }.toTypedArray()
-                AlertDialog.Builder(this)
-                    .setTitle("Aniyomi extensions")
-                    .setItems(labels) { _, which ->
-                        confirmRisk {
-                            setStatus("Installing ${entries[which].name}…")
-                            thread {
-                                val (ok, msg) = AniyomiManager.install(this, repoUrl, entries[which])
-                                runOnUiThread {
-                                    setStatus(msg)
-                                    if (ok) refreshAniyomi()
-                                }
+                searchableListDialog("Aniyomi extensions — ${repoLabel(repoUrl)}", labels) { which ->
+                    confirmRisk {
+                        setStatus("Installing ${entries[which].name}…")
+                        thread {
+                            val (ok, msg) = AniyomiManager.install(this, repoUrl, entries[which])
+                            runOnUiThread {
+                                setStatus(msg)
+                                if (ok) refreshAniyomi()
                             }
                         }
                     }
-                    .show()
+                }
             }
         }
     }
@@ -231,21 +228,18 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                     }
                     "${e.name.removePrefix("Mihon: ")} (${e.lang})${if (e.nsfw == 1) " 18+" else ""}$marker"
                 }.toTypedArray()
-                AlertDialog.Builder(this)
-                    .setTitle("Mihon extensions")
-                    .setItems(labels) { _, which ->
-                        confirmRisk {
-                            setStatus("Installing ${entries[which].name}…")
-                            thread {
-                                val (ok, msg) = MihonManager.install(this, repoUrl, entries[which])
-                                runOnUiThread {
-                                    setStatus(msg)
-                                    if (ok) refreshMihon()
-                                }
+                searchableListDialog("Mihon extensions — ${repoLabel(repoUrl)}", labels) { which ->
+                    confirmRisk {
+                        setStatus("Installing ${entries[which].name}…")
+                        thread {
+                            val (ok, msg) = MihonManager.install(this, repoUrl, entries[which])
+                            runOnUiThread {
+                                setStatus(msg)
+                                if (ok) refreshMihon()
                             }
                         }
                     }
-                    .show()
+                }
             }
         }
     }
@@ -259,7 +253,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         if (repos.isEmpty()) box.addView(rowText("No Zangetsu repositories added yet"))
         for (repo in repos) {
             val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            row.addView(rowText(repo.name ?: repo.url))
+            row.addView(rowText("📦  " + (repo.name ?: repo.url)))
             val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             buttons.addView(rowButton("Browse") { browseZangetsu(repo.url) })
             buttons.addView(rowButton("Remove") {
@@ -267,7 +261,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 refreshZangetsu()
             })
             row.addView(buttons)
-            box.addView(row)
+            box.addView(rowCard(row))
         }
 
         val input = EditText(this).apply {
@@ -314,7 +308,8 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
         })
         for (src in installed) {
             val row = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            row.addView(rowText("${src.name}  v${src.version}  •  ${src.type} / ${src.lang}"))
+            row.addView(rowText("🧩  ${src.name}"))
+            row.addView(rowMeta("v${src.version}  •  ${src.type} / ${src.lang}"))
             val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             buttons.addView(Switch(this).apply {
                 isChecked = ZangetsuManager.isEnabled(this@ExtensionsActivity, src.id)
@@ -327,7 +322,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 refreshZangetsu()
             })
             row.addView(buttons)
-            box.addView(row)
+            box.addView(rowCard(row))
         }
     }
 
@@ -352,21 +347,18 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                     }
                     "${s.name} (${s.type}, ${s.lang})$marker"
                 }.toTypedArray()
-                AlertDialog.Builder(this)
-                    .setTitle("Zangetsu sources")
-                    .setItems(labels) { _, which ->
-                        confirmRisk {
-                            setStatus("Installing ${sources[which].name}…")
-                            thread {
-                                val (ok, msg) = ZangetsuManager.install(this, repoUrl, sources[which])
-                                runOnUiThread {
-                                    setStatus(msg)
-                                    if (ok) refreshZangetsu()
-                                }
+                searchableListDialog("Zangetsu sources — ${repoLabel(repoUrl)}", labels) { which ->
+                    confirmRisk {
+                        setStatus("Installing ${sources[which].name}…")
+                        thread {
+                            val (ok, msg) = ZangetsuManager.install(this, repoUrl, sources[which])
+                            runOnUiThread {
+                                setStatus(msg)
+                                if (ok) refreshZangetsu()
                             }
                         }
                     }
-                    .show()
+                }
             }
         }
     }
@@ -416,14 +408,14 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 )
             }
             val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            row.addView(rowText(repo.name ?: repo.url))
+            row.addView(rowText("📦  " + (repo.name ?: repo.url)))
             buttons.addView(rowButton("Browse") { browseRepo(repo.url) })
             buttons.addView(rowButton("Remove") {
                 CsPluginManager.removeRepo(this, repo.url)
                 refreshRepos()
             })
             row.addView(buttons)
-            repoList.addView(row)
+            repoList.addView(rowCard(row))
         }
     }
 
@@ -451,12 +443,9 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                     }
                     "${p.displayName} v${p.version}$marker"
                 }.toTypedArray()
-                AlertDialog.Builder(this)
-                    .setTitle("Extensions")
-                    .setItems(labels) { _, which ->
-                        confirmRisk { installPlugin(url, plugins[which]) }
-                    }
-                    .show()
+                searchableListDialog("Extensions — ${repoLabel(url)}", labels) { which ->
+                    confirmRisk { installPlugin(url, plugins[which]) }
+                }
             }
         }
     }
@@ -527,7 +516,8 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             }
-            row.addView(rowText("${plugin.name}  v${plugin.version}  •  $providers provider(s)"))
+            row.addView(rowText("🧩  ${plugin.name}"))
+            row.addView(rowMeta("v${plugin.version}  •  $providers provider(s)"))
             val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
 
             val toggle = Switch(this).apply {
@@ -566,7 +556,7 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                         }
                     })
                 }
-            pluginList.addView(row)
+            pluginList.addView(rowCard(row))
         }
     }
 
@@ -601,6 +591,66 @@ class ExtensionsActivity : CyaneaAppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT, weight
             )
         }
+
+    /** Wraps a repo/extension row in a subtle card: keeps the same vertical flow, adds grouping. */
+    private fun rowCard(content: View): View = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setBackgroundResource(R.drawable.outline_background)
+        setPadding(20, 10, 20, 10)
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = 14 }
+        addView(content)
+    }
+
+    /** Small dimmed meta line under a row's title (name  •  version  •  language style info). */
+    private fun rowMeta(text: String): TextView = TextView(this).apply {
+        this.text = text
+        textSize = 12f
+        alpha = 0.62f
+        setPadding(0, 0, 0, 10)
+    }
+
+    /**
+     * Browse dialog with a live search filter — repository catalogues can hold thousands of
+     * entries, so the flat pick-list gets an EditText on top that narrows the list as you type.
+     */
+    private fun searchableListDialog(
+        title: String,
+        labels: Array<String>,
+        onPick: (Int) -> Unit
+    ) {
+        val input = EditText(this).apply {
+            hint = "Search…"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setPadding(24, 12, 24, 12)
+        }
+        val listView = android.widget.ListView(this)
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, labels.toMutableList())
+        listView.adapter = adapter
+        listView.onItemClickListener = android.widget.AdapterView.OnItemClickListener { _, _, pos, _ ->
+            val label = adapter.getItem(pos) ?: return@OnItemClickListener
+            onPick(labels.indexOf(label))
+        }
+        input.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val q = s?.toString()?.lowercase().orEmpty()
+                adapter.clear()
+                adapter.addAll(labels.filter { it.lowercase().contains(q) })
+            }
+        })
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(input)
+            addView(listView)
+        }
+        val dlg = AlertDialog.Builder(this).setTitle(title).setView(box).create()
+        // Back/cancel behaviour is unchanged; the list is D-pad friendly on TV.
+        dlg.show()
+    }
 
     private fun rowButton(label: String, onClick: (View) -> Unit): Button =
         androidx.appcompat.widget.AppCompatButton(this).apply {
