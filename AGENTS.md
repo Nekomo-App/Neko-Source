@@ -268,6 +268,14 @@ this toggle would just add a switch that does nothing.
 - `NewEpisodeWorker` (same 12h job + quiet hours) loops follows after the anime pass:
   `MihonBridge.details(...).chapters.size` vs stored count; first run sets baseline.
 
+## Mode-aware corners (UiStyle)
+
+`utils/UiStyle.kt` is the central place for Classic vs Modern (`ui_mode` pref), card radius
+(`card_corner_dp`, default 6 classic / 14 modern), card spacing, entrance anims and
+`buttonRadiusDp` (10 classic / 20 modern). `PageBuilder` (`ui/settings/InfoPages.kt`) reads
+these for its cards and primaryButton — add new chrome radii there, not hardcoded dp values.
+Dialog window bg: `drawable/dialog_rounded_bg.xml` (12dp).
+
 ## Launcher disguise (activity-alias)
 
 - `app/src/phone/AndroidManifest.xml`: the LAUNCHER intent-filter moved OFF `.ui.MainActivity`
