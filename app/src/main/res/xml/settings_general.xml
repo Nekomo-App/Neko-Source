@@ -141,6 +141,52 @@
             android:defaultValue="@string/dns_provider_disabled"
     />
     </PreferenceCategory>
+    <PreferenceCategory android:title="Manga reader">
+        <ListPreference
+            android:icon="@drawable/ic_baseline_view_list_24"
+            app:key="manga_reader_mode"
+            android:title="Reading mode"
+            android:summary="Continuous scroll suits webtoons; paged modes suit page-by-page manga. Can also be changed from the gear button inside the reader."
+            app:entries="@array/MangaReaderModes"
+            app:entryValues="@array/MangaReaderModeValues"
+            app:defaultValue="webtoon"
+            app:useSimpleSummaryProvider="true"
+    />
+        <ListPreference
+            android:icon="@drawable/ic_baseline_format_paint_24"
+            app:key="manga_reader_bg"
+            android:title="Reader background"
+            app:entries="@array/MangaReaderBgs"
+            app:entryValues="@array/MangaReaderBgValues"
+            app:defaultValue="black"
+            app:useSimpleSummaryProvider="true"
+    />
+        <SwitchPreference
+            android:icon="@drawable/ic_baseline_tune_24"
+            app:key="manga_volume_keys"
+            android:title="Volume keys turn pages"
+            app:defaultValue="true"
+    />
+        <SwitchPreference
+            android:icon="@drawable/ic_baseline_fullscreen_24"
+            app:key="manga_keep_screen_on"
+            android:title="Keep screen on while reading"
+            app:defaultValue="true"
+    />
+        <SwitchPreference
+            android:icon="@drawable/ic_baseline_fullscreen_24"
+            app:key="manga_immersive"
+            android:title="Fullscreen reading"
+            android:summary="Hide the status and navigation bars inside the reader"
+            app:defaultValue="true"
+    />
+        <SwitchPreference
+            android:icon="@drawable/ic_baseline_history_24"
+            app:key="manga_remember_position"
+            android:title="Remember position per chapter"
+            app:defaultValue="true"
+    />
+    </PreferenceCategory>
     <PreferenceCategory android:title="Notifications and diagnostics">
         <SwitchPreference
             app:key="subscribe_to_announcements"

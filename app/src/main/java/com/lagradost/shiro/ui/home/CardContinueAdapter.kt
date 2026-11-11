@@ -42,16 +42,22 @@ class CardContinueAdapter(
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     var cardList = animeList
 
+    private var lastAnimated = -1
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return CardViewHolder(
-            LayoutInflater.from(parent.context).inflate(R.layout.home_card_recently_seen, parent, false),
-            activity
-        )
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.home_card_recently_seen, parent, false)
+        com.lagradost.shiro.utils.UiStyle.restyle(view)
+        return CardViewHolder(view, activity)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
             is CardViewHolder -> {
+                val animate = com.lagradost.shiro.utils.UiStyle.animateCards(holder.itemView.context) &&
+                        position > lastAnimated
+                com.lagradost.shiro.utils.UiStyle.entrance(holder.itemView, animate)
+                lastAnimated = maxOf(lastAnimated, position)
                 holder.bind(cardList?.filter { it?.data != null }?.getOrNull(position))
             }
         }
@@ -77,7 +83,8 @@ class CardContinueAdapter(
             animation.fillAfter = true
             view.startAnimation(animation)
             if (!subFocus) view.fv<androidx.constraintlayout.widget.ConstraintLayout>(R.id.menu_root).visibility = GONE
-            view.fv<androidx.cardview.widget.CardView>(R.id.home_card_recently_seen).radius = if (hasFocus) 0F else 6.toPx.toFloat()
+            view.fv<androidx.cardview.widget.CardView>(R.id.home_card_recently_seen).radius =
+                if (hasFocus) 0F else com.lagradost.shiro.utils.UiStyle.cardRadiusPx(view.context)
             if (isOnTop) {
                 activity.findViewById<View>(R.id.tv_menu_bar)?.visibility = VISIBLE
             } else {

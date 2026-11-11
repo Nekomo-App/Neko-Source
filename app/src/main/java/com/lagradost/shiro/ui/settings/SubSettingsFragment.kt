@@ -97,7 +97,14 @@ val blacklistedTvKeys = listOf(
     // always-available D-pad actions for skip/resize/speed instead, so the toggles are no-ops on TV.
     "skip_op_enabled",
     "playback_speed_enabled",
-    "player_resize_enabled"
+    "player_resize_enabled",
+    // No manga reader on TV
+    "manga_reader_mode",
+    "manga_reader_bg",
+    "manga_volume_keys",
+    "manga_keep_screen_on",
+    "manga_immersive",
+    "manga_remember_position"
 )
 
 class SubSettingsFragment : PreferenceFragmentCompat() {

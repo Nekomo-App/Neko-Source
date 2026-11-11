@@ -35,16 +35,21 @@ class CardAdapter(
     var cardList = animeList
     var activity: FragmentActivity? = context
 
+    private var lastAnimated = -1
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return CardViewHolder(
-            LayoutInflater.from(parent.context).inflate(R.layout.home_card, parent, false),
-            activity!!
-        )
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.home_card, parent, false)
+        com.lagradost.shiro.utils.UiStyle.restyle(view)
+        return CardViewHolder(view, activity!!)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
             is CardViewHolder -> {
+                val animate = com.lagradost.shiro.utils.UiStyle.animateCards(holder.itemView.context) &&
+                        position > lastAnimated
+                com.lagradost.shiro.utils.UiStyle.entrance(holder.itemView, animate)
+                lastAnimated = maxOf(lastAnimated, position)
                 holder.bind(cardList[position])
             }
         }
@@ -66,7 +71,8 @@ class CardAdapter(
             animation.isFillEnabled = true
             animation.fillAfter = true
             v.startAnimation(animation)
-            v.fv<androidx.cardview.widget.CardView>(R.id.home_card).radius = if (hasFocus) 0F else 6.toPx.toFloat()
+            v.fv<androidx.cardview.widget.CardView>(R.id.home_card).radius =
+                if (hasFocus) 0F else com.lagradost.shiro.utils.UiStyle.cardRadiusPx(v.context)
             if (isOnTop) {
                 activity?.findViewById<View>(R.id.tv_menu_bar)?.visibility = VISIBLE
             } else {

@@ -212,7 +212,28 @@ this toggle would just add a switch that does nothing.
 
 - Default Cyanea theme (`assets/themes/cyanea_themes.json`[0] "Nekomo") and `values/colors.xml` use the website/icon
   palette (accent #e5395f, deep #8d2249, bright #ff5c7a, background #0c0508). It is re-applied once per install
-  (`nekomo_theme_v1`). The old red is still available as "Classic red".
+  (`nekomo_theme_v1`). The old red is still available as "Classic red". AMOLED (x2), Midnight, Nekomo Light and
+  Minimal Slate variants were added at the end of the same JSON; Cyanea picks them up automatically.
+
+## Interface modes and card styling
+
+- `utils/UiStyle` is the single read point for the appearance tweaks in Settings -> Appearance
+  (`custom_pref_cyanea.xml`): `ui_mode` (classic/modern), `poster_size` (%), `card_corner_dp`, `card_spacing_dp`.
+  Modern defaults to 14 dp radius / 8 dp spacing; switching modes seeds those values in `CyaneaSettingsFragment`.
+- `UiStyle.restyle(view)` is called once per inflated card in `CardAdapter`, `CardContinueAdapter`, `ResAdapter` and
+  `LibraryCardAdapter`: it walks the view tree, sets the radius on every CardView, scales fixed-size
+  `imageView`/`imageText` pairs by `poster_size` and rewrites `home_card_root` side margins. `UiStyle.entrance`
+  plays the modern fade/rise animation (skipped under `reduce_motion`); keep the per-adapter `lastAnimated`
+  high-water mark so scroll-backs don't replay it. Focus handlers that reset `.radius` must use
+  `UiStyle.cardRadiusPx`, not a hardcoded dp.
+
+## Manga reader
+
+- `MangaReaderActivity` reads `manga_reader_mode` (webtoon / ltr / rtl — paged modes use a horizontal
+  LinearLayoutManager + PagerSnapHelper, rtl = reverseLayout), `manga_reader_bg` (black/gray/white),
+  `manga_volume_keys`, `manga_keep_screen_on`, `manga_immersive` and `manga_remember_position` (per-chapter page
+  index in the `manga_read` prefs as `pos_<chapterUrl>`). The same options are in Settings -> General ->
+  "Manga reader" and live-editable via the reader's gear dialog. All six keys are TV-blacklisted.
 
 ## Browsing / installing sources
 

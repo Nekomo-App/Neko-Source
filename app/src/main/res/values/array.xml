@@ -60,6 +60,40 @@
         <item>Toggle Favorite and Subscribe</item>
     </string-array>
 
+    <string-array name="UiModes">
+        <item>Classic</item>
+        <item>Modern</item>
+    </string-array>
+
+    <string-array name="UiModeValues">
+        <item>classic</item>
+        <item>modern</item>
+    </string-array>
+
+    <string-array name="MangaReaderModes">
+        <item>Continuous scroll (webtoon)</item>
+        <item>Paged, left to right</item>
+        <item>Paged, right to left</item>
+    </string-array>
+
+    <string-array name="MangaReaderModeValues">
+        <item>webtoon</item>
+        <item>ltr</item>
+        <item>rtl</item>
+    </string-array>
+
+    <string-array name="MangaReaderBgs">
+        <item>Black</item>
+        <item>Dark gray</item>
+        <item>White</item>
+    </string-array>
+
+    <string-array name="MangaReaderBgValues">
+        <item>black</item>
+        <item>gray</item>
+        <item>white</item>
+    </string-array>
+
     <string-array name="DnsProviders">
         <item>@string/dns_provider_disabled</item>
         <item>Cloudflare</item>

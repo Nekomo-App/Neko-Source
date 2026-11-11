@@ -67,9 +67,9 @@ data class LibraryObject(
 class LibraryCardAdapter(var list: List<LibraryObject>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return LibraryCardViewHolder(
-            LayoutInflater.from(parent.context).inflate(R.layout.list_card_compact, parent, false),
-        )
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.list_card_compact, parent, false)
+        com.lagradost.shiro.utils.UiStyle.restyle(view)
+        return LibraryCardViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {

@@ -55,12 +55,9 @@ class ResAdapter(
         cardList = ArrayList(filterCardList(cardList) ?: listOf())
 
         val layout = if (compactView) R.layout.search_result_compact else R.layout.search_result
-        return CardViewHolder(
-            LayoutInflater.from(parent.context).inflate(layout, parent, false),
-            resView,
-            isMalId,
-            compactView
-        )
+        val view = LayoutInflater.from(parent.context).inflate(layout, parent, false)
+        com.lagradost.shiro.utils.UiStyle.restyle(view)
+        return CardViewHolder(view, resView, isMalId, compactView)
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {

@@ -118,6 +118,20 @@ open class CyaneaSettingsFragment : PreferenceFragmentCompat(), OnPreferenceChan
             }
             return@setOnPreferenceChangeListener true
         }
+
+        // Picking a mode seeds the matching card defaults; the user can still tune them afterwards.
+        findPreference<ListPreference>("ui_mode")?.setOnPreferenceChangeListener { _, newValue ->
+            val corner = findPreference<SeekBarPreference>("card_corner_dp")
+            val spacing = findPreference<SeekBarPreference>("card_spacing_dp")
+            if (newValue == "modern") {
+                if (corner?.value == 6) corner.value = 14
+                if (spacing?.value == 5) spacing.value = 8
+            } else {
+                if (corner?.value == 14) corner.value = 6
+                if (spacing?.value == 8) spacing.value = 5
+            }
+            true
+        }
     }
 
     override fun onResume() {
