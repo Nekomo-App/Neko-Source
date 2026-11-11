@@ -35,7 +35,7 @@ import androidx.transition.ChangeBounds
 import androidx.transition.TransitionManager
 import androidx.work.WorkManager
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.navigation.NavigationBarView
 import com.jaredrummler.cyanea.Cyanea
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.jaredrummler.cyanea.prefs.CyaneaTheme
@@ -486,7 +486,7 @@ class MainActivity : CyaneaAppCompatActivity() {
         mediaSession!!.isActive = true
 
         var startUp = true
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
+        val navView: NavigationBarView = findViewById(R.id.nav_view)
         navController = findNavController(R.id.nav_host_fragment)
         navView.setupWithNavController(navController!!)
 
