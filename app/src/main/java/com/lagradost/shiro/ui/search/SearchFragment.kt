@@ -18,6 +18,7 @@ import android.view.View.GONE
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
@@ -34,6 +35,7 @@ import com.lagradost.shiro.ui.MainActivity
 import com.lagradost.shiro.ui.toPx
 import com.lagradost.shiro.utils.AppUtils.changeStatusBarState
 import com.lagradost.shiro.utils.AppUtils.filterCardList
+import com.lagradost.shiro.utils.AppUtils.loadPage
 import com.lagradost.shiro.utils.AppUtils.getCurrentActivity
 import com.lagradost.shiro.utils.AppUtils.guaranteedContext
 import com.lagradost.shiro.utils.AppUtils.observe
@@ -244,7 +246,7 @@ class SearchFragment : Fragment() {
                 if (newText == null) return false
                 (fv<com.lagradost.shiro.ui.AutofitRecyclerView>(R.id.cardSpace)?.adapter as ResAdapter).cardList.clear()
                 searchViewModel?.searchQuery?.postValue(newText)
-                fv<View>(R.id.search_history_panel)?.visibility = if (newText.isEmpty() && SearchHistory.all(requireContext()).isNotEmpty()) View.VISIBLE else GONE
+                fv<View>(R.id.search_history_panel)?.visibility = if (newText.isEmpty()) View.VISIBLE else GONE
                 historyHandler.removeCallbacksAndMessages(null)
                 if (newText.length >= 2) historyHandler.postDelayed({
                     context?.let { SearchHistory.add(it, newText) }
@@ -371,8 +373,29 @@ class SearchFragment : Fragment() {
             })
         }
         fv<View>(R.id.search_history_clear)?.setOnClickListener { SearchHistory.clear(ctx); refreshHistory() }
+        fv<View>(R.id.search_random)?.setOnClickListener {
+            Toast.makeText(ctx, "Picking a random anime…", Toast.LENGTH_SHORT).show()
+            thread {
+                val pick = try {
+                    com.lagradost.shiro.utils.NekomoApi.Companion.getRandom()?.data
+                } catch (t: Throwable) {
+                    null
+                }
+                activity?.runOnUiThread {
+                    if (pick != null) {
+                        activity?.loadPage(pick.slug, pick.title)
+                    } else {
+                        Toast.makeText(ctx, "Could not load a random anime. Try again.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
         val empty = fv<SearchView>(R.id.main_search)?.query?.isEmpty() ?: true
-        panel.visibility = if (items.isNotEmpty() && empty) View.VISIBLE else GONE
+        // Panel stays up on an empty query so the Random button is always reachable;
+        // only the history label and Clear hide when there is nothing to show.
+        panel.visibility = if (empty) View.VISIBLE else GONE
+        fv<View>(R.id.search_history_title)?.visibility = if (items.isNotEmpty()) View.VISIBLE else GONE
+        fv<View>(R.id.search_history_clear)?.visibility = if (items.isNotEmpty()) View.VISIBLE else GONE
     }
 
     override fun onCreateView(

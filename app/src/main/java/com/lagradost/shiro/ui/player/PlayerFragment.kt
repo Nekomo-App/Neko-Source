@@ -1307,6 +1307,7 @@ class PlayerFragment : Fragment() {
             updateHideTime()
             showSubtitleDialog()
         }
+        applySubtitleStyle()
         fv<androidx.cardview.widget.CardView>(R.id.popout_btt)?.setOnClickListener {
             updateHideTime()
             popOut()
@@ -1470,6 +1471,30 @@ class PlayerFragment : Fragment() {
     }
 
     // ---------------------------------------------------------------------------------------
+    /** Subtitle size, color and background from Settings -> Player; applied to ExoPlayer's SubtitleView. */
+    private fun applySubtitleStyle() {
+        val ctx = context ?: return
+        val sub = fv<com.google.android.exoplayer2.ui.PlayerView>(R.id.player_view)?.subtitleView ?: return
+        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+        val pct = prefs.getInt("subtitle_size_pct", 100).coerceIn(50, 250)
+        // CaptionStyleCompat.DEFAULT_TEXT_SIZE_FRACTION is 0.0533 of the view height
+        sub.setFractionalTextSize(0.0533f * pct / 100f)
+        val fg = when (prefs.getString("subtitle_color", "white")) {
+            "yellow" -> Color.YELLOW
+            "green" -> Color.GREEN
+            "cyan" -> Color.CYAN
+            else -> Color.WHITE
+        }
+        val bg = if (prefs.getBoolean("subtitle_bg", false)) 0x99000000.toInt() else Color.TRANSPARENT
+        sub.setStyle(
+            com.google.android.exoplayer2.ui.CaptionStyleCompat(
+                fg, bg, Color.TRANSPARENT,
+                com.google.android.exoplayer2.ui.CaptionStyleCompat.EDGE_TYPE_OUTLINE,
+                Color.BLACK, null
+            )
+        )
+    }
+
     // Subtitles (OpenSubtitles / SubDL / extension) and skip times (Anime Skip / AniSkip)
     // ---------------------------------------------------------------------------------------
 

@@ -27,6 +27,7 @@ import com.lagradost.shiro.utils.AppUtils.init
 import com.lagradost.shiro.utils.AppUtils.settingsManager
 import com.lagradost.shiro.utils.InAppUpdater.runAutoUpdate
 import com.lagradost.shiro.utils.NekomoApi.Companion.initShiroApi
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
@@ -86,6 +87,7 @@ class TvActivity : CyaneaAppCompatActivity() {
         HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
         */
 
+        installSplashScreen()
         masterViewModel = masterViewModel ?: ViewModelProvider(this).get(MasterViewModel::class.java)
         settingsManager = PreferenceManager.getDefaultSharedPreferences(this)
         init()
@@ -121,6 +123,9 @@ class TvActivity : CyaneaAppCompatActivity() {
         }
 
         setContentView(R.layout.activity_tv)
+        // The SplashTheme windowBackground (logo + glow) is only meant for launch;
+        // swap it for the plain theme background once content is up.
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Cyanea.instance.backgroundColor))
         normalSafeApiCall { com.lagradost.shiro.ui.welcome.WelcomeGate.attachIfNeeded(this) }
         navController = fv<androidx.fragment.app.FragmentContainerView>(R.id.home_root_tv).findNavController()
         handleIntent(intent)

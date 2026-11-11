@@ -224,6 +224,12 @@
         <item name="android:textColor">?attr/textColor</item>
     </style>
 
+    <!-- Launcher theme: windowBackground shows the branded splash while the app starts;
+         MainActivity replaces the window background with the theme color once it is up. -->
+    <style name="SplashTheme" parent="AppTheme">
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+    </style>
+
     <style name="Theme.LeanbackCustom" parent="Theme.Leanback">
         <item name="preferenceTheme">@style/CustomPreferenceTheme</item>
         <item name="defaultBrandColor">?attr/colorPrimary</item>

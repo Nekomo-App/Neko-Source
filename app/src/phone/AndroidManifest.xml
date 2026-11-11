@@ -32,6 +32,7 @@
                 android:exported="true"
                 tools:node="merge"
                 android:name=".ui.MainActivity"
+                android:theme="@style/SplashTheme"
                 android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboard|keyboardHidden|navigation"
                 android:label="@string/app_name"
                 android:resizeableActivity="true"

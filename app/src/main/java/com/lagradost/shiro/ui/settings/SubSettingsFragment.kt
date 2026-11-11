@@ -62,6 +62,7 @@ import java.io.File
 import kotlin.concurrent.thread
 
 const val XML_KEY = "xml"
+const val HIGHLIGHT_KEY = "highlight"
 
 val blacklistedTvKeys = listOf(
     "update_repos",
@@ -117,10 +118,11 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
     private var xmlFile: Int? = null
 
     companion object {
-        fun newInstance(xml: Int) =
+        fun newInstance(xml: Int, highlight: String? = null) =
             SubSettingsFragment().apply {
                 arguments = Bundle().apply {
                     putInt(XML_KEY, xml)
+                    if (highlight != null) putString(HIGHLIGHT_KEY, highlight)
                 }
             }
     }
@@ -145,6 +147,17 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         xmlFile?.let { setPreferencesFromResource(it, rootKey) }
+
+        // Settings search can ask for a specific row; give the list a beat to lay out first.
+        arguments?.getString(HIGHLIGHT_KEY)?.let { key ->
+            view?.postDelayed({
+                try {
+                    scrollToPreference(key)
+                } catch (e: Exception) {
+                    com.lagradost.shiro.utils.mvvm.logError(e)
+                }
+            }, 350)
+        }
 
         if (tvActivity != null) {
             blacklistedTvKeys.forEach {
@@ -208,6 +221,20 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                             .show()
                         false
                     } else true
+                }
+
+                // New-episode alerts: reschedule the periodic check and ask for the notification
+                // permission (Android 13+) the first time the user turns it on.
+                findPreference<SwitchPreference>("notify_new_episodes")?.setOnPreferenceChangeListener { _, newValue ->
+                    if (newValue == true && android.os.Build.VERSION.SDK_INT >= 33 &&
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            requireContext(), android.Manifest.permission.POST_NOTIFICATIONS
+                        ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    ) {
+                        requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7402)
+                    }
+                    context?.let { com.lagradost.shiro.utils.NewEpisodeWorker.schedule(it, newValue == true) }
+                    true
                 }
 
                 findPreference<SwitchPreference>("force_landscape")?.setOnPreferenceChangeListener { _, newValue ->

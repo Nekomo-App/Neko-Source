@@ -165,5 +165,32 @@
             android:title="Disable the player overlay shadow"
             app:defaultValue="false"
     />
+    <SeekBarPreference
+            android:icon="@drawable/ic_baseline_subtitles_24"
+            android:title="Subtitle size (%)"
+            android:defaultValue="100"
+            android:key="subtitle_size_pct"
+            app:showSeekBarValue="true"
+            app:seekBarIncrement="10"
+            android:max="200"
+            app:min="50"
+    >
+    </SeekBarPreference>
+    <ListPreference
+            android:icon="@drawable/ic_baseline_subtitles_24"
+            app:key="subtitle_color"
+            android:title="Subtitle color"
+            app:entries="@array/SubtitleColors"
+            app:entryValues="@array/SubtitleColorValues"
+            app:defaultValue="white"
+            app:useSimpleSummaryProvider="true"
+    />
+    <SwitchPreference
+            android:icon="@drawable/ic_baseline_subtitles_24"
+            app:key="subtitle_bg"
+            android:title="Subtitle background"
+            android:summary="Draws a translucent box behind subtitles"
+            app:defaultValue="false"
+    />
 
 </PreferenceScreen>

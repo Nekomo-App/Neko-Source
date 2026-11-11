@@ -153,6 +153,8 @@ class SettingsFragmentNew : Fragment() {
             }
         }
 
+        setupSettingsSearch()
+
         fv<android.widget.TextView>(R.id.settings_community_rules)?.apply {
             background = ColorDrawable(Cyanea.instance.backgroundColorDark)
             setOnClickListener {
@@ -243,11 +245,55 @@ class SettingsFragmentNew : Fragment() {
         }
     }
 
-    private fun openSettingSubMenu(xml: Int) {
+    private fun openSettingSubMenu(xml: Int, highlight: String? = null) {
         val intent = Intent(context ?: return, SettingsActivity::class.java).apply {
             putExtra(XML_KEY, xml)
+            if (highlight != null) putExtra(HIGHLIGHT_KEY, highlight)
         }
         startActivity(intent)
+    }
+
+    /** Live-filtered jump list over every preference key and every management screen. */
+    private fun setupSettingsSearch() {
+        val box = fv<android.widget.EditText>(R.id.settings_search) ?: return
+        val results = fv<LinearLayout>(R.id.settings_search_results) ?: return
+        val ctx = context ?: return
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        box.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val hits = com.lagradost.shiro.utils.SettingsSearch.search(ctx, s?.toString() ?: "")
+                results.removeAllViews()
+                results.isVisible = hits.isNotEmpty()
+                hits.take(12).forEach { e ->
+                    results.addView(LinearLayout(ctx).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(pad, pad / 2, pad, pad / 2)
+                        isClickable = true
+                        isFocusable = true
+                        val out = android.util.TypedValue()
+                        ctx.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, out, true)
+                        foreground = androidx.core.content.ContextCompat.getDrawable(ctx, out.resourceId)
+                        addView(android.widget.TextView(ctx).apply {
+                            text = e.title
+                            textSize = 15f
+                        })
+                        addView(android.widget.TextView(ctx).apply {
+                            text = listOfNotNull(e.screen, e.summary.takeIf { it.isNotBlank() }).joinToString("  ·  ")
+                            textSize = 12f
+                            alpha = 0.65f
+                            maxLines = 1
+                            ellipsize = android.text.TextUtils.TruncateAt.END
+                        })
+                        setOnClickListener {
+                            if (e.xmlRes != null) openSettingSubMenu(e.xmlRes, e.key)
+                            else e.activity?.let { startActivity(Intent(ctx, it)) }
+                        }
+                    })
+                }
+            }
+        })
     }
 
     override fun onDestroy() {

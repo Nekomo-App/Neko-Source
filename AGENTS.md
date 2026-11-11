@@ -227,6 +227,30 @@ this toggle would just add a switch that does nothing.
   high-water mark so scroll-backs don't replay it. Focus handlers that reset `.radius` must use
   `UiStyle.cardRadiusPx`, not a hardcoded dp.
 
+## Settings search, startup page, splash, episode alerts
+
+- Settings search: `utils/SettingsSearch` indexes every titled Preference inside the settings XMLs
+  (plus standalone manager screens). The box lives at the top of `fragment_settings.xml`
+  (`settings_search`/`settings_search_results`, wired in `SettingsFragmentNew`). Results open
+  `SettingsActivity` with `XML_KEY` + `HIGHLIGHT_KEY`; `SubSettingsFragment` then
+  `scrollToPreference(key)` after ~350 ms.
+- "Start on page" (`startup_page`, settings_general) is read in `MainActivity.onCreate` right after
+  `setupWithNavController` and navigates to the chosen tab.
+- Splash: `SplashTheme` (values + values-v31) on both launchers — layer-list `drawable/splash_screen`
+  (bg #0d0714 + radial glow + nekomo_logo) as windowBackground pre-31, `windowSplashScreen*` attrs on
+  31+, `postSplashScreenTheme` handoff via `androidx.core:core-splashscreen:1.0.1` +
+  `installSplashScreen()` at the top of `MainActivity.onCreate` and inside `TvActivity.init()`
+  (both before super.onCreate). Both activities swap the window background for the Cyanea color once
+  content is up.
+- New-episode alerts: `utils/NewEpisodeWorker` (12 h periodic, network) diffs `LiveApi.getRecents()`
+  against per-slug seen episode floats in `episode_notify_seen`; first run only baselines. Gated by
+  `notify_new_episodes` (settings_general); toggling it requests POST_NOTIFICATIONS (33+) and calls
+  `schedule(ctx, override)`. Scheduled from `AcraApplication.onCreate`. Notification channel
+  "new_episodes", id 7401.
+- Search page: "Random" sits in the history panel (always visible on an empty query) and opens a
+  `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
+  `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
+
 ## Manga reader
 
 - `MangaReaderActivity` reads `manga_reader_mode` (webtoon / ltr / rtl — paged modes use a horizontal

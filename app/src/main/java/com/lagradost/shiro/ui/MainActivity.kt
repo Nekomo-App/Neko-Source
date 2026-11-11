@@ -64,6 +64,7 @@ import com.lagradost.shiro.utils.VideoDownloadManager.currentDownloads
 import com.lagradost.shiro.utils.VideoDownloadManager.maxConcurrentDownloads
 import com.lagradost.shiro.utils.mvvm.normalSafeApiCall
 import com.lagradost.shiro.utils.mvvm.observe
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
@@ -269,6 +270,9 @@ class MainActivity : CyaneaAppCompatActivity() {
 
     @SuppressLint("MissingSuperCall")
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Branded launch screen (SplashTheme windowBackground / Android 12+ system splash);
+        // must run before super.onCreate for the splash->app theme handoff.
+        installSplashScreen()
         activity = this
 
         // used for PlayerData to prevent crashes
@@ -484,6 +488,14 @@ class MainActivity : CyaneaAppCompatActivity() {
         val navView: BottomNavigationView = findViewById(R.id.nav_view)
         navController = findNavController(R.id.nav_host_fragment)
         navView.setupWithNavController(navController!!)
+
+        // "Start on page" setting: jump straight to the chosen tab once the graph is ready.
+        when (settingsManager.getString("startup_page", "home")) {
+            "search" -> R.id.navigation_search
+            "library" -> R.id.navigation_library
+            "downloads" -> R.id.navigation_downloads
+            else -> null
+        }?.let { dest -> navView.post { navController?.navigate(dest) } }
 
         navController!!.addOnDestinationChangedListener { _, destination, _ ->
             navView.hideKeyboard()

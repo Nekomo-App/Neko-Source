@@ -60,6 +60,34 @@
         <item>Toggle Favorite and Subscribe</item>
     </string-array>
 
+    <string-array name="SubtitleColors">
+        <item>White</item>
+        <item>Yellow</item>
+        <item>Green</item>
+        <item>Cyan</item>
+    </string-array>
+
+    <string-array name="SubtitleColorValues">
+        <item>white</item>
+        <item>yellow</item>
+        <item>green</item>
+        <item>cyan</item>
+    </string-array>
+
+    <string-array name="StartupPages">
+        <item>Home</item>
+        <item>Search</item>
+        <item>Library</item>
+        <item>Downloads</item>
+    </string-array>
+
+    <string-array name="StartupPageValues">
+        <item>home</item>
+        <item>search</item>
+        <item>library</item>
+        <item>downloads</item>
+    </string-array>
+
     <string-array name="UiModes">
         <item>Classic</item>
         <item>Modern</item>

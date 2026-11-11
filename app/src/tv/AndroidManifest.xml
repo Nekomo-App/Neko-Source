@@ -58,6 +58,7 @@
                 android:exported="true"
                 tools:node="merge"
                 android:name=".ui.tv.TvActivity"
+                android:theme="@style/SplashTheme"
                 android:banner="@mipmap/ic_banner_foreground"
                 android:icon="@mipmap/ic_launcher"
                 android:label="@string/app_name"

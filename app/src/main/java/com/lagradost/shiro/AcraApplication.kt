@@ -115,6 +115,8 @@ class AcraApplication : Application() {
         })
         normalSafeApiCall { CsPluginManager.init(this) }
         // Optional automatic updates for installed script/plugin sources (never APK extensions)
+        // New-episode notifications for subscribed shows (no-ops while the setting is off)
+        normalSafeApiCall { com.lagradost.shiro.utils.NewEpisodeWorker.schedule(this) }
         normalSafeApiCall {
             com.lagradost.shiro.utils.repo.ExtensionUpdater.schedule(this)
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({

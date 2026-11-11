@@ -97,6 +97,16 @@
             android:summary="Useful for tablets"
             app:defaultValue="false"
     />
+        <ListPreference
+            android:icon="@drawable/home_white"
+            app:key="startup_page"
+            android:title="Start on page"
+            android:summary="Which tab opens when you launch the app"
+            app:entries="@array/StartupPages"
+            app:entryValues="@array/StartupPageValues"
+            app:defaultValue="home"
+            app:useSimpleSummaryProvider="true"
+    />
     </PreferenceCategory>
     <PreferenceCategory android:title="Downloads and data">
         <SwitchPreference
@@ -188,6 +198,13 @@
     />
     </PreferenceCategory>
     <PreferenceCategory android:title="Notifications and diagnostics">
+        <SwitchPreference
+            app:key="notify_new_episodes"
+            android:title="New episode alerts"
+            android:summary="Checks twice a day for new episodes of shows you subscribed to and sends a notification"
+            app:defaultValue="false"
+            android:icon="@drawable/ic_baseline_notifications_active_24"
+    />
         <SwitchPreference
             app:key="subscribe_to_announcements"
             android:title="Subscribe to announcement notifications"
