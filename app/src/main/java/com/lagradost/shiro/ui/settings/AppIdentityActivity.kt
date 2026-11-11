@@ -1,39 +1,27 @@
 package com.lagradost.shiro.ui.settings
 
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
+import android.graphics.BitmapFactory
 import android.os.Bundle
-import android.text.Editable
-import android.text.InputType
-import android.text.TextWatcher
 import android.view.Gravity
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import com.jaredrummler.cyanea.app.CyaneaAppCompatActivity
 import com.lagradost.shiro.utils.AppIdentity
 
-/** Settings -> App name and icon: custom name and icon with a live preview, applied as a shortcut and in recent apps. */
+/** Settings -> App name and icon: pick from the bundled Nekomo names/icons — presets only, no imports. */
 class AppIdentityActivity : CyaneaAppCompatActivity() {
     private var pendingIcon: Bitmap? = null
+    private var chosenName: String = ""
     private lateinit var preview: ImageView
     private lateinit var previewLabel: TextView
-    private lateinit var nameField: EditText
-
-    private val picker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri ?: return@registerForActivityResult
-        val bmp = AppIdentity.load(this, uri)
-        if (bmp == null) toast("That picture could not be read.") else { pendingIcon = bmp; refreshPreview() }
-    }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
 
     private fun refreshPreview() {
-        val label = nameField.text.toString().trim().ifBlank { AppIdentity.defaultName(this) }
-        previewLabel.text = label
+        previewLabel.text = chosenName.ifBlank { AppIdentity.name(this) ?: AppIdentity.defaultName(this) }
         val bmp = pendingIcon ?: AppIdentity.icon(this)
         if (bmp != null) preview.setImageBitmap(bmp) else preview.setImageDrawable(packageManager.getApplicationIcon(packageName))
     }
@@ -45,7 +33,7 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
         val b = PageBuilder(this)
         val r = b.root
 
-        r.addView(b.text("Choose a name and icon for ${AppIdentity.defaultName(this)}. They are saved on this device and kept across updates. This is separate from NEX.", 13f, dim = true))
+        r.addView(b.text("Pick a name and icon for ${AppIdentity.defaultName(this)} from the options below. Custom images can't be imported — only the bundled designs are available. This is separate from NEX.", 13f, dim = true))
         if (AppIdentity.isTv(this) || !AppIdentity.pinSupported(this)) {
             r.addView(b.text("Android TV and some launchers cannot add shortcuts to the home screen or change the app tile. Your name and icon still apply in the recent-apps card and as a long-press shortcut where the launcher supports it.", 12f, dim = true).apply { setPadding(0, b.dp(8), 0, 0) })
         }
@@ -56,28 +44,16 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL; setPadding(0, b.dp(12), 0, b.dp(12))
             addView(preview); addView(previewLabel)
         }
-        nameField = EditText(this).apply {
-            hint = "App name"
-            inputType = InputType.TYPE_CLASS_TEXT
-            setSingleLine()
-            setText(AppIdentity.name(this@AppIdentityActivity) ?: "")
-            setTextColor(b.fg)
-            setHintTextColor(b.fg and 0x00FFFFFF or 0x66000000)
-            addTextChangedListener(object : TextWatcher {
-                override fun afterTextChanged(s: Editable?) = refreshPreview()
-                override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
-                override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
-            })
-        }
         r.addView(b.heading("Preview"))
-        r.addView(b.card(previewBox, nameField))
+        r.addView(b.card(previewBox))
+        chosenName = AppIdentity.name(this) ?: ""
         refreshPreview()
 
-        // Preset names — quick picks that stay close to the real name (Neko included).
-        r.addView(b.heading("Name presets"))
+        // Names — presets only (ReSpotF-ck style: names stay close to the real one, Neko included).
+        r.addView(b.heading("Name"))
         val nameRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("Nekomo", "Neko", "NekoHub", "AnimeNeko", "Neko Stream", "Neko Club").forEach { n ->
-            nameRow.addView(b.primaryButton(n) { nameField.setText(n) })
+        listOf("Nekomo", "Neko", "NekoHub", "AnimeNeko", "Neko Stream", "Neko Club", "N3KO").forEach { n ->
+            nameRow.addView(b.primaryButton(n) { chosenName = n; refreshPreview() })
         }
         r.addView(android.widget.HorizontalScrollView(this).apply { addView(nameRow) })
 
@@ -95,7 +71,7 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
             r.addView(android.widget.HorizontalScrollView(this).apply { addView(aliasRow) })
         }
 
-        // Seasonal icon presets — the Nekomo mark recolored onto a themed tile.
+        // Icon presets — tinted tiles + the bundled artwork. No custom-image import.
         r.addView(b.heading("Icon presets"))
         val iconRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         listOf(
@@ -107,25 +83,32 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
                 refreshPreview()
             })
         }
+        listOf("Pixel" to com.lagradost.shiro.R.mipmap.ic_launcher_katakana,
+               "Bloom" to com.lagradost.shiro.R.mipmap.ic_launcher_katakana_sakura,
+               "N3KO" to com.lagradost.shiro.R.mipmap.ic_launcher_n3ko).forEach { (label, res) ->
+            iconRow.addView(b.primaryButton(label) {
+                pendingIcon = AppIdentity.prepareIcon(BitmapFactory.decodeResource(resources, res))
+                refreshPreview()
+            })
+        }
         r.addView(android.widget.HorizontalScrollView(this).apply { addView(iconRow) })
 
-        r.addView(b.primaryButton("Choose icon picture") { picker.launch("image/*") })
         r.addView(b.primaryButton("Apply") {
-            AppIdentity.save(this, nameField.text.toString(), pendingIcon)
+            AppIdentity.save(this, chosenName, pendingIcon)
             pendingIcon = null
             AppIdentity.applyTaskDescription(this)
             refreshPreview()
             toast("Saved. It now shows in recent apps and the long-press shortcut. Use \"Add to home screen\" to place it on your home screen.")
         })
         r.addView(b.primaryButton("Add to home screen") {
-            AppIdentity.save(this, nameField.text.toString(), pendingIcon); pendingIcon = null
+            AppIdentity.save(this, chosenName, pendingIcon); pendingIcon = null
             if (AppIdentity.requestPin(this)) toast("Confirm in the launcher to add the shortcut.")
             else toast("This launcher cannot add shortcuts. Your name and icon still apply in recent apps and the long-press shortcut.")
         })
         r.addView(b.primaryButton("Reset to default") {
             AppIdentity.reset(this)
             pendingIcon = null
-            nameField.setText("")
+            chosenName = ""
             refreshPreview()
             toast("Back to the original name and icon. Remove any pinned shortcut from your home screen.")
         })
