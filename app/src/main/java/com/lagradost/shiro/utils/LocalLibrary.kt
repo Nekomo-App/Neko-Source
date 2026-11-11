@@ -26,6 +26,7 @@ object LocalLibrary {
         @JsonProperty("status") val status: String = STATUSES[0],
         @JsonProperty("updatedAt") val updatedAt: Long = System.currentTimeMillis(),
         @JsonProperty("progress") val progress: Int = 0,
+        @JsonProperty("collections") val collections: List<String> = emptyList(),
     )
 
     private val mapper = JsonMapper.builder().addModule(KotlinModule.Builder().build()).build()
@@ -40,7 +41,7 @@ object LocalLibrary {
     fun set(context: Context, slug: String, title: String, poster: String?, status: String) {
         val cur = all(context).filter { it.slug != slug }
         val old = all(context).firstOrNull { it.slug == slug }
-        context.setKey(KEY, cur + Entry(slug, title, poster, status, System.currentTimeMillis(), old?.progress ?: 0))
+        context.setKey(KEY, cur + Entry(slug, title, poster, status, System.currentTimeMillis(), old?.progress ?: 0, old?.collections ?: emptyList()))
     }
 
     /** Called when episodes are marked watched: creates/updates the entry so it shows up in the offline library. */
@@ -52,12 +53,24 @@ object LocalLibrary {
             progress > 0 && (old == null || old.status == "Plan to watch") -> "Watching"
             else -> old?.status ?: (if (progress > 0) "Watching" else return)
         }
-        context.setKey(KEY, all(context).filter { it.slug != slug } + Entry(slug, old?.title ?: title, old?.poster ?: poster, status, System.currentTimeMillis(), progress))
+        context.setKey(KEY, all(context).filter { it.slug != slug } + Entry(slug, old?.title ?: title, old?.poster ?: poster, status, System.currentTimeMillis(), progress, old?.collections ?: emptyList()))
     }
 
     @Synchronized
     fun remove(context: Context, slug: String) {
         context.setKey(KEY, all(context).filter { it.slug != slug })
+    }
+
+    /** Every collection name in use, alphabetically. */
+    fun allCollections(context: Context): List<String> =
+        all(context).flatMap { it.collections }.distinct().sortedBy { it.lowercase() }
+
+    /** Replaces an entry's collection membership without touching status/progress. */
+    @Synchronized
+    fun setCollections(context: Context, slug: String, names: List<String>) {
+        context.setKey(KEY, all(context).map {
+            if (it.slug == slug) it.copy(collections = names.distinct()) else it
+        })
     }
 
     fun exportJson(context: Context): String = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(

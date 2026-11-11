@@ -31,6 +31,7 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
     private lateinit var list: LinearLayout
     private lateinit var filters: LinearLayout
     private var filter: String? = null
+    private var collectionFilter: String? = null
 
     private val sortModes = listOf("Recently added", "A-Z", "Progress")
     private var sortIndex: Int
@@ -86,8 +87,21 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
             filters.addView(Button(this).apply {
                 text = "${n ?: "All"} ($count)"
                 isAllCaps = false
-                alpha = if (filter == n) 1f else 0.55f
-                setOnClickListener { filter = n; refresh() }
+                alpha = if (filter == n && collectionFilter == null) 1f else 0.55f
+                setOnClickListener { filter = n; collectionFilter = null; refresh() }
+            })
+        }
+        for (c in LocalLibrary.allCollections(this)) {
+            val count = all.count { c in it.collections }
+            filters.addView(Button(this).apply {
+                text = "📁 $c ($count)"
+                isAllCaps = false
+                alpha = if (collectionFilter == c) 1f else 0.55f
+                setOnClickListener {
+                    collectionFilter = if (collectionFilter == c) null else c
+                    filter = null
+                    refresh()
+                }
             })
         }
         filters.addView(Button(this).apply {
@@ -97,7 +111,7 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
             setOnClickListener { sortIndex = (sortIndex + 1) % sortModes.size; refresh() }
         })
         list.removeAllViews()
-        val shown = all.filter { filter == null || it.status == filter }.let { entries ->
+        val shown = all.filter { (filter == null || it.status == filter) && (collectionFilter == null || collectionFilter in it.collections) }.let { entries ->
             when (sortIndex) {
                 1 -> entries.sortedBy { it.title.lowercase() }
                 2 -> entries.sortedByDescending { it.progress }
@@ -130,7 +144,7 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
             })
             val text = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), 0, dp(8), 0) }
             text.addView(TextView(this).apply { this.text = e.title; textSize = 16f; maxLines = 2 })
-            text.addView(TextView(this).apply { this.text = e.status + (if (e.progress > 0) " · episode ${e.progress}" else ""); textSize = 13f; alpha = 0.7f })
+            text.addView(TextView(this).apply { this.text = e.status + (if (e.progress > 0) " · episode ${e.progress}" else "") + (if (e.collections.isNotEmpty()) " · 📁 ${e.collections.joinToString(", ")}" else ""); textSize = 13f; alpha = 0.7f })
             row.addView(text, LinearLayout.LayoutParams(0, -2, 1f))
             row.addView(Button(this).apply {
                 this.text = "Edit"
@@ -142,12 +156,48 @@ class LocalLibraryActivity : CyaneaAppCompatActivity() {
     }
 
     private fun editEntry(e: LocalLibrary.Entry) {
-        val options = LocalLibrary.STATUSES + "Remove from library"
+        val options = LocalLibrary.STATUSES + "Collections…" + "Remove from library"
         AlertDialog.Builder(this)
             .setTitle(e.title)
             .setItems(options.toTypedArray()) { _, which ->
-                if (which < LocalLibrary.STATUSES.size) LocalLibrary.set(this, e.slug, e.title, e.poster, options[which])
-                else LocalLibrary.remove(this, e.slug)
+                when {
+                    which < LocalLibrary.STATUSES.size -> LocalLibrary.set(this, e.slug, e.title, e.poster, options[which])
+                    options[which] == "Collections…" -> editCollections(e)
+                    else -> LocalLibrary.remove(this, e.slug)
+                }
+                refresh()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /** Multi-select of existing collections plus a "New collection" field. */
+    private fun editCollections(e: LocalLibrary.Entry) {
+        val existing = LocalLibrary.allCollections(this)
+        val checked = existing.map { it in e.collections }.toBooleanArray()
+        val picked = e.collections.toMutableSet()
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+        }
+        existing.forEachIndexed { i, name ->
+            box.addView(android.widget.CheckBox(this).apply {
+                text = name
+                isChecked = checked[i]
+                setOnCheckedChangeListener { _, on -> if (on) picked.add(name) else picked.remove(name) }
+            })
+        }
+        val newField = android.widget.EditText(this).apply {
+            hint = "New collection name"
+            maxLines = 1
+        }
+        box.addView(newField)
+        AlertDialog.Builder(this)
+            .setTitle("Collections — ${e.title}")
+            .setView(box)
+            .setPositiveButton("Save") { _, _ ->
+                newField.text.toString().trim().takeIf { it.isNotEmpty() }?.let { picked.add(it) }
+                LocalLibrary.setCollections(this, e.slug, picked.toList())
                 refresh()
             }
             .setNegativeButton("Cancel", null)
