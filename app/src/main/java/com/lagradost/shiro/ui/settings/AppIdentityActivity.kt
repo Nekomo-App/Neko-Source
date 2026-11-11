@@ -73,6 +73,28 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
         r.addView(b.card(previewBox, nameField))
         refreshPreview()
 
+        // Preset names — quick picks that stay close to the real name (Neko included).
+        r.addView(b.heading("Name presets"))
+        val nameRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf("Nekomo", "Neko", "NekoHub", "AnimeNeko", "Neko Stream", "Neko Club").forEach { n ->
+            nameRow.addView(b.primaryButton(n) { nameField.setText(n) })
+        }
+        r.addView(android.widget.HorizontalScrollView(this).apply { addView(nameRow) })
+
+        // Seasonal icon presets — the Nekomo mark recolored onto a themed tile.
+        r.addView(b.heading("Icon presets"))
+        val iconRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf(
+            "Sakura" to 0xFFE88BA7.toInt(), "Winter" to 0xFF7AA7E8.toInt(),
+            "Spooky" to 0xFFE8863A.toInt(), "Midnight" to 0xFF2B2140.toInt()
+        ).forEach { (label, color) ->
+            iconRow.addView(b.primaryButton(label) {
+                pendingIcon = presetIcon(color)
+                refreshPreview()
+            })
+        }
+        r.addView(android.widget.HorizontalScrollView(this).apply { addView(iconRow) })
+
         r.addView(b.primaryButton("Choose icon picture") { picker.launch("image/*") })
         r.addView(b.primaryButton("Apply") {
             AppIdentity.save(this, nameField.text.toString(), pendingIcon)
@@ -96,6 +118,21 @@ class AppIdentityActivity : CyaneaAppCompatActivity() {
         setContentView(b.finish())
         // Changing the name or icon needs its own puzzle (separate from the screen-capture one)
         com.lagradost.shiro.ui.settings.PuzzleUi.require(this, com.lagradost.shiro.utils.Puzzle.Kind.IDENTITY, "App name and icon", onCancel = { finish() }) { }
+    }
+
+    /** Seasonal tile: rounded square in [bg] with the default app icon drawn inset on top. */
+    private fun presetIcon(bg: Int): Bitmap {
+        val size = 192
+        val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(out)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        paint.color = bg
+        canvas.drawRoundRect(android.graphics.RectF(0f, 0f, size.toFloat(), size.toFloat()), size * 0.22f, size * 0.22f, paint)
+        val icon = packageManager.getApplicationIcon(packageName)
+        val inset = (size * 0.14f).toInt()
+        icon.setBounds(inset, inset, size - inset, size - inset)
+        icon.draw(canvas)
+        return AppIdentity.prepareIcon(out)
     }
 
     override fun onSupportNavigateUp(): Boolean {
