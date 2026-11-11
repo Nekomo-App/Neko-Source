@@ -100,6 +100,17 @@ object LiveApi {
         }
     """
 
+    private const val UPCOMING_QUERY = """
+        query {
+            Page(page: 1, perPage: 40) {
+                airingSchedules(sort: TIME_ASC, notYetAired: true) {
+                    episode airingAt
+                    media { $MEDIA_FIELDS }
+                }
+            }
+        }
+    """
+
     private const val RANDOM_QUERY = """
         query(${"$"}page: Int) {
             Page(page: ${"$"}page, perPage: 50) {
@@ -266,6 +277,29 @@ object LiveApi {
             )
         }
         return holders
+    }
+
+    /**
+     * Upcoming episode airings, soonest first, one card per title. The air time lands in
+     * `english` so adapters that show the subtitle render "Ep 8 · Fri 12 Dec" under the name.
+     */
+    fun getUpcoming(): List<NekomoApi.CommonAnimePageData>? {
+        val data = anilist(UPCOMING_QUERY, emptyMap()) ?: return null
+        val out = LinkedHashMap<String, NekomoApi.CommonAnimePageData>()
+        val now = System.currentTimeMillis() / 1000L
+        data.path("Page").path("airingSchedules").forEach { sched ->
+            val media = sched.path("media")
+            val ep = sched.path("episode").asInt()
+            val at = sched.path("airingAt").asLong()
+            val slug = mediaSlug(media)
+            if (ep <= 0 || at <= now || slug.isBlank() || out.containsKey(slug)) return@forEach
+            val d = mediaToData(media)
+            if (com.lagradost.shiro.utils.home.HomeFilters.isBlocked(d.title, d.title_english, d.native_title)) return@forEach
+            val whenStr = java.text.SimpleDateFormat("EEE d MMM", java.util.Locale.getDefault())
+                .format(java.util.Date(at * 1000))
+            out[slug] = NekomoApi.CommonAnimePageData(d.title, d.poster, slug, "Ep $ep · $whenStr")
+        }
+        return out.values.toList().takeIf { it.isNotEmpty() }
     }
 
     /** "Recently updated" while AniList is unavailable: what Kitsu says is airing now. */

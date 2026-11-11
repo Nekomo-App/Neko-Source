@@ -278,7 +278,7 @@ class WelcomeGate private constructor(private val activity: FragmentActivity) {
 
     private fun renderRepos() {
         val pad = SocialLinks.dp(ctx, 12)
-        root.addView(text("Step 4 of 4", 13f, alpha = true).apply { setPadding(0, SocialLinks.dp(ctx, 16), 0, 0) })
+        root.addView(text("Step 4 of 5", 13f, alpha = true).apply { setPadding(0, SocialLinks.dp(ctx, 16), 0, 0) })
         root.addView(text("Third-party repositories", 24f, bold = true).apply { setPadding(0, SocialLinks.dp(ctx, 8), 0, pad) })
         root.addView(text("Read this before adding anything", 16f, bold = true).apply { setPadding(0, 0, 0, pad) })
         listOf(

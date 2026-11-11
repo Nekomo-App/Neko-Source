@@ -117,6 +117,7 @@ object AniListHomeSource : HomeSource {
         HomeSectionDef("popular", "Popular", id),
         HomeSectionDef("recommended", "Recommended for you", id),
         HomeSectionDef("season", "Airing this season", id, defaultEnabled = false),
+        HomeSectionDef("upcoming", "Coming up", id, defaultEnabled = false),
         HomeSectionDef("top_rated", "Top rated", id, defaultEnabled = false),
     ) + genres.map { HomeSectionDef("genre:$it", it, id, defaultEnabled = it in defaultGenres) }
 
@@ -124,6 +125,7 @@ object AniListHomeSource : HomeSource {
         "query { Page(page: 1, perPage: 30) { media(sort: $sort, type: ANIME, isAdult: false$extra) { ${LiveApi.homeMediaFields} } } }"
 
     override fun fetch(context: Context, section: HomeSectionDef): List<NekomoApi.CommonAnimePageData>? {
+        if (section.id == "upcoming") return LiveApi.getUpcoming()
         val data: List<NekomoApi.Companion.Data>? = when {
             section.id == "trending" -> LiveApi.getTrending()?.data
             section.id == "recent" -> LiveApi.getRecents()?.map {

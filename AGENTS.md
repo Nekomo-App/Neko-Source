@@ -260,6 +260,14 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## "Coming up" home section
+
+- `LiveApi.getUpcoming()` queries `airingSchedules(sort: TIME_ASC, notYetAired: true)`, dedupes
+  per slug (earliest episode wins), and stuffs `"Ep N · EEE d MMM"` into the card's `english`
+  field (shows as the subtitle in adapters that render it, e.g. ResAdapter).
+- Registered as `upcoming` on `AniListHomeSource` (defaultDisabled, enable in Home settings).
+  No Jikan/Kitsu fallback — the row is empty if AniList is down.
+
 ## Manga chapter downloads
 
 - `utils/manga/ChapterDownloads` stores each chapter under
