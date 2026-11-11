@@ -260,6 +260,13 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## Per-show alert mutes + card presets
+
+- Episode alerts can be muted per title: long-press the subscribe bell on a title page
+  toggles `episode_notify_muted` (StringSet); `NewEpisodeWorker` skips those slugs.
+- Settings -> Appearance gets "Card layout presets" (Compact/Classic/Modern, sets
+  ui_mode + corner + spacing + poster size) and "Reset card layout".
+
 ## "Coming up" home section
 
 - `LiveApi.getUpcoming()` queries `airingSchedules(sort: TIME_ASC, notYetAired: true)`, dedupes

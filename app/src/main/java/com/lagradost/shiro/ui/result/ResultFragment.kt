@@ -842,6 +842,26 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                         }
                     }
                 }
+                // Long-press on a subscribed show mutes/unmutes its episode alerts.
+                btt.setOnLongClickListener {
+                    val c = context ?: return@setOnLongClickListener true
+                    val subscribed = c.getKey<BookmarkedTitle>(SUBSCRIPTIONS_BOOKMARK_KEY, slug, null) != null ||
+                            c.getKey(SUBSCRIPTIONS_KEY, slug, false) == true
+                    if (!subscribed) {
+                        Toast.makeText(c, "Subscribe first, then long-press to mute alerts", Toast.LENGTH_SHORT).show()
+                        return@setOnLongClickListener true
+                    }
+                    val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(c)
+                    val muted = prefs.getStringSet("episode_notify_muted", emptySet())!!.toMutableSet()
+                    val nowMuted = muted.add(slug).also { if (!it) muted.remove(slug) }
+                    prefs.edit().putStringSet("episode_notify_muted", muted).apply()
+                    Toast.makeText(
+                        c,
+                        if (nowMuted) "Episode alerts muted for ${data.anime.title}" else "Episode alerts on for ${data.anime.title}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    true
+                }
             }
             fv<com.google.android.material.textview.MaterialTextView>(R.id.title_descript)?.text =
                 fullDescription.substring(0, minOf(DESCRIPTION_LENGTH1 - 3, fullDescription.length)) + "..."

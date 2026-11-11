@@ -50,6 +50,8 @@ class NewEpisodeWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, par
             emptyList()
         }
         if (subs.isEmpty()) return Result.success()
+        // Per-show mute list (long-press the subscribe bell on a title page).
+        val muted = prefs.getStringSet("episode_notify_muted", emptySet()) ?: emptySet()
 
         val recents = try {
             LiveApi.getRecents()
@@ -62,7 +64,7 @@ class NewEpisodeWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, par
         val fresh = ArrayList<Pair<String, String>>()
         recents.forEach { holder ->
             val ep = holder.episode.episode.toFloatOrNull() ?: return@forEach
-            if (subs.none { it.slug == holder.anime.slug }) return@forEach
+            if (holder.anime.slug in muted || subs.none { it.slug == holder.anime.slug }) return@forEach
             val key = "ep_${holder.anime.slug}"
             val last = seen.getFloat(key, -1f)
             // Only notify when a baseline exists, so the very first check never alerts.

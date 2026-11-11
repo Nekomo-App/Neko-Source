@@ -184,6 +184,18 @@
             app:min="60"
     >
     </SeekBarPreference>
+    <Preference
+            app:key="appearance_preset"
+            android:icon="@drawable/ic_baseline_view_column_24"
+            android:title="Card layout presets"
+            android:summary="Compact, Classic or Modern — applies a full look in one tap"
+    />
+    <Preference
+            app:key="appearance_reset"
+            android:icon="@drawable/ic_baseline_delete_outline_24"
+            android:title="Reset card layout"
+            android:summary="Interface mode, poster size, corners and spacing back to defaults"
+    />
 
 
 </androidx.preference.PreferenceScreen>
