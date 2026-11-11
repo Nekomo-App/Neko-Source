@@ -260,6 +260,20 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## Manga chapter downloads
+
+- `utils/manga/ChapterDownloads` stores each chapter under
+  `filesDir/manga_dl/<sourceId>/<md5(chapterUrl)>/` as `p<i>` page files + `meta.json`
+  (sourceId/url/name/manga/pages). Writes go to a `<md5>.part` dir renamed into place,
+  so a killed download never leaves a half-valid chapter.
+- Long-press a chapter in `MangaDetailActivity`: Download chapter / Download all unread /
+  Delete download / Mark read|unread. Downloaded chapters get a "⬇" badge in the list.
+- `MangaReaderActivity.loadChapter` checks `ChapterDownloads.pages` before any network —
+  downloaded chapters read fully offline (source resolution skipped, `localFiles` in
+  `PageAdapter` decodes file bytes through the same `MangaSession.decode` path).
+- `MangaBrowseActivity` "Downloaded" button lists every download (newest first): tap
+  reads (single-chapter `MangaSession`), long-press deletes.
+
 ## Manga reader
 
 - `MangaReaderActivity` reads `manga_reader_mode` (webtoon / ltr / rtl — paged modes use a horizontal

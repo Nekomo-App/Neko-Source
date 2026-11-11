@@ -67,7 +67,14 @@ class MangaBrowseActivity : CyaneaAppCompatActivity() {
                 }
             })
         }
-        root.addView(sourceBtn)
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(sourceBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(Button(this@MangaBrowseActivity).apply {
+                text = "Downloaded"
+                setOnClickListener { showDownloads() }
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        })
         root.addView(row)
         root.addView(status)
         root.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
@@ -137,6 +144,34 @@ class MangaBrowseActivity : CyaneaAppCompatActivity() {
                 status.text = if (items.isEmpty()) "No results" else ""
             }
         }
+    }
+
+    /** List downloaded chapters; tap reads offline, long-press deletes. */
+    private fun showDownloads() {
+        val all = com.lagradost.shiro.utils.manga.ChapterDownloads.listAll(this)
+        if (all.isEmpty()) {
+            Toast.makeText(this, "No downloaded chapters yet. Long-press a chapter on a manga page to download it.", Toast.LENGTH_LONG).show()
+            return
+        }
+        val labels = all.map { "${it.manga}\n${it.name} · ${it.pages} pages" }.toTypedArray()
+        val dialog = AlertDialog.Builder(this).setTitle("Downloaded chapters")
+            .setItems(labels, null).create()
+        dialog.listView.setOnItemClickListener { _, _, pos, _ ->
+            val e = all[pos]
+            MangaSession.sourceId = e.sourceId
+            MangaSession.mangaTitle = e.manga
+            MangaSession.chapters = listOf(MihonBridge.ChapterItem(e.name, e.url, 0f, 0L, null))
+            dialog.dismiss()
+            startActivity(Intent(this, MangaReaderActivity::class.java).putExtra("index", 0))
+        }
+        dialog.listView.setOnItemLongClickListener { _, _, pos, _ ->
+            val e = all[pos]
+            com.lagradost.shiro.utils.manga.ChapterDownloads.delete(this, e.sourceId, e.url)
+            dialog.dismiss()
+            showDownloads()
+            true
+        }
+        dialog.show()
     }
 
     override fun onSupportNavigateUp(): Boolean {

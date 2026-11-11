@@ -34,6 +34,7 @@ class MangaReaderActivity : AppCompatActivity() {
     private var index = 0
     private var src: CatalogueSource? = null
     private var pages: List<Page> = emptyList()
+    private var localFiles: List<java.io.File>? = null // set when the chapter is downloaded for offline reading
     private lateinit var root: FrameLayout
     private lateinit var recycler: RecyclerView
     private lateinit var label: TextView
@@ -259,6 +260,17 @@ class MangaReaderActivity : AppCompatActivity() {
         message.visibility = View.GONE
         recycler.adapter = null
         pages = emptyList()
+        localFiles = null
+        // Downloaded chapters read straight from disk — no source, no network.
+        val local = com.lagradost.shiro.utils.manga.ChapterDownloads.pages(this, MangaSession.sourceId, ch.url)
+        if (local != null) {
+            localFiles = local
+            markRead(ch.url)
+            recycler.adapter = PageAdapter()
+            updatePageLabel(0)
+            restorePosition()
+            return
+        }
         thread {
             val source = src ?: try { MihonBridge.sourceById(this, MangaSession.sourceId) } catch (t: Throwable) { null }
             src = source
@@ -307,8 +319,10 @@ class MangaReaderActivity : AppCompatActivity() {
         private val TYPE_PAGE = 0
         private val TYPE_END = 1
 
-        override fun getItemCount() = pages.size + 1
-        override fun getItemViewType(position: Int) = if (position == pages.size) TYPE_END else TYPE_PAGE
+        private val count get() = localFiles?.size ?: pages.size
+
+        override fun getItemCount() = count + 1
+        override fun getItemViewType(position: Int) = if (position == count) TYPE_END else TYPE_PAGE
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val height = if (paged) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
@@ -333,16 +347,18 @@ class MangaReaderActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            if (position == pages.size) return
+            if (position == count) return
             val iv = holder.itemView as ImageView
-            val page = pages[position]
+            val local = localFiles?.getOrNull(position)
+            val page = if (local == null) pages.getOrNull(position) else null
+            if (local == null && page == null) return
             val key = "${MangaSession.sourceId}:${MangaSession.chapters.getOrNull(index)?.url}:$position"
             iv.tag = key
             iv.setImageDrawable(null)
             MangaSession.getBitmap(key)?.let { iv.setImageBitmap(it); return }
-            val source = src ?: return
             MangaSession.run {
-                val bytes = MihonBridge.imageBytes(source, page)
+                val bytes = if (local != null) try { local.readBytes() } catch (t: Throwable) { null }
+                    else MihonBridge.imageBytes(src ?: return@run, page ?: return@run)
                 val bmp = bytes?.let { MangaSession.decode(it, screenWidth) }
                 if (bmp != null) {
                     MangaSession.putBitmap(key, bmp)

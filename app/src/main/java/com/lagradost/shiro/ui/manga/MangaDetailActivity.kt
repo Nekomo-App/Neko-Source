@@ -103,11 +103,16 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
         }
     }
 
+    private var shownIdx: List<Int> = emptyList()
+
     private fun bindChapters() {
         val d = details ?: return
         // Shown chapter indexes point back into the full list so the reader navigates correctly.
-        val shownIdx = d.chapters.indices.filter { !hideRead || d.chapters[it].url !in read }
-        val labels = shownIdx.map { i -> d.chapters[i].let { (if (it.url in read) "✓  " else "") + it.name.ifBlank { "Chapter ${it.number}" } } }
+        shownIdx = d.chapters.indices.filter { !hideRead || d.chapters[it].url !in read }
+        val labels = shownIdx.map { i -> d.chapters[i].let {
+            val dl = if (com.lagradost.shiro.utils.manga.ChapterDownloads.isDownloaded(this, MangaSession.sourceId, it.url)) "⬇  " else ""
+            (if (it.url in read) "✓  " else "") + dl + it.name.ifBlank { "Chapter ${it.number}" }
+        } }
         status.text = if (hideRead && shownIdx.size != d.chapters.size) "${d.chapters.size} chapters (${shownIdx.size} unread)"
                       else if (d.chapters.isEmpty()) "No chapters found" else "${d.chapters.size} chapters"
         list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, labels)
@@ -116,6 +121,73 @@ class MangaDetailActivity : CyaneaAppCompatActivity() {
             if (shownPos in shownIdx.indices) {
                 startActivity(Intent(this, MangaReaderActivity::class.java).putExtra("index", shownIdx[shownPos]))
             }
+        }
+        list.setOnItemLongClickListener { _, _, pos, _ ->
+            val shownPos = pos - list.headerViewsCount
+            if (shownPos in shownIdx.indices) chapterMenu(d.chapters[shownIdx[shownPos]])
+            true
+        }
+    }
+
+    /** Long-press chapter: download for offline reading / delete the download / toggle read. */
+    private fun chapterMenu(ch: MihonBridge.ChapterItem) {
+        val dl = com.lagradost.shiro.utils.manga.ChapterDownloads.isDownloaded(this, MangaSession.sourceId, ch.url)
+        val opts = mutableListOf<String>()
+        if (dl) opts += "Delete download" else opts += "Download chapter"
+        opts += "Download all unread"
+        opts += if (ch.url in read) "Mark unread" else "Mark read"
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(ch.name.ifBlank { "Chapter ${ch.number}" })
+            .setItems(opts.toTypedArray()) { _, which ->
+                when (opts[which]) {
+                    "Download chapter" -> downloadChapter(ch)
+                    "Download all unread" -> downloadAllUnread()
+                    "Delete download" -> { com.lagradost.shiro.utils.manga.ChapterDownloads.delete(this, MangaSession.sourceId, ch.url); bindChapters() }
+                    "Mark read" -> { read.add(ch.url); saveRead(); bindChapters() }
+                    else -> { read.remove(ch.url); saveRead(); bindChapters() }
+                }
+            }
+            .show()
+    }
+
+    private fun saveRead() {
+        getSharedPreferences("manga_read", MODE_PRIVATE).edit().putStringSet("urls", read.toSet()).apply()
+    }
+
+    private fun downloadChapter(ch: MihonBridge.ChapterItem) {
+        val sourceId = intent.getLongExtra("sourceId", 0)
+        status.text = "Downloading ${ch.name}…"
+        thread {
+            val ok = try {
+                MihonBridge.sourceById(this, sourceId)?.let { src ->
+                    com.lagradost.shiro.utils.manga.ChapterDownloads.download(this, src, sourceId, MangaSession.mangaTitle, ch)
+                } ?: false
+            } catch (t: Throwable) { com.lagradost.shiro.utils.mvvm.logError(t); false }
+            runOnUiThread {
+                status.text = if (ok) "Downloaded ${ch.name}" else "Download failed — check the source/network"
+                bindChapters()
+            }
+        }
+    }
+
+    /** Sequential bulk download of every unread chapter; skips ones already on disk. */
+    private fun downloadAllUnread() {
+        val d = details ?: return
+        val sourceId = intent.getLongExtra("sourceId", 0)
+        val todo = d.chapters.filter { it.url !in read && !com.lagradost.shiro.utils.manga.ChapterDownloads.isDownloaded(this, sourceId, it.url) }
+        if (todo.isEmpty()) { status.text = "Nothing to download"; return }
+        status.text = "Downloading 0/${todo.size}…"
+        thread {
+            val src = try { MihonBridge.sourceById(this, sourceId) } catch (t: Throwable) { null }
+            var done = 0
+            for (ch in todo) {
+                if (src == null) break
+                try { com.lagradost.shiro.utils.manga.ChapterDownloads.download(this, src, sourceId, MangaSession.mangaTitle, ch) } catch (t: Throwable) { com.lagradost.shiro.utils.mvvm.logError(t) }
+                done++
+                val d2 = done; val total = todo.size
+                runOnUiThread { status.text = "Downloading $d2/$total…" }
+            }
+            runOnUiThread { status.text = "Downloaded $done/${todo.size} unread chapters"; bindChapters() }
         }
     }
 
