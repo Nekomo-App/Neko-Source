@@ -34,6 +34,15 @@ class NewEpisodeWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, par
     override fun doWork(): Result {
         val ctx = applicationContext
         if (!enabled(ctx)) return Result.success()
+        // Quiet hours: skip this run entirely so pending episodes are still reported next window.
+        val prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
+        if (prefs.getBoolean("quiet_hours_enabled", false)) {
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            val start = prefs.getInt("quiet_start_hour", 23)
+            val end = prefs.getInt("quiet_end_hour", 7)
+            val inQuiet = if (start <= end) hour in start until end else hour >= start || hour < end
+            if (inQuiet) return Result.success()
+        }
         val subs = try {
             ctx.getSubbed().filterNotNull()
         } catch (t: Throwable) {

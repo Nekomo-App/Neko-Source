@@ -206,6 +206,35 @@
             android:icon="@drawable/ic_baseline_notifications_active_24"
     />
         <SwitchPreference
+            app:key="quiet_hours_enabled"
+            android:title="Quiet hours"
+            android:summary="No episode alerts between the hours below (they are reported on the next check instead)"
+            app:defaultValue="false"
+            android:icon="@drawable/ic_baseline_notifications_none_24"
+    />
+        <SeekBarPreference
+            app:key="quiet_start_hour"
+            android:title="Quiet hours start"
+            android:defaultValue="23"
+            android:max="23"
+            app:min="0"
+            app:showSeekBarValue="true"
+            app:seekBarIncrement="1"
+            app:dependency="quiet_hours_enabled"
+            android:icon="@drawable/ic_baseline_access_time_24"
+    />
+        <SeekBarPreference
+            app:key="quiet_end_hour"
+            android:title="Quiet hours end"
+            android:defaultValue="7"
+            android:max="23"
+            app:min="0"
+            app:showSeekBarValue="true"
+            app:seekBarIncrement="1"
+            app:dependency="quiet_hours_enabled"
+            android:icon="@drawable/ic_baseline_access_time_24"
+    />
+        <SwitchPreference
             app:key="subscribe_to_announcements"
             android:title="Subscribe to announcement notifications"
             app:summary="For example site downtime"
