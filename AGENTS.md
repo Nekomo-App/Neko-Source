@@ -260,6 +260,16 @@ this toggle would just add a switch that does nothing.
   `getRandom()` title; subtitle size/color/background prefs (`subtitle_size_pct`, `subtitle_color`,
   `subtitle_bg`) are applied to `playerView.subtitleView` in `PlayerFragment.applySubtitleStyle`.
 
+## Kuro-style translucent banner
+
+- `utils/BlurTransform.kt`: lightweight Glide BitmapTransformation (1/8 downscale +
+  desaturate + darken) applied to `results_banner` — no RenderScript, API 24 safe.
+- `site_data_card_view` is set to ~85% of `Cyanea.instance.backgroundColor` in code so
+  the blurred banner shows through (theme-aware).
+- `res/drawable/gradient_top.xml` (bg -> transparent) + the existing `gradient`
+  (transparent -> bg) give top/bottom edge fades; used on `results_banner_holder`
+  and `main_poster_holder` (home hero).
+
 ## Advanced & diagnostics (Settings -> General)
 
 - `experimental_features` switch gates genuinely experimental prefs (currently it hides

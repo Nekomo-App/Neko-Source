@@ -95,6 +95,17 @@
                             android:alpha="0.7"
                     >
                     </ImageView>
+                    <!-- Edge fades so the banner melts into the background (top + bottom) -->
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="60dp"
+                            android:layout_gravity="top"
+                            android:background="@drawable/gradient_top"/>
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="90dp"
+                            android:layout_gravity="bottom"
+                            android:background="@drawable/gradient"/>
                     <ImageView
                             android:id="@+id/banner_play_btt"
                             android:scaleType="centerInside"

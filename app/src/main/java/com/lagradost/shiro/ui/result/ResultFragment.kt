@@ -656,13 +656,18 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                 fv<android.widget.ImageView>(R.id.results_banner)?.let {
                     GlideApp.with(context)
                         .load(getFullUrlCdn(data.anime.banner))
+                        .transform(com.lagradost.shiro.utils.BlurTransform())
                         .transition(DrawableTransitionOptions.withCrossFade(200))
-//                            .apply(bitmapTransform(BlurTransformation(100, 3)))
                         .onlyRetrieveFromCache(savingData)
                         .into(it)
                 }
 
             }
+
+            // Kuro-style translucent banner: the title card lets the blurred backdrop show through.
+            fv<androidx.cardview.widget.CardView>(R.id.site_data_card_view)?.setCardBackgroundColor(
+                com.jaredrummler.cyanea.Cyanea.instance.backgroundColor and 0x00FFFFFF or (0xD9 shl 24)
+            )
 
             if (data.episodes.isNotEmpty()) {
                 fv<android.widget.ImageView>(R.id.title_background)?.setOnClickListener {
