@@ -78,14 +78,15 @@ this toggle would just add a switch that does nothing.
 
 ## NEX app build (separate repo: ../nex-app)
 
-`Nekomo-App/NEX` is a separate Android repo (Kotlin, `net.nekomo.nex`). `v0.3.2-alpha`
-tag + prerelease exist (source-only). Building its APK on this machine fails every javac
-task with `java.io.IOException: The filename, directory name, or volume label syntax is
-incorrect` — an environment/JDK path issue (JAVA_HOME has a trailing backslash + space;
-cleaning it and stopping daemons did NOT fix it). Needs a dedicated look (toolchain
-provisioning or CI). NEX version is set via `-PnexVersionName`/`-PnexVersionCode`
-(gradle.properties defaults in `app/build.gradle.kts`); N3KO icon + classic alias live in
-`nex-app/app/src/main/`.
+`Nekomo-App/NEX` is a separate Android repo (Kotlin, `net.nekomo.nex`, AGP 8.7.3 / Kotlin
+2.0.21 / KSP-Room). `v0.3.2-alpha` prerelease has a real APK (`NEX-0.3.2-alpha-debug.apk`).
+Local builds on this machine fail `compileDebugJavaWithJavac` with a Windows
+"volume label" error in AGP's `SdkLocator.validateSdkPath` — unsolved env bug; CI
+(`.github/workflows/build.yml`, ubuntu + temurin-17) builds clean and is the
+canonical way to produce NEX APKs. Real code bug that surfaced in CI: the
+classic-icon alias referenced `color/ic_launcher_background` which didn't exist in
+NEX's `colors.xml` — now defined (`#FF101114`). Version via `-PnexVersionName`/
+`-PnexVersionCode`; N3KO icon + classic alias live in `nex-app/app/src/main/`.
 
 ## Known follow-up work
 
