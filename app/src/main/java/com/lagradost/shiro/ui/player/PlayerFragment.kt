@@ -1327,6 +1327,10 @@ class PlayerFragment : Fragment() {
                     DelayedRenderersFactory.current?.offsetUs =
                         prefs.getInt("subtitle_delay_ms", 0).toLong() * 1000L
                 }
+                if (key == "audio_delay_ms") {
+                    DelayedRenderersFactory.currentAudio?.offsetUs =
+                        prefs.getInt("audio_delay_ms", 0).toLong() * 1000L
+                }
             }.also { prefs.registerOnSharedPreferenceChangeListener(it) }
         }
         fv<androidx.cardview.widget.CardView>(R.id.popout_btt)?.setOnClickListener {
@@ -2319,6 +2323,8 @@ class PlayerFragment : Fragment() {
                             // Subtitle delay (ms) -> renderer offset (µs). Positive delays subtitles.
                             DelayedRenderersFactory.current?.offsetUs =
                                 settingsManager.getInt("subtitle_delay_ms", 0).toLong() * 1000L
+                            DelayedRenderersFactory.currentAudio?.offsetUs =
+                                settingsManager.getInt("audio_delay_ms", 0).toLong() * 1000L
                             playWhenReady = isPlayerPlaying
                             seekTo(currentWindow, playbackPosition)
                             setMediaSource(

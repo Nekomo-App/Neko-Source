@@ -288,6 +288,8 @@ class SubSettingsFragment : PreferenceFragmentCompat() {
                 androidx.preference.PreferenceManager.getDefaultSharedPreferences(requireContext()).let { prefs ->
                     findPreference<Preference>("subtitle_delay_ms")?.isVisible =
                         prefs.getBoolean("experimental_features", false) || prefs.getInt("subtitle_delay_ms", 0) != 0
+                    findPreference<Preference>("audio_delay_ms")?.isVisible =
+                        prefs.getBoolean("experimental_features", false) || prefs.getInt("audio_delay_ms", 0) != 0
                 }
 
                 val selectedProvidersPreference = findPreference<MultiSelectListPreference?>("selected_providers")
