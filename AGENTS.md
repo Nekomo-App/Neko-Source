@@ -76,6 +76,17 @@ treats as dead ("Legacy fastani/vidstream ids are dead with the old backend") - 
 path goes through `LiveApi.resolveStreams` instead and never consults `mainUrl`. Re-enabling
 this toggle would just add a switch that does nothing.
 
+## NEX app build (separate repo: ../nex-app)
+
+`Nekomo-App/NEX` is a separate Android repo (Kotlin, `net.nekomo.nex`). `v0.3.2-alpha`
+tag + prerelease exist (source-only). Building its APK on this machine fails every javac
+task with `java.io.IOException: The filename, directory name, or volume label syntax is
+incorrect` — an environment/JDK path issue (JAVA_HOME has a trailing backslash + space;
+cleaning it and stopping daemons did NOT fix it). Needs a dedicated look (toolchain
+provisioning or CI). NEX version is set via `-PnexVersionName`/`-PnexVersionCode`
+(gradle.properties defaults in `app/build.gradle.kts`); N3KO icon + classic alias live in
+`nex-app/app/src/main/`.
+
 ## Known follow-up work
 
 - **`Fragment.fv()` (`utils/Synthetics.kt`) — mitigated:** it is now `inline reified` and returns a
