@@ -211,6 +211,27 @@ object AppUtils {
 
                         }
                     }
+                    /** nekomo-play://play?slug=<slug>&ep=<n>&pos=<ms> — shared "watch from here" links
+                     *  (the protocol NEX/Watch Together upgrades to live sync later). */
+                    dataString.startsWith("nekomo-play://") -> {
+                        val slug = data.getQueryParameter("slug")
+                        val num = data.getQueryParameter("ep")?.toIntOrNull()
+                        val pos = data.getQueryParameter("pos")?.toLongOrNull() ?: 0L
+                        if (slug != null) {
+                            if (num != null) {
+                                val page = getAnimePageNew(slug)
+                                main {
+                                    if (page?.data != null && page.data.episodes.size >= num && num > 0) {
+                                        loadPlayer(num - 1, pos, page.data)
+                                    } else {
+                                        loadPage(slug, slug)
+                                    }
+                                }
+                            } else {
+                                main { loadPage(slug, slug) }
+                            }
+                        }
+                    }
                     /** MAL url */
                     data.toString().contains("myanimelist.net") -> {
                         val urlRegex = Regex("""myanimelist\.net/anime/(.*)/(.*)""")

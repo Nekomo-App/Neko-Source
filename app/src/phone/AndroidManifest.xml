@@ -71,6 +71,7 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="nekomo"/>
+                <data android:scheme="nekomo-play"/>
             </intent-filter>
         </activity>
 
