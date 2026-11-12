@@ -88,6 +88,15 @@ classic-icon alias referenced `color/ic_launcher_background` which didn't exist 
 NEX's `colors.xml` — now defined (`#FF101114`). Version via `-PnexVersionName`/
 `-PnexVersionCode`; N3KO icon + classic alias live in `nex-app/app/src/main/`.
 
+## Watch Together + nekomo-play links
+
+- `utils/WatchTogether.kt`: same-WiFi sync, no server. Host broadcasts `slug|ep|posMs` on TCP
+  port 47100 every 3s; guests type the host IP and `seekTo` when drift > 4s. Player "Together"
+  button (`watch_together_btt` in `player_custom_layout.xml`) opens the Host/Join/Stop dialog.
+- `nekomo-play://play?slug=<slug>&ep=<n>&pos=<ms>` deep links open a title at a position
+  (handled in `AppUtils.handleIntent`, mirroring the shiro.is branch); the details Share button
+  includes a play-link. This is the protocol WT/NEX sync upgrades to later.
+
 ## Known follow-up work
 
 - **`Fragment.fv()` (`utils/Synthetics.kt`) — mitigated:** it is now `inline reified` and returns a
