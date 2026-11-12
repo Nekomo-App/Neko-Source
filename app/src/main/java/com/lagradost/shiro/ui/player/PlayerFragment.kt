@@ -1341,6 +1341,41 @@ class PlayerFragment : Fragment() {
             updateHideTime()
             openExternal()
         }
+        fv<androidx.cardview.widget.CardView>(R.id.watch_together_btt)?.setOnClickListener {
+            updateHideTime()
+            val wt = com.lagradost.shiro.utils.WatchTogether
+            val ctx2 = getCurrentActivity() ?: return@setOnClickListener
+            val status = when {
+                wt.hosting -> "Hosting on ${wt.localIp()}:${wt.PORT} — guests tap Join and type your IP"
+                wt.following -> "Following the host — seeking when drift exceeds ${wt.DRIFT_MS / 1000}s"
+                else -> "Watch the same thing on two phones on the same Wi-Fi: one hosts, the other joins with the host's IP."
+            }
+            android.app.AlertDialog.Builder(ctx2)
+                .setTitle("Watch Together")
+                .setMessage(status)
+                .setNeutralButton("Stop") { _, _ -> wt.stop(); Toast.makeText(ctx2, "Watch Together stopped", Toast.LENGTH_LONG).show() }
+                .setNegativeButton("Join…") { _, _ ->
+                    val et = android.widget.EditText(ctx2).apply { hint = "Host IP, e.g. 192.168.1.20"; inputType = android.text.InputType.TYPE_CLASS_PHONE }
+                    android.app.AlertDialog.Builder(ctx2).setTitle("Join a host")
+                        .setView(et)
+                        .setPositiveButton("Join") { _, _ ->
+                            val ip = et.text.toString().trim()
+                            if (ip.isNotEmpty()) wt.join(ip,
+                                { snap -> if (kotlin.math.abs(exoPlayer.currentPosition - snap.posMs) > wt.DRIFT_MS) exoPlayer.seekTo(snap.posMs) },
+                                { e -> Toast.makeText(ctx2, e, Toast.LENGTH_LONG).show() })
+                        }
+                        .setNegativeButton("Cancel", null).show()
+                }
+                .setPositiveButton("Host") { _, _ ->
+                    wt.hostLoop {
+                        val ep = data?.episodeIndex ?: return@hostLoop null
+                        val slug = data?.slug ?: return@hostLoop null
+                        com.lagradost.shiro.utils.WatchTogether.Snapshot(slug, ep, exoPlayer.currentPosition)
+                    }
+                    Toast.makeText(ctx2, "Hosting — your IP: ${wt.localIp() ?: "unknown"}", Toast.LENGTH_LONG).show()
+                }
+                .show()
+        }
         fv<android.widget.TextView>(R.id.skip_segment_btt)?.setOnClickListener {
             currentSkipSegment?.let { seg ->
                 if (this::exoPlayer.isInitialized) exoPlayer.seekTo(seg.endMs)
