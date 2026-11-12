@@ -797,7 +797,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             fv<android.widget.ImageView>(R.id.share_btt)?.setOnClickListener {
                 val intent = Intent()
                 intent.action = Intent.ACTION_SEND
-                intent.putExtra(Intent.EXTRA_TEXT, "********/${data.anime.slug}")
+                intent.putExtra(Intent.EXTRA_TEXT, "${data.anime.title}\nnekomo-play://play?slug=${data.anime.slug}")
                 intent.type = "text/plain"
                 startActivity(Intent.createChooser(intent, "Share To:"))
             }
