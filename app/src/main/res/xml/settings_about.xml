@@ -28,6 +28,9 @@
     <Preference android:title="Privacy Policy" android:icon="@drawable/ic_baseline_code_24" app:summary="What stays on your device">
         <intent android:action="android.intent.action.VIEW" android:data="https://nekomoapp.netlify.app/privacy"/>
     </Preference>
+    <Preference android:title="Donate" android:icon="@drawable/ic_baseline_code_24" app:summary="Support Nekomo — coming soon">
+        <intent android:action="android.intent.action.VIEW" android:data="https://nekomoapp.netlify.app/donate.html"/>
+    </Preference>
     <Preference android:title="DMCA / copyright" android:icon="@drawable/ic_baseline_code_24" app:summary="Nekomo hosts no content; report copyright concerns here">
         <intent android:action="android.intent.action.VIEW" android:data="https://nekomoapp.netlify.app/dmca"/>
     </Preference>
