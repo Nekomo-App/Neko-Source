@@ -203,7 +203,7 @@ class AniListApi {
                     //headers = mapOf(),
                     json = data,//(if (vars == null) mapOf("query" to q) else mapOf("query" to q, "variables" to vars))
                     timeout = 5.0 // REASONABLE TIMEOUT
-                ).text.replace("\\", "")
+                ).text
                 return res.toKotlinObject()
             } catch (e: Exception) {
                 logError(e)
@@ -837,6 +837,6 @@ class AniListApi {
     )
 
     data class GetSearchRoot(
-        @JsonProperty("data") val data: GetSearchPage,
+        @JsonProperty("data") val data: GetSearchPage?,
     )
 }
