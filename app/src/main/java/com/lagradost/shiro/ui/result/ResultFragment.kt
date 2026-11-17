@@ -1106,7 +1106,12 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
 
 
                 } else {
-                    startDownload(currentLinks ?: return@main)
+                    val links = currentLinks
+                    if (links.isNullOrEmpty()) {
+                        Toast.makeText(requireContext(), R.string.error_loading_links, Toast.LENGTH_SHORT).show()
+                        return@main
+                    }
+                    startDownload(links)
                 }
 
             }

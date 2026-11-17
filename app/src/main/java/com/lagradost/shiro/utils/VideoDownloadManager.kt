@@ -884,6 +884,14 @@ object VideoDownloadManager {
                 DownloadResumePackage(DownloadItem(source, folder, ep, validLinks), null),
                 notificationCallback
             )
+        } else if (links.isNotEmpty()) {
+            main {
+                Toast.makeText(
+                    context,
+                    "This source only has HLS streams, which can't be downloaded",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 }
