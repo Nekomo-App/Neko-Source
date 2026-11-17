@@ -24,7 +24,7 @@ class PositionedCropTransformation(
             pool[outWidth, outHeight, if (toTransform.config != null) toTransform.config else Bitmap.Config.ARGB_8888]
         val transformed = crop(toReuse, toTransform, outWidth, outHeight, xPercentage, yPercentage)!!
         if (toReuse != transformed) {
-            toReuse.recycle()
+            pool.put(toReuse)
         }
         return transformed
     }
