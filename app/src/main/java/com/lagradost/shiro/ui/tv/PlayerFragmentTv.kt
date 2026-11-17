@@ -149,6 +149,9 @@ class PlayerFragmentTv : VideoSupportFragment() {
     private val fastForwardTimeMillis: Long = TimeUnit.SECONDS.toMillis(fastForwardTime.toLong())
     private val autoPlayEnabled = settingsManager?.getBoolean("autoplay_enabled", true) ?: true
     private val skipFillers = settingsManager?.getBoolean("skip_fillers", false) ?: false
+    private val ignoreSSL = settingsManager?.getBoolean("ignore_ssl", false) ?: false
+    private val defaultVerifier = HttpsURLConnection.getDefaultHostnameVerifier()
+    private val defaultFactory = HttpsURLConnection.getDefaultSSLSocketFactory()
 
     private val resizeModes = listOf(
         AppUtils.AspectRatioTV.RESIZE_MODE_FIT,
@@ -356,6 +359,8 @@ class PlayerFragmentTv : VideoSupportFragment() {
     }
 
     private fun playNextEpisode() {
+        val card = data?.card ?: return
+        val epIndex = data?.episodeIndex ?: return
 
         handler.removeCallbacks(checkProgressAction)
         context?.savePos()
@@ -363,27 +368,24 @@ class PlayerFragmentTv : VideoSupportFragment() {
         isLoadingNextEpisode = true
         playerViewModel?.selectedSource?.postValue(null)
 
-        val key = getViewKey(
-            data?.card!!.anime.slug,
-            data!!.episodeIndex!! + 1
-        )
+        val key = getViewKey(card.anime.slug, epIndex + 1)
         context?.removeKey(VIEW_POS_KEY, key)
         context?.removeKey(VIEW_DUR_KEY, key)
 
         val next =
-            if (skipFillers) data?.fillerEpisodes?.filterKeys { it > data!!.episodeIndex!! + 1 }
+            if (skipFillers) data?.fillerEpisodes?.filterKeys { it > epIndex + 1 }
                 ?.filterValues { !it }?.keys?.minByOrNull { it }?.minus(1) else null
         next?.let {
-            if (it - data!!.episodeIndex!! - 1 > 0) {
+            if (it - epIndex - 1 > 0) {
                 Toast.makeText(
                     context,
-                    "Skipped ${it - data!!.episodeIndex!! - 1} filler episodes",
+                    "Skipped ${it - epIndex - 1} filler episodes",
                     LENGTH_LONG
                 ).show()
             }
         }
 
-        data?.episodeIndex = next ?: minOf(data?.episodeIndex!! + 1, data?.card?.episodes?.size!! - 1)
+        data?.episodeIndex = next ?: minOf(epIndex + 1, (card.episodes?.size ?: 1) - 1)
         selectedSource = null
         extractorLinks.clear()
         releasePlayer()
@@ -688,7 +690,11 @@ class PlayerFragmentTv : VideoSupportFragment() {
                 database.metadata().update(metadata.apply { watchNext = true })
             }*/
 
-            val mimeType = if (currentUrl.isM3u8) MimeTypes.APPLICATION_M3U8 else MimeTypes.APPLICATION_MP4
+            val mimeType = when {
+                currentUrl.isM3u8 -> MimeTypes.APPLICATION_M3U8
+                currentUrl.isDash -> MimeTypes.APPLICATION_MPD
+                else -> MimeTypes.APPLICATION_MP4
+            }
             val mediaItemBuilder = MediaItem.Builder()
                 //Replace needed for android 6.0.0  https://github.com/google/ExoPlayer/issues/5983
                 .setMimeType(mimeType)
@@ -696,7 +702,10 @@ class PlayerFragmentTv : VideoSupportFragment() {
             fun newDataSourceFactory(): DataSource.Factory {
                 return if (isOnline) {
                     DefaultHttpDataSource.Factory().apply {
-                        val headers = mapOf("Referer" to currentUrl.referer)
+                        // Extractor-provided headers (extensions) take precedence
+                        val headers = HashMap<String, String>()
+                        headers["Referer"] = currentUrl.referer
+                        currentUrl.headers?.let { headers.putAll(it) }
                         setDefaultRequestProperties(headers)
                         setUserAgent(USER_AGENT)
                     }
@@ -732,11 +741,11 @@ class PlayerFragmentTv : VideoSupportFragment() {
             val mediaItem = mediaItemBuilder.build()
             val exoPlayerBuilder = context?.let {
                 val trackSelector = DefaultTrackSelector(it)
-                // Disable subtitles
+                // Disable subtitles — setRendererDisabled takes a positional
+                // renderer index, not a C.TRACK_TYPE_* constant. Standard
+                // ExoPlayer renderer order: video(0), audio(1), text(2).
                 trackSelector.parameters = DefaultTrackSelector.ParametersBuilder(it)
-                    .setRendererDisabled(C.TRACK_TYPE_VIDEO, true)
-                    .setRendererDisabled(C.TRACK_TYPE_TEXT, true)
-                    .setDisabledTextTrackSelectionFlags(C.TRACK_TYPE_TEXT)
+                    .setRendererDisabled(2, true)
                     .clearSelectionOverrides()
                     .build()
                 SimpleExoPlayer.Builder(it)
@@ -844,11 +853,14 @@ class PlayerFragmentTv : VideoSupportFragment() {
                     mapper.readValue<List<NekomoApi.Companion.EpisodeObject?>?>(it)
                 }
                 val videoId = episodes?.firstOrNull { it?.slug == "gogostream" }
+                // Links arriving after an episode switch would be stamped with
+                // the new index — drop them instead of playing the old episode.
+                val loadEpisodeIndex = data?.episodeIndex
                 videoId?.source?.let {
                     loadLinks(
                         it,
                         false,
-                        callback = ::linkLoaded
+                        callback = { link -> if (loadEpisodeIndex == data?.episodeIndex) linkLoaded(link) }
                     )
                 }
             }
@@ -943,7 +955,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
     override fun onStart() {
         super.onStart()
         if (data != null && data?.episodeIndex != null) {
-            val pro = getCurrentContext()!!.getViewPosDur(data!!.slug, data?.episodeIndex!!)
+            val pro = (getCurrentContext() ?: context ?: return).getViewPosDur(data!!.slug, data?.episodeIndex!!)
             if (pro.pos > 0 && pro.dur > 0 && (pro.pos * 100 / pro.dur) < 95) { // UNDER 95% RESUME
                 playbackPosition = pro.pos
             }
@@ -953,14 +965,18 @@ class PlayerFragmentTv : VideoSupportFragment() {
     override fun onResume() {
         super.onResume()
 
-        // Disables ssl check
-        val sslContext: SSLContext = SSLContext.getInstance("TLS")
-        sslContext.init(null, arrayOf(SSLTrustManager()), SecureRandom())
-        sslContext.createSSLEngine()
-        HttpsURLConnection.setDefaultHostnameVerifier { _: String, _: SSLSession ->
-            true
+        // Disables ssl check — only when the user opted in, and restored in
+        // onStop. Installing a trust-all verifier process-wide permanently
+        // would silently strip TLS verification from every HttpsURLConnection.
+        if (ignoreSSL) {
+            val sslContext: SSLContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, arrayOf(SSLTrustManager()), SecureRandom())
+            sslContext.createSSLEngine()
+            HttpsURLConnection.setDefaultHostnameVerifier { _: String, _: SSLSession ->
+                true
+            }
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
         }
-        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.socketFactory)
 
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE
         if (this::exoPlayer.isInitialized) {
@@ -1001,6 +1017,10 @@ class PlayerFragmentTv : VideoSupportFragment() {
 
     /** Do all final cleanup in onDestroy */
     override fun onDestroy() {
+        if (ignoreSSL) {
+            HttpsURLConnection.setDefaultHostnameVerifier(defaultVerifier)
+            HttpsURLConnection.setDefaultSSLSocketFactory(defaultFactory)
+        }
         getCurrentContext()?.theme?.applyStyle(R.style.customText, true)
         super.onDestroy()
         getCurrentContext()?.savePos()

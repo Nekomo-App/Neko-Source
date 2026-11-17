@@ -1,5 +1,6 @@
 package com.lagradost.shiro.ui
 import com.lagradost.shiro.utils.fv
+import com.lagradost.shiro.utils.safeNavigate
 
 import DataStore.getKey
 import DataStore.removeKey
@@ -496,7 +497,7 @@ class MainActivity : CyaneaAppCompatActivity() {
             "library" -> R.id.navigation_library
             "downloads" -> R.id.navigation_downloads
             else -> null
-        }?.let { dest -> navView.post { navController?.navigate(dest) } }
+        }?.let { dest -> navView.post { navController?.safeNavigate(dest) } }
 
         navController!!.addOnDestinationChangedListener { _, destination, _ ->
             navView.hideKeyboard()

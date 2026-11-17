@@ -179,7 +179,7 @@
         <receiver
                 android:name=".receivers.VideoDownloadRestartReceiver"
                 android:enabled="true"
-                android:exported="true">
+                android:exported="false">
             <intent-filter>
                 <action android:name="restart_service"/>
             </intent-filter>

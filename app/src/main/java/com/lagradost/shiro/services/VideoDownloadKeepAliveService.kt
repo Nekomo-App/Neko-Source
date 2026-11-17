@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.lagradost.shiro.receivers.VideoDownloadRestartReceiver
 import com.lagradost.shiro.utils.VideoDownloadManager
 
 const val RESTART_ALL_DOWNLOADS_AND_QUEUE = 1
@@ -53,7 +54,7 @@ class VideoDownloadKeepAliveService : Service() {
             val resumePkg = keys.mapNotNull { k -> this.getKey<VideoDownloadManager.DownloadResumePackage>(k) }
 
             for (pkg in resumePkg) { // ADD ALL CURRENT DOWNLOADS
-//                VideoDownloadManager.downloadFromResume(this, pkg)
+                VideoDownloadManager.downloadFromResume(this, pkg, ::handleNotification)
             }
 
             // ADD QUEUE
@@ -62,7 +63,7 @@ class VideoDownloadKeepAliveService : Service() {
             if (resumeQueue != null && resumeQueue.isNotEmpty()) {
                 val sorted = resumeQueue.sortedBy { item -> item.index }
                 for (queueItem in sorted) {
-//                    VideoDownloadManager.downloadFromResume(this, queueItem.pkg)
+                    VideoDownloadManager.downloadFromResume(this, queueItem.pkg, ::handleNotification)
                 }
             }
         }
@@ -70,11 +71,15 @@ class VideoDownloadKeepAliveService : Service() {
         return START_STICKY//super.onStartCommand(intent, flags, startId)
     }
 
+    private fun handleNotification(id: Int, notification: Notification) {
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).notify(id, notification)
+    }
+
     override fun onDestroy() {
-        /*val broadcastIntent = Intent()
+        val broadcastIntent = Intent()
         broadcastIntent.action = "restart_service"
         broadcastIntent.setClass(this, VideoDownloadRestartReceiver::class.java)
-        this.sendBroadcast(broadcastIntent)*/
+        this.sendBroadcast(broadcastIntent)
         super.onDestroy()
     }
 }

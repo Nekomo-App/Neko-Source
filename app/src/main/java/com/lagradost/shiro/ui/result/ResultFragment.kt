@@ -992,7 +992,8 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
             }
 
             val currentLoad = currentLoadingCount
-            val builder = AlertDialog.Builder(requireContext(), R.style.AlertDialogCustomTransparent)
+            val ctx = context ?: return false
+            val builder = AlertDialog.Builder(ctx, R.style.AlertDialogCustomTransparent)
             val customLayout = layoutInflater.inflate(R.layout.dialog_loading, null)
             builder.setView(customLayout)
 
@@ -1021,7 +1022,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
                     return true
                 }
                 is Resource.Failure -> {
-                    Toast.makeText(requireContext(), R.string.error_loading_links, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context ?: return false, R.string.error_loading_links, Toast.LENGTH_SHORT).show()
                 }
                 else -> {
 
@@ -1061,7 +1062,7 @@ class ResultFragment : Fragment(), PanelsChildGestureRegionObserver.GestureRegio
         when (episodeClick.action) {
             ACTION_DOWNLOAD_EPISODE -> {
                 if (settingsManager?.getBoolean("pick_downloads", false) == true) {
-                    currentLinks?.filter { !it.isM3u8 }?.let {
+                    currentLinks?.filter { !it.isM3u8 && !it.isDash }?.let {
                         if (it.isNullOrEmpty()) {
                             Toast.makeText(
                                 guaranteedContext(context),

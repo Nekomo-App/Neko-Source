@@ -283,10 +283,16 @@ function __nkCall(method, argsJson) {
                 Context.exit()
             }
         }
+        val future = exec.submit(task)
         return try {
-            exec.submit(task).get(timeoutMs + 5_000, TimeUnit.MILLISECONDS)
+            future.get(timeoutMs + 5_000, TimeUnit.MILLISECONDS)
         } catch (e: java.util.concurrent.ExecutionException) {
             throw (e.cause ?: e)
+        } catch (e: java.util.concurrent.TimeoutException) {
+            // A script hung in synchronous JS would otherwise hold its pool
+            // thread forever and starve every later provider call.
+            future.cancel(true)
+            throw e
         }
     }
 

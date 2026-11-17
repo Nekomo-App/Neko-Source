@@ -117,14 +117,14 @@ object DataStore {
         return PreferenceManager.getDefaultSharedPreferences(this)
     }
 
-    // GET KEY GIVEN PATH AND DEFAULT VALUE, NULL IF ERROR
+    // GET KEY GIVEN PATH AND DEFAULT VALUE, DEFAULT ON PARSE ERROR
     inline fun <reified T : Any> Context.getKey(path: String, defVal: T?): T? {
         try {
             val json: String = getSharedPrefs().getString(path, null) ?: return defVal
             return json.toKotlinObject()
         } catch (e: Exception) {
             e.printStackTrace()
-            return null
+            return defVal
         }
     }
 

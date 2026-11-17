@@ -182,7 +182,7 @@ object VideoDownloadManager {
         if (bitmap != null) {
             cachedBitmaps[url] = bitmap
         }
-        return null
+        return bitmap
     }
 
     private fun createNotification(
@@ -437,9 +437,11 @@ object VideoDownloadManager {
 
         val normalPath = "${Environment.getExternalStorageDirectory()}${File.separatorChar}$relativePath$displayName"
         var resume = tryResume
+        var scopedUri: android.net.Uri? = null
 
-        val fileStream: OutputStream
-        val fileLength: Long
+        var fileStream: OutputStream? = null
+        var localFile: File? = null
+        var fileLength: Long = 0
 
         fun deleteFile(): Int {
             if (isScopedStorage()) {
@@ -493,9 +495,11 @@ object VideoDownloadManager {
 
             fileStream = cr.openOutputStream(newFileUri, "w" + (if (appendFile) "a" else ""))
                 ?: return ERROR_CONTENT_RESOLVER_CANT_OPEN_STREAM
+            scopedUri = newFileUri
         } else {
             // NORMAL NON SCOPED STORAGE FILE CREATION
             val rFile = File(normalPath)
+            localFile = rFile
 //            println("NORMAL PATH $normalPath")
             if (!rFile.exists()) {
                 fileLength = 0
@@ -511,7 +515,6 @@ object VideoDownloadManager {
                     if (!rFile.createNewFile()) return ERROR_CREATE_FILE
                 }
             }
-            fileStream = FileOutputStream(rFile, false)
         }
         if (fileLength == 0L) resume = false
 
@@ -524,13 +527,34 @@ object VideoDownloadManager {
         connection.setRequestProperty("User-Agent", USER_AGENT)
         if (link.referer.isNotEmpty()) connection.setRequestProperty("Referer", link.referer)
         if (resume) connection.setRequestProperty("Range", "bytes=${fileLength}-")
-        val resumeLength = (if (resume) fileLength else 0)
 
         // ON CONNECTION
         connection.connect()
+        // A server that ignores Range answers 200 with the full body — appending
+        // that to the existing file would corrupt it, so start the file over.
+        if (resume && (connection as? java.net.HttpURLConnection)?.responseCode != java.net.HttpURLConnection.HTTP_PARTIAL) {
+            resume = false
+            fileLength = 0
+            // Scoped-storage stream was already opened in append mode — reopen
+            // it truncated so the ignored-range body can't corrupt the file.
+            val uri = scopedUri
+            if (uri != null) {
+                runCatching { fileStream?.close() }
+                fileStream = context.contentResolver.openOutputStream(uri, "wt")
+                    ?: return ERROR_CONTENT_RESOLVER_CANT_OPEN_STREAM
+            }
+        }
+        val resumeLength = (if (resume) fileLength else 0)
         val contentLength = connection.contentLength
         val bytesTotal = contentLength + resumeLength
-        if (bytesTotal < 5000000) return ERROR_TOO_SMALL_CONNECTION // DATA IS LESS THAN 5MB, SOMETHING IS WRONG
+        // Only sanity-check when the server reports a length — chunked/CDN
+        // responses legitimately return -1 here.
+        if (contentLength > 0 && bytesTotal < 5000000) return ERROR_TOO_SMALL_CONNECTION // DATA IS LESS THAN 5MB, SOMETHING IS WRONG
+
+        // Open the stream only after the response is validated: append when
+        // resuming, truncate otherwise (the earlier code always truncated,
+        // so a resumed download overwrote its own head with the tail).
+        if (fileStream == null) fileStream = FileOutputStream(localFile!!, resume)
 
         context.setKey(KEY_DOWNLOAD_INFO, ep.id.toString(), DownloadedFileInfo(bytesTotal, relativePath, displayName))
 
@@ -585,7 +609,9 @@ object VideoDownloadManager {
             )
         }
 
-        downloadEvent += { event ->
+        // Keep a handle so the listener can be removed on exit — an orphaned
+        // lambda leaks per download attempt and re-runs for future events.
+        val actionListener: (Pair<Int, DownloadActionType>) -> Unit = { event ->
             if (event.first == ep.id) {
                 when (event.second) {
                     DownloadActionType.Pause -> {
@@ -602,6 +628,7 @@ object VideoDownloadManager {
                 }
             }
         }
+        downloadEvent += actionListener
 
         // UPDATE DOWNLOAD NOTIFICATION
         val notificationCoroutine = main {
@@ -632,17 +659,24 @@ object VideoDownloadManager {
                 if (isStopped) {
                     break
                 }
-                fileStream.write(buffer, 0, count)
+                fileStream?.write(buffer, 0, count)
             }
         } catch (e: Exception) {
             isFailed = true
             updateNotification()
         }
 
+        // A connection that dies mid-body must not be marked complete.
+        if (!isFailed && !isStopped && bytesTotal > 0 && bytesDownloaded < bytesTotal) {
+            isFailed = true
+            updateNotification()
+        }
+
         // REMOVE AND EXIT ALL
-        fileStream.close()
+        fileStream?.close()
         connectionInputStream.close()
         notificationCoroutine.cancel()
+        downloadEvent -= actionListener
 
         try {
             downloadStatus.remove(ep.id)
@@ -877,7 +911,8 @@ object VideoDownloadManager {
         links: List<ExtractorLink>,
         notificationCallback: (Int, Notification) -> Unit
     ) {
-        val validLinks = links.filter { !it.isM3u8 }
+        // Manifest links (.m3u8/.mpd) aren't downloadable files.
+        val validLinks = links.filter { !it.isM3u8 && !it.isDash }
         if (validLinks.isNotEmpty()) {
             downloadFromResume(
                 context,

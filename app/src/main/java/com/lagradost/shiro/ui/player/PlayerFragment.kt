@@ -248,9 +248,9 @@ class PlayerFragment : Fragment() {
     private var playerViewModel: PlayerViewModel? = null
 
     private var isCurrentlyPlaying: Boolean = false
-    private var playbackSpeed: Float? = getCurrentActivity()!!.getKey(PLAYBACK_SPEED_KEY, 1f)
+    private var playbackSpeed: Float? = getCurrentContext()?.getKey(PLAYBACK_SPEED_KEY, 1f)
 
-    private val settingsManager = PreferenceManager.getDefaultSharedPreferences(getCurrentContext()!!)!!
+    private val settingsManager by lazy { PreferenceManager.getDefaultSharedPreferences(getCurrentContext() ?: requireContext()) }
     private val swipeEnabled = settingsManager.getBoolean("swipe_enabled", true)
     private val swipeVerticalEnabled = settingsManager.getBoolean("swipe_vertical_enabled", true)
     private val skipOpEnabled = settingsManager.getBoolean("skip_op_enabled", true)
@@ -399,11 +399,14 @@ class PlayerFragment : Fragment() {
                     mapper.readValue<List<NekomoApi.Companion.EpisodeObject?>?>(it)
                 }
                 val videoId = episodes?.firstOrNull { it?.slug == "gogostream" }
+                // Links arriving after an episode switch would be stamped with
+                // the new index — drop them instead of playing the old episode.
+                val loadEpisodeIndex = data?.episodeIndex
                 videoId?.source?.let {
                     loadLinks(
                         it,
                         false,
-                        callback = ::linkLoaded
+                        callback = { link -> if (loadEpisodeIndex == data?.episodeIndex) linkLoaded(link) }
                     )
                 }
                 if (extractorLinks.isEmpty() && data?.url == null) {
@@ -1304,7 +1307,7 @@ class PlayerFragment : Fragment() {
             res.setOnItemClickListener { _, _, which, _ ->
                 playbackSpeed = speedsNumbers[which]
                 context?.setKey(PLAYBACK_SPEED_KEY, playbackSpeed)
-                val param = PlaybackParameters(playbackSpeed!!)
+                val param = PlaybackParameters(playbackSpeed ?: 1f)
                 if (this@PlayerFragment::exoPlayer.isInitialized) exoPlayer.playbackParameters = param
                 fv<android.widget.TextView>(R.id.player_speed_text)?.text = "Speed (${playbackSpeed}x)".replace(".0x", "x")
                 dialog.dismiss()
@@ -1864,7 +1867,7 @@ class PlayerFragment : Fragment() {
         outState.putBoolean(STATE_PLAYER_FULLSCREEN, isFullscreen)
         outState.putBoolean(STATE_PLAYER_PLAYING, isPlayerPlaying)
         outState.putInt(RESIZE_MODE_KEY, resizeMode)
-        outState.putFloat(PLAYBACK_SPEED, playbackSpeed!!)
+        outState.putFloat(PLAYBACK_SPEED, playbackSpeed ?: 1f)
         savePos()
         super.onSaveInstanceState(outState)
     }
@@ -2381,7 +2384,7 @@ class PlayerFragment : Fragment() {
                         fv<com.google.android.exoplayer2.ui.PlayerView>(R.id.player_view)?.player = exoPlayer
 
                         // Sets the speed
-                        exoPlayer.playbackParameters = PlaybackParameters(playbackSpeed!!)
+                        exoPlayer.playbackParameters = PlaybackParameters(playbackSpeed ?: 1f)
                         fv<android.widget.TextView>(R.id.player_speed_text)?.text = "Speed (${playbackSpeed}x)".replace(".0x", "x")
 
                         //https://stackoverflow.com/questions/47731779/detect-pause-resume-in-exoplayer
