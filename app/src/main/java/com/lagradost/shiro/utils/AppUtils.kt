@@ -827,14 +827,24 @@ object AppUtils {
     }
 
     fun FragmentActivity.changeStatusBarState(hide: Boolean): Int {
+        // FLAG_FULLSCREEN is ignored for edge-to-edge apps on Android 15+/16 —
+        // the bar still draws over the content and keeps eating touches there.
+        // WindowInsetsController.hide() is the call that actually hides it.
+        val controller = window?.let {
+            androidx.core.view.WindowCompat.getInsetsController(it, it.decorView)
+        }
         return if (hide) {
             window?.setFlags(
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
             )
+            controller?.systemBarsBehavior =
+                androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
             0
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            controller?.show(androidx.core.view.WindowInsetsCompat.Type.statusBars())
             getStatusBarHeight()
         }
     }
