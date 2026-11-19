@@ -61,7 +61,13 @@ object Trailers {
         }
     }
 
-    private fun init() {
+    /**
+     * NewPipe's global downloader. CloudStream providers (YouTube, Invidious) also use the extractor, so this
+     * must run at app start rather than only when a trailer plays — otherwise their calls throw
+     * `NullPointerException: downloader is null`.
+     */
+    @Synchronized
+    fun init() {
         if (initialised) return
         NewPipe.init(NpDownloader())
         initialised = true

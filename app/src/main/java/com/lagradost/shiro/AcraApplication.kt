@@ -114,6 +114,8 @@ class AcraApplication : Application() {
             override fun onActivityDestroyed(activity: android.app.Activity) {}
         })
         normalSafeApiCall { CsPluginManager.init(this) }
+        // NewPipe downloader must exist before cs3 YouTube/Invidious providers run (they use the extractor directly)
+        normalSafeApiCall { com.lagradost.shiro.utils.Trailers.init() }
         // Optional automatic updates for installed script/plugin sources (never APK extensions)
         // New-episode notifications for subscribed shows (no-ops while the setting is off)
         normalSafeApiCall { com.lagradost.shiro.utils.NewEpisodeWorker.schedule(this) }

@@ -842,7 +842,11 @@ object AppUtils {
     fun Context.openBrowser(url: String) {
         try {
             if (tvActivity != null) {
-                tvActivity?.addFragmentOnlyOnce(android.R.id.content, WebViewFragment.newInstance(url), "WEB_VIEW")
+                // Host the WebView on the FOREGROUND activity — adding it to TvActivity's
+                // content view while SettingsActivity sits on top leaves the OAuth page
+                // invisible behind the settings window and unreachable.
+                val host = getCurrentActivity() ?: tvActivity
+                host?.addFragmentOnlyOnce(android.R.id.content, WebViewFragment.newInstance(url), "WEB_VIEW")
             } else {
                 val components = arrayOf(ComponentName(applicationContext, MainActivity::class.java))
                 val intent = Intent(Intent.ACTION_VIEW)
