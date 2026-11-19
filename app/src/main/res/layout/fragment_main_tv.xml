@@ -58,7 +58,7 @@
                     android:id="@+id/tv_hero_holder"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="47"
+                    android:layout_weight="50"
             >
             <FrameLayout
                     android:id="@+id/tv_hero"
@@ -67,7 +67,7 @@
                     android:visibility="gone"
                     tools:visibility="visible"
             >
-                <ImageView
+                <com.lagradost.shiro.ui.BottomFadeImageView
                         android:id="@+id/tv_banner"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
@@ -107,31 +107,17 @@
                         android:alpha="0.7"
                         android:background="@drawable/gradient_top"
                 />
-                <!-- Bottom ramp (lower ~50%): art dissolves into solid theme background,
-                     blending seamlessly into the rows/wallpaper below. -->
-                <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical">
-                    <View
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="50"
-                    />
-                    <View
-                            android:layout_width="match_parent"
-                            android:layout_height="0dp"
-                            android:layout_weight="50"
-                            android:background="@drawable/gradient"
-                    />
-                </LinearLayout>
+                <!-- The bottom dissolve is a real alpha mask on tv_banner itself
+                     (BottomFadeImageView), revealing the wallpaper behind it. -->
                 <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:orientation="vertical"
+                        android:gravity="bottom"
                         android:layout_gravity="bottom|start"
                         android:layout_marginStart="56dp"
                         android:layout_marginBottom="26dp"
+                        android:paddingTop="20dp"
                 >
                     <TextView
                             android:id="@+id/tv_hero_kicker"
@@ -148,8 +134,8 @@
                             android:id="@+id/tv_hero_title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:maxWidth="760dp"
-                            android:textSize="34sp"
+                            android:maxWidth="620dp"
+                            android:textSize="30sp"
                             android:textStyle="bold"
                             android:maxLines="2"
                             android:ellipsize="end"
@@ -164,7 +150,7 @@
                             android:layout_marginTop="8dp"
                             android:textSize="14sp"
                             android:alpha="0.85"
-                            android:maxLines="3"
+                            android:maxLines="2"
                             android:ellipsize="end"
                             android:textColor="?attr/textColor"
                             tools:text="Synopsis text goes here"
@@ -327,7 +313,7 @@
                     android:visibility="gone"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="53"
+                    android:layout_weight="50"
                     android:orientation="vertical"
                     android:id="@+id/vertical_grid_view"
                     tools:listitem="@layout/vertical_grid_view_child"

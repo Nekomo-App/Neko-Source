@@ -56,7 +56,7 @@
                         android:id="@+id/main_poster_holder"
                 >
 
-                    <ImageView
+                    <com.lagradost.shiro.ui.BottomFadeImageView
                             android:id="@+id/main_poster"
                             android:layout_width="match_parent"
                             android:layout_height="412dp"
@@ -67,7 +67,7 @@
                             android:nextFocusRight="@+id/main_info_button"
                             android:nextFocusLeft="@+id/main_watch_button">
                         <requestFocus/>
-                    </ImageView>
+                    </com.lagradost.shiro.ui.BottomFadeImageView>
                     <!-- Alpha matches the wallpaper scrim so the banner dissolves into
                          the app background instead of a hard opaque band. -->
                     <View
@@ -85,15 +85,8 @@
                             android:layout_height="140dp"
                             android:layout_gravity="top"
                             android:background="@drawable/gradient_gloss"/>
-                    <!-- Strong bottom ramp over the art's lower half: fully opaque theme
-                         color at the edge so the banner dissolves into the app background
-                         and floating navigation instead of ending in a hard cut. -->
-                    <View
-                            android:layout_width="match_parent"
-                            android:layout_height="210dp"
-                            android:layout_gravity="top"
-                            android:layout_marginTop="202dp"
-                            android:background="@drawable/gradient"/>
+                    <!-- The bottom dissolve is a real alpha mask on main_poster itself
+                         (BottomFadeImageView), revealing the wallpaper behind it. -->
                     <!--
                     305 dp here (+ a new view) is needed to hide a
                     parallax scrolling bug making the gradient not cover the image
