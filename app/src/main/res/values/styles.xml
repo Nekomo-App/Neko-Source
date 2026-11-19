@@ -347,6 +347,13 @@
         <item name="android:fontFamily">@font/poppins_regular</item>
         <item name="android:textColor">?attr/textColor</item>
         <item name="android:tint">?attr/colorAccent</item>
+        <!-- This style is parentless, so dialogs/views created with a settings
+             context can't resolve the app's custom attrs (?attr/textColor,
+             ?attr/white) and crash inflating e.g. AlertDialogCustom. -->
+        <item name="white">@color/white</item>
+        <item name="textColor">@color/textColor</item>
+        <item name="textColorGray">@color/textColorGray</item>
+        <item name="textColorGrayWhite">@color/textColorGrayWhite</item>
     </style>
 
     <style name="CustomCastExpandedController" parent="CastExpandedController">

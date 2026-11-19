@@ -829,7 +829,23 @@ object AppUtils {
     fun FragmentActivity.changeStatusBarState(hide: Boolean): Int {
         // FLAG_FULLSCREEN is ignored for edge-to-edge apps on Android 15+/16 —
         // the bar still draws over the content and keeps eating touches there.
-        // WindowInsetsController.hide() is the call that actually hides it.
+        // WindowInsetsController.hide() hides it visually, but on its own the
+        // SysUI status-bar window stays touchable over the whole strip and
+        // keeps swallowing taps. The legacy immersive systemUiVisibility flags
+        // are what actually collapse the bar's touch region to the thin
+        // swipe-reveal edge, so content under it becomes tappable again.
+        // Keep the window truly edge-to-edge. With the default fitSystemWindows,
+        // WMS refits the frame below the bar every time it is revealed (IME,
+        // dialogs, swipe) and the touch region can stay shrunk at [0,statusBarH]
+        // after the bar re-hides — a dead top strip with content visibly drawn
+        // under it. Every screen already pads itself by statusHeight, so the app
+        // handles insets manually and the frame must just stay full-screen. It
+        // has to be unconditional: re-enabling fit when the bar is revealed is
+        // exactly what shrinks the frame.
+        window?.let {
+            androidx.core.view.WindowCompat.setDecorFitsSystemWindows(it, false)
+            it.decorView.post { androidx.core.view.ViewCompat.requestApplyInsets(it.decorView) }
+        }
         val controller = window?.let {
             androidx.core.view.WindowCompat.getInsetsController(it, it.decorView)
         }
@@ -838,12 +854,57 @@ object AppUtils {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
             )
+            // LAYOUT_INSET_DECOR (from the translucent-status theme) tells WMS
+            // to fit the window below the bar whenever it is revealed (e.g.
+            // when the IME opens) — and on modern Android the fitted frame
+            // and its touch region can stick at [0,statusBarH] after the bar
+            // re-hides, leaving a dead strip with content under it. Clearing
+            // it while the bar is hidden keeps the frame at the full display;
+            // NO_LIMITS reinforces it for reveals driven purely by the system.
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR)
+            window?.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
             controller?.systemBarsBehavior =
                 androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             controller?.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+            val hideFlags = (View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or View.SYSTEM_UI_FLAG_FULLSCREEN)
+            window?.decorView?.let { decor ->
+                decor.systemUiVisibility = hideFlags
+                // The system reveals the bar when the IME opens, a user swipes,
+                // or a dialog grabs the window — and leaves it visible and
+                // touchable over the top strip. Insets dispatch on every such
+                // reveal, so re-apply the hide from there. Posted because the
+                // controller can't be driven mid-dispatch. Re-pushing the
+                // window attributes forces a real WMS relayout, which re-expands
+                // the window's frame (and its touch region) once the bar is
+                // hidden again instead of leaving it fitted at [0,statusBarH].
+                androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(decor) { v, insets ->
+                    if (insets.isVisible(androidx.core.view.WindowInsetsCompat.Type.statusBars())) {
+                        v.post {
+                            v.systemUiVisibility = hideFlags
+                            controller?.hide(androidx.core.view.WindowInsetsCompat.Type.statusBars())
+                            window?.attributes = window?.attributes
+                        }
+                    }
+                    androidx.core.view.ViewCompat.onApplyWindowInsets(v, insets)
+                }
+                // Same forced relayout for the initial hide: re-pushing the
+                // attributes makes WMS re-evaluate the frame under the
+                // now-hidden bar so the touch region covers the full surface.
+                decor.post { window?.attributes = window?.attributes }
+            }
             0
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+            window?.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR)
+            window?.decorView?.let { decor ->
+                androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(decor, null)
+                decor.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+            }
             controller?.show(androidx.core.view.WindowInsetsCompat.Type.statusBars())
             getStatusBarHeight()
         }

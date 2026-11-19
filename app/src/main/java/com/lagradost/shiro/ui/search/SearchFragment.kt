@@ -73,6 +73,27 @@ class SearchFragment : Fragment() {
             (activity?.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager)
                 ?.hideSoftInputFromWindow(view.windowToken, 0)
         }
+        // While the status bar is hidden the window never gets resized for the
+        // keyboard (resize behaves like pan), so the bottom search bar would sit
+        // under it. Ride the IME insets instead: push the search bar's bottom
+        // margin up by the keyboard height and drop it back when it closes. No
+        // status-bar reveal needed, so the bar stays hidden the whole time.
+        if (!topSearch && statusBarHidden) {
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+                val imeBottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
+                val navBottom = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
+                val margin = (imeBottom - navBottom).coerceAtLeast(0)
+                fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.let { search ->
+                    (search.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { lp ->
+                        if (lp.bottomMargin != margin) {
+                            lp.bottomMargin = margin
+                            search.layoutParams = lp
+                        }
+                    }
+                }
+                androidx.core.view.ViewCompat.onApplyWindowInsets(v, insets)
+            }
+        }
 //        if (context?.getKey(HAS_DISMISSED_SEARCH_INFO, false) == false) {
 //            val builder: AlertDialog.Builder =
 //                AlertDialog.Builder(getCurrentActivity()!!, R.style.AlertDialogCustom)
@@ -304,11 +325,14 @@ class SearchFragment : Fragment() {
                 60.toPx // view height
             )
 
-            /** Because resize-mode is always pan when in fullscreen mode!
-             *  This heavily fucks up bottom search
-             *  See https://stackoverflow.com/questions/7417123/android-how-to-adjust-layout-in-full-screen-mode-when-softkeyboard-is-visible
+            /** The keyboard would cover the bottom search bar while the window
+             *  stays under a hidden status bar (resize behaves like pan), so the
+             *  insets listener above pushes the bar up by the IME height
+             *  instead of revealing the status bar like the old workaround did.
+             *  ime() insets only dispatch on API 30+, so older versions still
+             *  need the reveal trick to get a resize.
              */
-            if (!topSearch && statusBarHidden) {
+            if (!topSearch && statusBarHidden && android.os.Build.VERSION.SDK_INT < 30) {
                 activity?.changeStatusBarState(!b)
             }
 

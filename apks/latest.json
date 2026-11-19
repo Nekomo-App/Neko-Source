@@ -1,14 +1,14 @@
 {
-    "version": "2.12.16",
-    "versionCode": 74,
+    "version": "2.12.17",
+    "versionCode": 75,
     "builds": [
         {
             "file": "Nekomo-phone-release.apk",
             "flavor": "phone",
             "channel": "stable",
-            "size": 26152568,
-            "sha256": "4bd85c20ffdb645912029506fdd22156c6af44ed90a4fda6fa3a0d3782317e7b",
-            "builtAt": "2026-11-18T22:14:47-08:00"
+            "size": 26152616,
+            "sha256": "39c46488840a854bdc0396c2403694f2f10a2107c06ca603d5f44b466a98421e",
+            "builtAt": "2026-11-19T02:38:01-08:00"
         },
         {
             "file": "Nekomo-phone-beta.apk",
@@ -30,9 +30,9 @@
             "file": "Nekomo-TV-release.apk",
             "flavor": "tv",
             "channel": "stable",
-            "size": 26226132,
-            "sha256": "ec7748ed5aa031450b225e3a1673cadfc417e44428507426c93640252e51134d",
-            "builtAt": "2026-11-18T22:14:47-08:00"
+            "size": 26226180,
+            "sha256": "d011fdb065b942d1c1f827d22104a16413822d021de2a25c9ff8c414a950c8eb",
+            "builtAt": "2026-11-19T02:38:01-08:00"
         },
         {
             "file": "Nekomo-TV-beta.apk",
