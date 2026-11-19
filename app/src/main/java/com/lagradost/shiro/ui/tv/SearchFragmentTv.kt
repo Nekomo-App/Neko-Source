@@ -49,47 +49,44 @@ class SearchFragmentTv : Fragment() {
             false
         )
 
-        fv<androidx.leanback.widget.SearchBar>(R.id.search_bar).setSearchBarListener(object : SearchBar.SearchBarListener {
-            override fun onSearchQueryChange(query: String?) {
-                if (query == null) return
-                thread {
-                    val data = searchNew(query)
-                    data?.let { data ->
-                        val filteredData =
-                            filterCardList(data.map {
-                                NekomoApi.CommonAnimePageData(
-                                    it.title,
-                                    it.poster,
-                                    it.slug,
-                                    it.title_english
-                                )
-                            })
-                        main {
-                            activity?.displayCardData(filteredData, fv<androidx.leanback.widget.HorizontalGridView>(R.id.search_recycler), fv<android.widget.TextView>(R.id.expand_text), adapter = adapter)
-                        }
+        fv<android.widget.TextView>(R.id.expand_text).text =
+            getString(R.string.tv_search_idle)
+
+        fun runSearch(query: String?) {
+            if (query.isNullOrBlank()) return
+            thread {
+                val data = searchNew(query)
+                data?.let { data ->
+                    val filteredData =
+                        filterCardList(data.map {
+                            NekomoApi.CommonAnimePageData(
+                                it.title,
+                                it.poster,
+                                it.slug,
+                                it.title_english
+                            )
+                        })
+                    main {
+                        activity?.displayCardData(filteredData, fv<androidx.leanback.widget.VerticalGridView>(R.id.search_recycler), fv<android.widget.TextView>(R.id.expand_text), adapter = adapter)
+                        fv<android.widget.TextView>(R.id.expand_text).text =
+                            if (filteredData.isNullOrEmpty()) getString(R.string.tv_search_no_results)
+                            else resources.getQuantityString(
+                                R.plurals.tv_search_results,
+                                filteredData.size,
+                                filteredData.size
+                            )
                     }
                 }
             }
+        }
+
+        fv<androidx.leanback.widget.SearchBar>(R.id.search_bar).setSearchBarListener(object : SearchBar.SearchBarListener {
+            override fun onSearchQueryChange(query: String?) {
+                runSearch(query)
+            }
 
             override fun onSearchQuerySubmit(query: String?) {
-                if (query == null) return
-                thread {
-                    val data = searchNew(query)
-                    data?.let { data ->
-                        val filteredData =
-                            filterCardList(data.map {
-                                NekomoApi.CommonAnimePageData(
-                                    it.title,
-                                    it.poster,
-                                    it.slug,
-                                    it.title_english
-                                )
-                            })
-                        main {
-                            activity?.displayCardData(filteredData, fv<androidx.leanback.widget.HorizontalGridView>(R.id.search_recycler), fv<android.widget.TextView>(R.id.expand_text), adapter = adapter)
-                        }
-                    }
-                }
+                runSearch(query)
             }
 
             override fun onKeyboardDismiss(query: String) {

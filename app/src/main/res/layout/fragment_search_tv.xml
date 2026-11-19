@@ -6,42 +6,102 @@
               android:layout_height="match_parent"
 >
     <include layout="@layout/wallpaper_backdrop"/>
-<LinearLayout
+    <LinearLayout
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               tools:context=".ui.tv.SearchFragmentTv"
               android:orientation="vertical"
->
-    <androidx.leanback.widget.SearchBar
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/search_bar"
-            android:layout_marginTop="10dp"
     >
-    </androidx.leanback.widget.SearchBar>
 
-    <TextView
-            android:focusable="false"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            tools:text="@string/favorites"
-            android:textStyle="bold"
-            android:textColor="?attr/textColor"
-            android:textSize="16sp"
-            android:padding="10dp"
-            android:id="@+id/expand_text"
-            android:layout_marginEnd="10dp"
-            android:layout_marginStart="10dp"
-    >
-    </TextView>
-    <androidx.leanback.widget.HorizontalGridView
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            tools:listitem="@layout/home_card"
-            android:id="@+id/search_recycler"
-            android:layout_margin="10dp"
-    />
+        <!-- Header panel: soft left veil over the wallpaper (same language as the
+             home hero) behind the title and the search bar so both stay readable.
+             The gradient goes on the LinearLayout itself — a match_parent View
+             inside a wrap_content FrameLayout would stretch the header to fill
+             the screen and push the results off the bottom. -->
+        <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/gradient_left"
+                android:paddingStart="56dp"
+                android:paddingEnd="56dp"
+                android:paddingTop="22dp"
+                android:paddingBottom="18dp"
+        >
+                <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp"
+                >
+                    <ImageView
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:src="@drawable/search_icon"
+                            app:tint="?attr/colorAccent"
+                            android:importantForAccessibility="no"
+                    />
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/title_search"
+                            android:textColor="?attr/textColor"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.12"
+                            android:layout_marginStart="14dp"
+                            android:importantForAccessibility="no"
+                    />
+                </LinearLayout>
+                <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                >
+                    <androidx.leanback.widget.SearchBar
+                            android:layout_width="0dp"
+                            android:layout_weight="62"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/search_bar"
+                    />
+                    <Space
+                            android:layout_width="0dp"
+                            android:layout_weight="38"
+                            android:layout_height="wrap_content"
+                    />
+                </LinearLayout>
+        </LinearLayout>
 
-</LinearLayout>
+        <!-- Status line: search hint while idle, result count / empty state otherwise. -->
+        <TextView
+                android:focusable="false"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="@string/favorites"
+                android:textStyle="bold"
+                android:textColor="?attr/textColorGrayWhite"
+                android:textSize="14sp"
+                android:letterSpacing="0.06"
+                android:padding="10dp"
+                android:id="@+id/expand_text"
+                android:layout_marginEnd="56dp"
+                android:layout_marginStart="56dp"
+        >
+        </TextView>
+
+        <!-- Multi-row poster grid: autofit columns by card width so D-pad
+             browsing covers the whole screen instead of a single strip. -->
+        <androidx.leanback.widget.VerticalGridView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:listitem="@layout/home_card"
+                android:id="@+id/search_recycler"
+                app:numberOfColumns="7"
+                android:paddingStart="46dp"
+                android:paddingEnd="46dp"
+                android:clipToPadding="false"
+        />
+
+    </LinearLayout>
 </FrameLayout>
