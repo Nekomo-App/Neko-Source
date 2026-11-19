@@ -746,6 +746,7 @@ class PlayerFragmentTv : VideoSupportFragment() {
                 // ExoPlayer renderer order: video(0), audio(1), text(2).
                 trackSelector.parameters = DefaultTrackSelector.ParametersBuilder(it)
                     .setRendererDisabled(2, true)
+                    .setPreferredAudioLanguage(com.lagradost.shiro.utils.integrations.IntegrationPrefs(it).audioLanguage.takeIf { lang -> lang.isNotEmpty() })
                     .clearSelectionOverrides()
                     .build()
                 SimpleExoPlayer.Builder(it)
@@ -874,11 +875,12 @@ class PlayerFragmentTv : VideoSupportFragment() {
         extractorLinks.add(link)
         val safeLinks = extractorLinks.toTypedArray()
         if (!hasAddedSources) generateGlue(false)
-        sources = Pair(data?.episodeIndex, safeLinks.sortedBy { -it.quality }.distinctBy { it.url })
+        val qualityCap = settingsManager?.let { preferredQualityCap(it) } ?: Qualities.UHD.value
+        sources = Pair(data?.episodeIndex, safeLinks.sortForPreferredQuality(qualityCap).distinctBy { it.url })
 
         // Prevent concurrentModification
         // Quickstart provided shiro is loaded and one other link, because I haven't figured out how to refresh the glue
-        if (safeLinks.size > 1 && (link.quality == Qualities.UHD.value || link.quality == Qualities.FullHd.value)) {
+        if (safeLinks.size > 1 && link.quality >= quickstartQuality(qualityCap)) {
             //if (link.name == "Shiro") {
             main {
                 initPlayerIfPossible(link)

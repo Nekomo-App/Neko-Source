@@ -58,6 +58,8 @@ class CustomSenderFactory : ReportSenderFactory {
 }
 
 class AcraApplication : Application() {
+    private var keepScreenOnListener: android.content.SharedPreferences.OnSharedPreferenceChangeListener? = null
+
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
         context = base
@@ -102,17 +104,30 @@ class AcraApplication : Application() {
         // cloudstream3 classes and loads installed .cs3 plugins on a bg thread.
         // Must run here (not attachBaseContext) because applicationContext is null until now.
         // Screenshots, screen recording and recents thumbnails are blocked in every screen of the app
+        val resumedActivity = arrayOfNulls<WeakReference<android.app.Activity>>(1)
         registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: android.os.Bundle?) {
                 com.lagradost.shiro.utils.CapturePolicy.apply(activity)
             }
             override fun onActivityStarted(activity: android.app.Activity) {}
-            override fun onActivityResumed(activity: android.app.Activity) { com.lagradost.shiro.utils.CapturePolicy.apply(activity); AppIdentity.applyTaskDescription(activity) }
+            override fun onActivityResumed(activity: android.app.Activity) {
+                resumedActivity[0] = WeakReference(activity)
+                com.lagradost.shiro.utils.CapturePolicy.apply(activity); AppIdentity.applyTaskDescription(activity)
+                com.lagradost.shiro.utils.KeepScreenOn.apply(activity)
+            }
             override fun onActivityPaused(activity: android.app.Activity) {}
             override fun onActivityStopped(activity: android.app.Activity) {}
             override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: android.os.Bundle) {}
             override fun onActivityDestroyed(activity: android.app.Activity) {}
         })
+        // Re-apply the keep-screen-on flag immediately when the toggle changes.
+        // The listener must be strongly referenced or the WeakHashMap in SharedPreferences drops it.
+        keepScreenOnListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == com.lagradost.shiro.utils.KeepScreenOn.KEY)
+                resumedActivity[0]?.get()?.let(com.lagradost.shiro.utils.KeepScreenOn::apply)
+        }
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this)
+            .registerOnSharedPreferenceChangeListener(keepScreenOnListener!!)
         normalSafeApiCall { CsPluginManager.init(this) }
         // NewPipe downloader must exist before cs3 YouTube/Invidious providers run (they use the extractor directly)
         normalSafeApiCall { com.lagradost.shiro.utils.Trailers.init() }

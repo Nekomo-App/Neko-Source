@@ -1,6 +1,8 @@
 package com.lagradost.shiro.ui
+import com.lagradost.shiro.utils.UiStyle
 import com.lagradost.shiro.utils.fv
 import com.lagradost.shiro.utils.safeNavigate
+import kotlin.math.roundToInt
 
 import DataStore.getKey
 import DataStore.removeKey
@@ -210,10 +212,39 @@ class MainActivity : CyaneaAppCompatActivity() {
     }
 
     @SuppressLint("MissingSuperCall")
+    /**
+     * Modern layout: detach the icon bar from the edges into a floating pill; Classic keeps it
+     * fixed and full-width. Called from onCreate and onResume so a mode picked during setup or
+     * in Appearance takes effect without a restart. The bar stays 0dp match-constraint wide —
+     * matchConstraintMaxWidth caps and centers it when the screen is wide (landscape).
+     */
+    private fun updateNavBarStyle() {
+        val navView = findViewById<NavigationBarView>(R.id.nav_view) ?: return
+        val lp = navView.layoutParams as? androidx.constraintlayout.widget.ConstraintLayout.LayoutParams ?: return
+        val d = resources.displayMetrics.density
+        fun Int.dp() = (this * d).roundToInt()
+        if (UiStyle.isModern(this)) {
+            lp.marginStart = 16.dp(); lp.marginEnd = 16.dp(); lp.bottomMargin = 14.dp()
+            lp.matchConstraintMaxWidth = 560.dp()
+            navView.layoutParams = lp
+            navView.background = androidx.core.content.ContextCompat.getDrawable(this, R.drawable.bg_floating_nav)
+            navView.elevation = 10.dp().toFloat()
+            navView.clipToOutline = true
+        } else {
+            lp.marginStart = 0; lp.marginEnd = 0; lp.bottomMargin = 0
+            lp.matchConstraintMaxWidth = 0
+            navView.layoutParams = lp
+            navView.setBackgroundColor(Cyanea.instance.backgroundColorDark)
+            navView.elevation = 0f
+            navView.clipToOutline = false
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         // This is needed to avoid NPE crash due to missing context
         init()
+        updateNavBarStyle()
         if (isInPlayer) {
             hideSystemUI()
         }
@@ -562,6 +593,11 @@ class MainActivity : CyaneaAppCompatActivity() {
         navView.itemRippleColor = ColorStateList.valueOf(usedColor)
         navView.itemIconTintList = ColorStateList(states, colors)
         navView.itemTextColor = ColorStateList(states, colors)
+
+        // Modern layout: detach the icon bar from the edges into a floating pill. Applied in
+        // onResume too so a mode picked during setup or in Appearance takes effect right away;
+        // matchConstraintMaxWidth caps and centers the bar in landscape.
+        updateNavBarStyle()
 
         // Uncommenting this fucks ripple
         //navView.itemBackground = ColorDrawable(Cyanea.instance.backgroundColorDark)

@@ -64,6 +64,13 @@
             app:defaultValue="true"
     />
     <SwitchPreference
+            android:icon="@drawable/ic_baseline_fullscreen_24"
+            app:key="keep_screen_on"
+            android:title="Keep screen on while using the app"
+            android:summary="The display never sleeps while Nekomo is open. The player keeps the screen on during playback either way."
+            app:defaultValue="false"
+    />
+    <SwitchPreference
             android:icon="@drawable/ic_baseline_open_in_browser_24"
             app:key="hide_open_website"
             android:title="Hide the open website button"

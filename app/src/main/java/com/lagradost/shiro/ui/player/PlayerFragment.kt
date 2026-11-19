@@ -452,10 +452,11 @@ class PlayerFragment : Fragment() {
                 fv<com.google.android.material.button.MaterialButton>(R.id.quickstart_btt)?.visibility = VISIBLE
             }
         }
-        sources = Pair(data?.episodeIndex, safeLinks.sortedBy { -it.quality }.distinctBy { it.url })
+        val qualityCap = preferredQualityCap(settingsManager)
+        sources = Pair(data?.episodeIndex, safeLinks.sortForPreferredQuality(qualityCap).distinctBy { it.url })
 
         // Quickstart
-        if (link.quality == Qualities.UHD.value || link.quality == Qualities.FullHd.value  /*Shiro().name*/) {
+        if (link.quality >= quickstartQuality(qualityCap)) {
             main {
                 initPlayerIfPossible(link)
             }
@@ -2325,6 +2326,7 @@ class PlayerFragment : Fragment() {
                         // subtitles render; a chosen external subtitle is flagged DEFAULT so it auto-selects.
                         trackSelector.parameters = DefaultTrackSelector.ParametersBuilder(getCurrentActivity()!!)
                             .setPreferredTextLanguage(IntegrationPrefs(guaranteedContext(context)).subtitleLanguage)
+                            .setPreferredAudioLanguage(IntegrationPrefs(guaranteedContext(context)).audioLanguage.takeIf { it.isNotEmpty() })
                             .setSelectUndeterminedTextLanguage(true)
                             .clearSelectionOverrides()
                             .build()

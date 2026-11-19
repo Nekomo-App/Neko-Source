@@ -52,6 +52,16 @@
             android:summary="Does not work if there's no player interaction during 3 episodes in a row"
             app:defaultValue="true"
     />
+    <ListPreference
+            android:icon="@drawable/ic_baseline_ondemand_video_24"
+            app:key="preferred_quality"
+            android:title="Preferred video quality"
+            android:summary="Lower resolutions are tried first; higher ones stay available as fallback"
+            app:entries="@array/VideoQualities"
+            app:entryValues="@array/VideoQualityValues"
+            app:defaultValue="3"
+            app:useSimpleSummaryProvider="true"
+    />
     <SwitchPreference
             android:icon="@drawable/ic_baseline_skip_next_24"
             app:key="skip_fillers"

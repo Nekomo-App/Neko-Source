@@ -8,6 +8,19 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:background="?attr/backgroundColor"
 >
+    <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/wallpaper_tv"
+            android:scaleType="centerCrop"
+            android:importantForAccessibility="no"
+    />
+    <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.62"
+            android:background="@drawable/wallpaper_scrim"
+    />
     <ProgressBar
             android:layout_width="50dp"
             android:layout_height="50dp"

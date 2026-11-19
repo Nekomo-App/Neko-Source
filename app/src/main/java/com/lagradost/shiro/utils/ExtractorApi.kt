@@ -19,6 +19,21 @@ enum class Qualities(var value: Int) {
     UHD(3) // 4k
 }
 
+/**
+ * "Preferred video quality" (Player settings): links at or below the cap come first (best
+ * within the cap wins), then anything above it nearest-first as fallback. A cap of
+ * [Qualities.UHD] means "no preference" and keeps the original highest-first order.
+ */
+fun preferredQualityCap(prefs: android.content.SharedPreferences): Int =
+    prefs.getString("preferred_quality", "${Qualities.UHD.value}")?.toIntOrNull() ?: Qualities.UHD.value
+
+fun Array<ExtractorLink>.sortForPreferredQuality(cap: Int): List<ExtractorLink> =
+    if (cap >= Qualities.UHD.value) sortedBy { -it.quality }
+    else sortedWith(compareBy({ it.quality > cap }, { if (it.quality <= cap) -it.quality else it.quality }))
+
+/** Links at or above this quality auto-start the player (same as the old UHD/FHD rule when no cap is set). */
+fun quickstartQuality(cap: Int): Int = minOf(cap, Qualities.FullHd.value)
+
 private val packedRegex = Regex("""eval\(function\(p,a,c,k,e,.*\)\)""")
 fun getPacked(string: String): String? {
     return packedRegex.find(string)?.value

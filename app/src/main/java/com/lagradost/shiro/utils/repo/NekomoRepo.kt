@@ -107,7 +107,12 @@ object NekomoRepo {
     /** Blocking. Returns null when the URL is not a Nekomo repository manifest. */
     fun fetch(url: String): Manifest? = try {
         val res = khttp.get(url, timeout = 30.0)
-        if (res.statusCode != 200) null else mapper.readValue<Manifest>(res.text).takeIf { it.marker != null }
+        if (res.statusCode == 200) {
+            mapper.readValue<Manifest>(res.text).takeIf { it.marker != null }
+        } else {
+            logError(Exception("NekomoRepo.fetch: HTTP ${res.statusCode} for $url"))
+            null
+        }
     } catch (t: Throwable) {
         logError(t)
         null

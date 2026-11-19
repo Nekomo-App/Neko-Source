@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Veil over the home wallpaper. Uses the theme's background color so the art reads as a
+     subtle texture under cards in every theme; the View applies the alpha. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+       android:shape="rectangle">
+    <solid android:color="?attr/backgroundColor"/>
+</shape>

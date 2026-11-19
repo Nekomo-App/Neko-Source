@@ -35,6 +35,10 @@ class IntegrationPrefs(private val prefs: SharedPreferences) {
     var subtitleLanguage: String
         get() = str("subtitle_language").ifEmpty { "en" }; set(v) = put("subtitle_language", v.lowercase())
 
+    /** Preferred audio track language (ISO code, e.g. "ja" for sub, "en" for dub). Empty = player default. */
+    var audioLanguage: String
+        get() = str("audio_language"); set(v) = put("audio_language", v.lowercase())
+
     var autoFetchSubtitles: Boolean
         get() = prefs.getBoolean("subtitle_auto_fetch", true); set(v) = prefs.edit().putBoolean("subtitle_auto_fetch", v).apply()
 

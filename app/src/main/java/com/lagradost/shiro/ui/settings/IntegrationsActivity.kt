@@ -141,6 +141,7 @@ class IntegrationsActivity : CyaneaAppCompatActivity() {
 
         header("Subtitles", "Subtitles are searched by title and episode when an episode starts, and can be picked from the player's subtitle button.")
         field("Subtitle language (ISO code, e.g. en, es, pt, fr)", "en", { prefs.subtitleLanguage }, { prefs.subtitleLanguage = it })
+        field("Preferred audio language (ISO code, e.g. ja, en)", "ja or en", { prefs.audioLanguage }, { prefs.audioLanguage = it })
         check("Automatically search and apply subtitles", { prefs.autoFetchSubtitles }, { prefs.autoFetchSubtitles = it })
         field("OpenSubtitles API key", "opensubtitles.com/consumers", { prefs.openSubsApiKey }, { prefs.openSubsApiKey = it })
         field("OpenSubtitles username", "username", { prefs.openSubsUser }, { prefs.openSubsUser = it })
