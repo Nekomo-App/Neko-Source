@@ -164,7 +164,7 @@ class LibraryFragment : Fragment() {
             null
         ) != null
         val hasMAL = guaranteedContext(context).getKey<String>(MAL_TOKEN_KEY, MAL_ACCOUNT_ID, null) != null
-        fv<android.widget.LinearLayout>(R.id.login_overlay)?.background = ColorDrawable(Cyanea.instance.backgroundColor)
+        fv<android.widget.LinearLayout>(R.id.login_overlay)?.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
         fv<android.widget.LinearLayout>(R.id.login_overlay)?.isVisible = !hasAniList && !hasMAL
         fv<android.widget.Button>(R.id.local_library_open)?.setOnClickListener {
             context?.let { c -> startActivity(android.content.Intent(c, LocalLibraryActivity::class.java)) }

@@ -1,0 +1,5 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+       android:shape="oval">
+    <!-- Hero carousel indicator dot; the current page gets alpha=1.0, others 0.35. -->
+    <solid android:color="?attr/textColor"/>
+</shape>

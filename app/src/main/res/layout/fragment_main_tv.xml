@@ -8,19 +8,7 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:background="?attr/backgroundColor"
 >
-    <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/wallpaper_tv"
-            android:scaleType="centerCrop"
-            android:importantForAccessibility="no"
-    />
-    <View
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:alpha="0.62"
-            android:background="@drawable/wallpaper_scrim"
-    />
+    <include layout="@layout/wallpaper_backdrop"/>
     <ProgressBar
             android:layout_width="50dp"
             android:layout_height="50dp"
@@ -60,10 +48,182 @@
 
         <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:animateLayoutChanges="true"
         >
+            <!-- Hero region (~47% of the screen): banner art fills it and the menu bar
+                 floats on top, so the artwork reaches the top edge like the reference. -->
+            <FrameLayout
+                    android:id="@+id/tv_hero_holder"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="47"
+            >
+            <FrameLayout
+                    android:id="@+id/tv_hero"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+            >
+                <ImageView
+                        android:id="@+id/tv_banner"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:importantForAccessibility="no"
+                />
+                <!-- Light veil so the art reads as atmosphere, matching the scrim. -->
+                <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:alpha="0.2"
+                        android:background="@drawable/wallpaper_scrim"
+                />
+                <!-- Left readability gradient over ~55% of the width, behind the text. -->
+                <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal">
+                    <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="55"
+                            android:alpha="0.85"
+                            android:background="@drawable/gradient_left"
+                    />
+                    <View
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="45"
+                    />
+                </LinearLayout>
+                <!-- Top fade so the icon row stays visible. -->
+                <View
+                        android:layout_width="match_parent"
+                        android:layout_height="110dp"
+                        android:layout_gravity="top"
+                        android:alpha="0.7"
+                        android:background="@drawable/gradient_top"
+                />
+                <!-- Bottom ramp (lower ~50%): art dissolves into solid theme background,
+                     blending seamlessly into the rows/wallpaper below. -->
+                <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="50"
+                    />
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="50"
+                            android:background="@drawable/gradient"
+                    />
+                </LinearLayout>
+                <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_gravity="bottom|start"
+                        android:layout_marginStart="56dp"
+                        android:layout_marginBottom="26dp"
+                >
+                    <TextView
+                            android:id="@+id/tv_hero_kicker"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="15sp"
+                            android:alpha="0.85"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:textColor="?attr/textColor"
+                            tools:text="NATIVE TITLE"
+                    />
+                    <TextView
+                            android:id="@+id/tv_hero_title"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:maxWidth="760dp"
+                            android:textSize="34sp"
+                            android:textStyle="bold"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:textColor="?attr/textColor"
+                            tools:text="FEATURED ANIME"
+                    />
+                    <TextView
+                            android:id="@+id/tv_hero_synopsis"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:maxWidth="620dp"
+                            android:layout_marginTop="8dp"
+                            android:textSize="14sp"
+                            android:alpha="0.85"
+                            android:maxLines="3"
+                            android:ellipsize="end"
+                            android:textColor="?attr/textColor"
+                            tools:text="Synopsis text goes here"
+                    />
+                    <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="18dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                    >
+                        <com.google.android.material.button.MaterialButton
+                                android:id="@+id/tv_hero_watch"
+                                android:layout_width="wrap_content"
+                                android:layout_height="44dp"
+                                android:minWidth="170dp"
+                                android:layout_marginEnd="16dp"
+                                android:text="@string/home_watch_now_text"
+                                android:background="@drawable/button_ripple"
+                                android:foreground="@drawable/button_outline"
+                                android:textColor="@color/white"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:nextFocusDown="@id/vertical_grid_view"
+                                android:nextFocusRight="@id/tv_hero_info"
+                                app:icon="@drawable/netflix_play"
+                                app:iconTint="@color/white"
+                                app:iconSize="24dp"
+                        />
+                        <com.google.android.material.button.MaterialButton
+                                android:id="@+id/tv_hero_info"
+                                android:layout_width="wrap_content"
+                                android:layout_height="44dp"
+                                android:minWidth="170dp"
+                                android:text="@string/home_more_info_text"
+                                android:theme="@style/Button.Black"
+                                android:background="@drawable/button_ripple"
+                                android:foreground="@drawable/button_outline"
+                                android:textColor="@color/white"
+                                android:focusable="true"
+                                android:clickable="true"
+                                android:nextFocusDown="@id/vertical_grid_view"
+                                android:nextFocusLeft="@id/tv_hero_watch"
+                                app:icon="@drawable/ic_baseline_info_24"
+                                app:iconTint="@color/white"
+                                app:iconSize="24dp"
+                        />
+                    </LinearLayout>
+                    <LinearLayout
+                            android:id="@+id/tv_hero_dots"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="14dp"
+                            android:importantForAccessibility="no"
+                    />
+                </LinearLayout>
+            </FrameLayout>
             <RelativeLayout
                     android:layout_margin="15dp"
                     android:layout_width="match_parent"
@@ -116,7 +276,7 @@
                         android:contentDescription="@string/title_search"
                         android:focusable="true"
                         android:nextFocusUp="@null"
-                        android:nextFocusDown="@id/vertical_grid_view"
+                        android:nextFocusDown="@id/tv_hero_watch"
                         android:clickable="true"
                         android:focusableInTouchMode="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
@@ -134,7 +294,7 @@
                         android:id="@+id/library_icon"
                         android:contentDescription="@string/library"
                         android:focusable="true"
-                        android:nextFocusDown="@id/vertical_grid_view"
+                        android:nextFocusDown="@id/tv_hero_watch"
                         android:clickable="true"
                         android:focusableInTouchMode="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
@@ -152,7 +312,7 @@
                         android:id="@+id/settings_icon"
                         android:contentDescription="@string/title_settings"
                         android:focusable="true"
-                        android:nextFocusDown="@id/vertical_grid_view"
+                        android:nextFocusDown="@id/tv_hero_watch"
                         android:clickable="true"
                         android:focusableInTouchMode="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
@@ -162,10 +322,12 @@
 
 
             </RelativeLayout>
+            </FrameLayout>
             <androidx.leanback.widget.VerticalGridView
                     android:visibility="gone"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="53"
                     android:orientation="vertical"
                     android:id="@+id/vertical_grid_view"
                     tools:listitem="@layout/vertical_grid_view_child"

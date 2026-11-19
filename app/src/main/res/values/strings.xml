@@ -15,6 +15,8 @@
     <string name="home_ongoing">Ongoing</string>
     <string name="main_watch_button_text">Play</string>
     <string name="main_info_button_text">Info</string>
+    <string name="home_watch_now_text">Watch Now</string>
+    <string name="home_more_info_text">More Info</string>
     <string name="bookmark_btt">Bookmark</string>
     <string name="bookmark_btt_hint">Toggle Bookmark</string>
     <string name="viewstate_btt">Mark episodes seen</string>

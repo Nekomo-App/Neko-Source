@@ -214,7 +214,8 @@ class DownloadFragment : Fragment() {
             MainActivity.statusHeight // view height
         )
 
-        fv<android.widget.RelativeLayout>(R.id.download_fragment_background)?.background = ColorDrawable(Cyanea.instance.backgroundColor)
+        // Transparent root so the shared wallpaper_backdrop (with its themed scrim) shows through.
+        fv<android.widget.RelativeLayout>(R.id.download_fragment_background)?.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             fv<androidx.cardview.widget.CardView>(R.id.queue_card)?.backgroundTintList = ColorStateList.valueOf(Cyanea.instance.backgroundColorDark)
         }

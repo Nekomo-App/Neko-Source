@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared app wallpaper + readability scrim. Include as the FIRST child of a screen's
+     root frame/relative layout (or wrap the old root in a FrameLayout) so the art sits
+     behind the content. The scrim uses the theme background color, so it matches every
+     theme automatically; adjust alpha here once to tune it everywhere. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             android:importantForAccessibility="no">
+    <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/wallpaper_app"
+            android:scaleType="centerCrop"
+            android:importantForAccessibility="no"/>
+    <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.62"
+            android:background="@drawable/wallpaper_scrim"/>
+</FrameLayout>

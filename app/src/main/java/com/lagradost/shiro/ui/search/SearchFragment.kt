@@ -106,7 +106,7 @@ class SearchFragment : Fragment() {
         )
         fv<android.view.View>(R.id.top_padding).layoutParams = topParams
 
-        fv<android.widget.LinearLayout>(R.id.search_results_layout)?.background = ColorDrawable(Cyanea.instance.backgroundColor)
+        fv<android.widget.LinearLayout>(R.id.search_results_layout)?.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
         fv<androidx.appcompat.widget.SearchView>(R.id.main_search)?.background = ColorDrawable(Cyanea.instance.backgroundColorDark)
 
         fv<androidx.core.widget.ContentLoadingProgressBar>(R.id.progress_bar)?.visibility = GONE

@@ -174,7 +174,7 @@ class SettingsFragmentNew : Fragment() {
             MainActivity.statusHeight // view height
         )
         fv<android.view.View>(R.id.top_padding_settings)?.layoutParams = topParams
-        fv<android.widget.LinearLayout>(R.id.settings_root)?.background = ColorDrawable(Cyanea.instance.backgroundColor)
+        fv<android.widget.LinearLayout>(R.id.settings_root)?.background = ColorDrawable(android.graphics.Color.TRANSPARENT)
 
         if (tvActivity == null) {
             // Because the user isn't necessarily fetched

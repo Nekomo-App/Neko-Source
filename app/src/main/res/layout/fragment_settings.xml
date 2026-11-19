@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<ScrollView
+<FrameLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+>
+<include layout="@layout/wallpaper_backdrop"/>
+<ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:fillViewport="true"
-        android:background="?attr/backgroundColor"
 >
     <LinearLayout
             android:id="@+id/settings_root"
@@ -245,4 +249,5 @@
 
     </LinearLayout>
 </ScrollView>
+</FrameLayout>
 

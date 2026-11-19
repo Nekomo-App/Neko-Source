@@ -1,0 +1,12 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+       android:shape="rectangle" >
+
+    <!-- Solid theme background at the left edge fading right, so hero text stays
+         readable over banner art (mirrors gradient.xml for the horizontal axis). -->
+    <gradient
+            android:angle="0"
+            android:startColor="?attr/backgroundColor"
+            android:endColor="#00000000"
+    />
+    <corners android:radius="0dp" />
+</shape>

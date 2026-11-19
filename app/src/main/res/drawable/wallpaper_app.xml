@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App-wide wallpaper. The television variant (drawable-television) supplies the
+     landscape art so shared layouts automatically get the right image per device. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+        android:src="@drawable/wallpaper_phone"/>

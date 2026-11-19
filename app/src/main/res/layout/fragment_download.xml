@@ -7,6 +7,7 @@
         android:layout_height="match_parent"
         android:id="@+id/download_fragment_background"
 >
+    <include layout="@layout/wallpaper_backdrop"/>
     <LinearLayout
             android:background="@color/transparent"
             android:layout_margin="10dp"

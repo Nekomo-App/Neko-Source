@@ -12,19 +12,7 @@
         android:backgroundTint="?attr/backgroundColor"
         android:background="?attr/backgroundColor"
 >
-    <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/wallpaper_phone"
-            android:scaleType="centerCrop"
-            android:importantForAccessibility="no"
-    />
-    <View
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:alpha="0.62"
-            android:background="@drawable/wallpaper_scrim"
-    />
+    <include layout="@layout/wallpaper_backdrop"/>
     <ProgressBar
             android:layout_width="50dp"
             android:layout_height="50dp"
@@ -80,9 +68,12 @@
                             android:nextFocusLeft="@+id/main_watch_button">
                         <requestFocus/>
                     </ImageView>
+                    <!-- Alpha matches the wallpaper scrim so the banner dissolves into
+                         the app background instead of a hard opaque band. -->
                     <View
                             android:layout_width="match_parent"
                             android:layout_height="412dp"
+                            android:alpha="0.62"
                             android:background="@drawable/gradient"/>
                     <View
                             android:layout_width="match_parent"
@@ -94,6 +85,15 @@
                             android:layout_height="140dp"
                             android:layout_gravity="top"
                             android:background="@drawable/gradient_gloss"/>
+                    <!-- Strong bottom ramp over the art's lower half: fully opaque theme
+                         color at the edge so the banner dissolves into the app background
+                         and floating navigation instead of ending in a hard cut. -->
+                    <View
+                            android:layout_width="match_parent"
+                            android:layout_height="210dp"
+                            android:layout_gravity="top"
+                            android:layout_marginTop="202dp"
+                            android:background="@drawable/gradient"/>
                     <!--
                     305 dp here (+ a new view) is needed to hide a
                     parallax scrolling bug making the gradient not cover the image
