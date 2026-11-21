@@ -199,3 +199,7 @@ By downloading, installing, modifying, distributing, contributing to, or using N
 - Brand: [Nekomo-Branding](https://github.com/Nekomo-App/Nekomo-Branding)
 - Fun: [Neko-Run](https://github.com/Nekomo-App/Neko-Run) (the pixel cat game on the website's 404 page)
 - History: [OG-Kuro-No-Source](https://github.com/Nekomo-App/OG-Kuro-No-Source) (archive) and [Nekomo-Web](https://github.com/Nekomo-App/Nekomo-Web) (retired)
+
+---
+
+*This project is developed and maintained by [Nekosphere](https://github.com/Nekomo-App) — founded, developed, and led by [N3K0](https://github.com/MarshMeadow).*
